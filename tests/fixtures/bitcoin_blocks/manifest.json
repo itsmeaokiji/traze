@@ -1,0 +1,265 @@
+{
+  "schema": "traze-retained-bitcoin-corpus-v1",
+  "prepared_date": "2026-10-12 Asia/Manila",
+  "qualification": "Copied from existing retained evidence; no new chain request. Heights and historical source views are recorded observations, not independent chain-position or current-consensus verification. Hashes bind fixture bytes; parser/proof checks are separate.",
+  "receipts": [
+    {
+      "path": "demo_results/mainnet_5243117.json",
+      "sha256": "2487f17691523c3c5e0f619faff78e17cd51b6b21137173956d5a0a1a75a65c1",
+      "started_at": "2026-10-03T13:27:44.130039+00:00",
+      "completed_at": "2026-10-03T13:29:09.046939+00:00",
+      "original_hemi_block": 5243117,
+      "source_checked_at": "2026-10-03T13:28:50.832423+00:00"
+    },
+    {
+      "path": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+      "sha256": "82e1184e6a564017ed4bf6a63a6fcc5bf6d413ea7df1993cf83bb4bbc27e85e5",
+      "started_at": "2026-10-04T16:58:51.956068+00:00",
+      "completed_at": "2026-10-04T17:00:34.641491+00:00",
+      "original_hemi_block": 4028425,
+      "source_checked_at": "2026-10-04T17:00:22.620905+00:00"
+    }
+  ],
+  "bodies": [
+    {
+      "height": 941741,
+      "block_hash": "00000000000000000001194cf11b4907e4101cc6a952516d9b8d9557c550b5a5",
+      "file": "00000000000000000001194cf11b4907e4101cc6a952516d9b8d9557c550b5a5.bin",
+      "bytes": 1608813,
+      "sha256": "bf32962e2545a3031076cf40f60e88a04102d8bb6cb3c1b6fad04aae68d45cfe",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "https://blockstream.info/api",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941742,
+      "block_hash": "000000000000000000017e468d77e3b9aef42fd62622bc0871d73a1f47a1ce66",
+      "file": "000000000000000000017e468d77e3b9aef42fd62622bc0871d73a1f47a1ce66.bin",
+      "bytes": 1658191,
+      "sha256": "766a29ebb371df0e0810691e96d41577ac6c0087be8fa3088a3924208021d385",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941743,
+      "block_hash": "00000000000000000000da712795cd93a0050daac93d4602ac6d60281c927a8e",
+      "file": "00000000000000000000da712795cd93a0050daac93d4602ac6d60281c927a8e.bin",
+      "bytes": 1608365,
+      "sha256": "b32878be83b00e885986651b4e78e8be1566ea9a9f919953694890547299b3f2",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941744,
+      "block_hash": "000000000000000000000c2587b742f777debf9b350ea3ecd3e307fd60996654",
+      "file": "000000000000000000000c2587b742f777debf9b350ea3ecd3e307fd60996654.bin",
+      "bytes": 1548759,
+      "sha256": "ee5b8a1586d8c9317d0f0cbc955ca12a13b778c16ac2307413e0d83365920708",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941745,
+      "block_hash": "00000000000000000001d44eba25e0b8db4f066c496145976bc12d197e936384",
+      "file": "00000000000000000001d44eba25e0b8db4f066c496145976bc12d197e936384.bin",
+      "bytes": 1668333,
+      "sha256": "b825c0b65ccbcbab44e0b47068e13d29e8f86dedb291d0fcfb76c055466c72f8",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941746,
+      "block_hash": "0000000000000000000059bcda3f6678ccaa63aaa1da93b6de38c5c22d1b76b8",
+      "file": "0000000000000000000059bcda3f6678ccaa63aaa1da93b6de38c5c22d1b76b8.bin",
+      "bytes": 1737548,
+      "sha256": "a15a3fb5ac3e141bdde1236a8046f41669bcc708a547d9c8f9fd655f433b77e4",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941747,
+      "block_hash": "0000000000000000000045eea255e32675c1c24ce0e21ee0b76b1a54c38e76af",
+      "file": "0000000000000000000045eea255e32675c1c24ce0e21ee0b76b1a54c38e76af.bin",
+      "bytes": 1859857,
+      "sha256": "f27de1624503c486c2a3b05fcec73551bc89d23e9d543e1be89b5847141bc3b4",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941748,
+      "block_hash": "000000000000000000009f706e0e1d021b04b6ed05ab3bb658844baf70200170",
+      "file": "000000000000000000009f706e0e1d021b04b6ed05ab3bb658844baf70200170.bin",
+      "bytes": 1804016,
+      "sha256": "3df1219bb632903428ca9c9a2193b8b6e700a525d59bb9abe57d6e3968789ed9",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941749,
+      "block_hash": "00000000000000000002154426a5bbc40b1fbcf117160524a8f1fd1cb3a13331",
+      "file": "00000000000000000002154426a5bbc40b1fbcf117160524a8f1fd1cb3a13331.bin",
+      "bytes": 685675,
+      "sha256": "2e5fcc3e9d8b4194db56a90315ea7ccbbda331282160ddd96c6ac53133c218be",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 941750,
+      "block_hash": "000000000000000000007652678fbf411c15f983d65c9b41d29785e0d40b3a6b",
+      "file": "000000000000000000007652678fbf411c15f983d65c9b41d29785e0d40b3a6b.bin",
+      "bytes": 2093828,
+      "sha256": "9e3dceb2aad9711f7b90bf2a5295e6d3fe5871cfcc51cad0e23c8d8c7b5a986f",
+      "observations": [
+        {
+          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
+        }
+      ]
+    },
+    {
+      "height": 965925,
+      "block_hash": "00000000000000000001d6db5603a386e71721a24543a1b7ff9ac2ac250fed32",
+      "file": "00000000000000000001d6db5603a386e71721a24543a1b7ff9ac2ac250fed32.bin",
+      "bytes": 1552977,
+      "sha256": "51b9b0ba6dff51603974638242e370b0b584d62924c0881ba28948979fdb3bb5",
+      "observations": [
+        {
+          "receipt": "demo_results/mainnet_5243117.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-03T13:29:09.046939+00:00"
+        }
+      ]
+    },
+    {
+      "height": 965926,
+      "block_hash": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1",
+      "file": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1.bin",
+      "bytes": 1614462,
+      "sha256": "18728ce04554b0d46cf7c6228f0671260b89661b07423433c1c90bee1894c71b",
+      "observations": [
+        {
+          "receipt": "demo_results/mainnet_5243117.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-03T13:29:09.046939+00:00"
+        }
+      ]
+    },
+    {
+      "height": 965927,
+      "block_hash": "000000000000000000000d283d0abb01af11aa544f833b37149304e0b40af9d2",
+      "file": "000000000000000000000d283d0abb01af11aa544f833b37149304e0b40af9d2.bin",
+      "bytes": 1493806,
+      "sha256": "49ee052c5300bc1be895327017fa1cc0f099b26331c3d4ee4dc7b53027903dee",
+      "observations": [
+        {
+          "receipt": "demo_results/mainnet_5243117.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-03T13:29:09.046939+00:00"
+        }
+      ]
+    },
+    {
+      "height": 965928,
+      "block_hash": "000000000000000000000074ae671b49c7d0c9ed460ce71f4df1e0353c42907c",
+      "file": "000000000000000000000074ae671b49c7d0c9ed460ce71f4df1e0353c42907c.bin",
+      "bytes": 209774,
+      "sha256": "d9e35ecb44b59d57c968775f0cdaa5adba8f9a378475198714e6d70ce4f51c74",
+      "observations": [
+        {
+          "receipt": "demo_results/mainnet_5243117.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-03T13:29:09.046939+00:00"
+        }
+      ]
+    },
+    {
+      "height": 965929,
+      "block_hash": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4",
+      "file": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4.bin",
+      "bytes": 1531725,
+      "sha256": "0e483d93926290aab9dbdf7aadc3570d6f3b0e363d1d993dab829102d3ff071e",
+      "observations": [
+        {
+          "receipt": "demo_results/mainnet_5243117.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-03T13:29:09.046939+00:00"
+        }
+      ]
+    },
+    {
+      "height": 965930,
+      "block_hash": "00000000000000000000c9d4ddb4f1e40811f5e1ea2d20ebe85ff092e89b9b3d",
+      "file": "00000000000000000000c9d4ddb4f1e40811f5e1ea2d20ebe85ff092e89b9b3d.bin",
+      "bytes": 1699907,
+      "sha256": "5f75a4f7c99ad23466124376b88b2ef69b72eb1c7d92062d348d9945e0c4c396",
+      "observations": [
+        {
+          "receipt": "demo_results/mainnet_5243117.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-03T13:29:09.046939+00:00"
+        }
+      ]
+    },
+    {
+      "height": 965931,
+      "block_hash": "000000000000000000011b8ec5e0cfd7b715e1134380a8bf68cb912665d7732a",
+      "file": "000000000000000000011b8ec5e0cfd7b715e1134380a8bf68cb912665d7732a.bin",
+      "bytes": 1469514,
+      "sha256": "43b1c34d196387d79c437951b9ccf3ea44a8bbaa3322cc3fdebe3e049d3ee70a",
+      "observations": [
+        {
+          "receipt": "demo_results/mainnet_5243117.json",
+          "recorded_body_source": "verified_local_body_cache",
+          "receipt_completed_at": "2026-10-03T13:29:09.046939+00:00"
+        }
+      ]
+    }
+  ],
+  "body_count": 17,
+  "total_body_bytes": 25845550
+}

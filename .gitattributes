@@ -1,0 +1,9 @@
+* text=auto eol=lf
+demo_results/*.json -text
+tests/fixtures/*.json -text
+tests/fixtures/**/*.json -text
+tests/fixtures/bitcoin_blocks/*.bin -text
+*.bin -text
+*.png -text
+*.jpg -text
+*.woff2 -text

@@ -1,0 +1,1301 @@
+{
+  "type": "milestone4_source_feasibility",
+  "started_at": "2026-10-04T18:40:45.257921+00:00",
+  "scope": "temporary metadata validator, no product fallback implementation",
+  "results": [
+    {
+      "source": "https://blockstream.info/api",
+      "mempool_reads": 0,
+      "cases": [
+        {
+          "case": "september_ordinary",
+          "hints": [
+            {
+              "target_timestamp": 1788783311,
+              "mtp_boundary": [
+                965931,
+                965932
+              ],
+              "mtp_steps": [
+                {
+                  "height": 484943,
+                  "mediantime": 1505263529
+                },
+                {
+                  "height": 727414,
+                  "mediantime": 1647326730
+                },
+                {
+                  "height": 848650,
+                  "mediantime": 1718817086
+                },
+                {
+                  "height": 909268,
+                  "mediantime": 1754726205
+                },
+                {
+                  "height": 939577,
+                  "mediantime": 1772794816
+                },
+                {
+                  "height": 954731,
+                  "mediantime": 1782064196
+                },
+                {
+                  "height": 962308,
+                  "mediantime": 1786636857
+                },
+                {
+                  "height": 966097,
+                  "mediantime": 1788881181
+                },
+                {
+                  "height": 964202,
+                  "mediantime": 1787776969
+                },
+                {
+                  "height": 965149,
+                  "mediantime": 1788339236
+                },
+                {
+                  "height": 965623,
+                  "mediantime": 1788613423
+                },
+                {
+                  "height": 965860,
+                  "mediantime": 1788741402
+                },
+                {
+                  "height": 965978,
+                  "mediantime": 1788815003
+                },
+                {
+                  "height": 965919,
+                  "mediantime": 1788775579
+                },
+                {
+                  "height": 965948,
+                  "mediantime": 1788793007
+                },
+                {
+                  "height": 965933,
+                  "mediantime": 1788783856
+                },
+                {
+                  "height": 965926,
+                  "mediantime": 1788781248
+                },
+                {
+                  "height": 965929,
+                  "mediantime": 1788782061
+                },
+                {
+                  "height": 965931,
+                  "mediantime": 1788783199
+                },
+                {
+                  "height": 965932,
+                  "mediantime": 1788783389
+                }
+              ],
+              "metadata_neighborhood": [
+                965919,
+                965934
+              ],
+              "observed_raw_timestamps": [
+                {
+                  "height": 965934,
+                  "hash": "00000000000000000001c2929a96566191dd25b1e01931429bd3e028121a0d2d",
+                  "timestamp": 1788786164
+                },
+                {
+                  "height": 965933,
+                  "hash": "00000000000000000000906fd65181eba0adcd2eef552ce624417bd4bcc68638",
+                  "timestamp": 1788785910
+                },
+                {
+                  "height": 965932,
+                  "hash": "0000000000000000000127f68e99377b601753ce4901f26eade0145c4734ec4e",
+                  "timestamp": 1788785873
+                },
+                {
+                  "height": 965931,
+                  "hash": "000000000000000000011b8ec5e0cfd7b715e1134380a8bf68cb912665d7732a",
+                  "timestamp": 1788785290
+                },
+                {
+                  "height": 965930,
+                  "hash": "00000000000000000000c9d4ddb4f1e40811f5e1ea2d20ebe85ff092e89b9b3d",
+                  "timestamp": 1788785013
+                },
+                {
+                  "height": 965929,
+                  "hash": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4",
+                  "timestamp": 1788784145
+                },
+                {
+                  "height": 965928,
+                  "hash": "000000000000000000000074ae671b49c7d0c9ed460ce71f4df1e0353c42907c",
+                  "timestamp": 1788783856
+                },
+                {
+                  "height": 965927,
+                  "hash": "000000000000000000000d283d0abb01af11aa544f833b37149304e0b40af9d2",
+                  "timestamp": 1788783389
+                },
+                {
+                  "height": 965926,
+                  "hash": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1",
+                  "timestamp": 1788783199
+                },
+                {
+                  "height": 965925,
+                  "hash": "00000000000000000001d6db5603a386e71721a24543a1b7ff9ac2ac250fed32",
+                  "timestamp": 1788782637
+                },
+                {
+                  "height": 965924,
+                  "hash": "00000000000000000000d07c171eba8dfa298b1d8713efeb5504488671f1538e",
+                  "timestamp": 1788782061
+                },
+                {
+                  "height": 965923,
+                  "hash": "0000000000000000000119b721e8009fd26953eaf58cc7bbc0eff540e8be89aa",
+                  "timestamp": 1788781745
+                },
+                {
+                  "height": 965922,
+                  "hash": "0000000000000000000098157a5dcc9c87e661c877954295d547428a04f55f0f",
+                  "timestamp": 1788781602
+                },
+                {
+                  "height": 965921,
+                  "hash": "000000000000000000018fe987bd9cab1487e044b7490db674a2c1f9f3ae9bcb",
+                  "timestamp": 1788781248
+                },
+                {
+                  "height": 965920,
+                  "hash": "00000000000000000001edf47c585bffe5a95d884735fd1dc92b1ca5f815078c",
+                  "timestamp": 1788780966
+                },
+                {
+                  "height": 965919,
+                  "hash": "000000000000000000017beef499a229789d9d5797ba8325c68d1ffbbe450601",
+                  "timestamp": 1788778339
+                }
+              ],
+              "selected_hint": {
+                "height": 965926,
+                "hash": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1",
+                "timestamp": 1788783199
+              },
+              "global_timestamp_floor_proven": false
+            },
+            {
+              "target_timestamp": 1788784211,
+              "mtp_boundary": [
+                965934,
+                965935
+              ],
+              "mtp_steps": [
+                {
+                  "height": 484943,
+                  "mediantime": 1505263529
+                },
+                {
+                  "height": 727414,
+                  "mediantime": 1647326730
+                },
+                {
+                  "height": 848650,
+                  "mediantime": 1718817086
+                },
+                {
+                  "height": 909268,
+                  "mediantime": 1754726205
+                },
+                {
+                  "height": 939577,
+                  "mediantime": 1772794816
+                },
+                {
+                  "height": 954731,
+                  "mediantime": 1782064196
+                },
+                {
+                  "height": 962308,
+                  "mediantime": 1786636857
+                },
+                {
+                  "height": 966097,
+                  "mediantime": 1788881181
+                },
+                {
+                  "height": 964202,
+                  "mediantime": 1787776969
+                },
+                {
+                  "height": 965149,
+                  "mediantime": 1788339236
+                },
+                {
+                  "height": 965623,
+                  "mediantime": 1788613423
+                },
+                {
+                  "height": 965860,
+                  "mediantime": 1788741402
+                },
+                {
+                  "height": 965978,
+                  "mediantime": 1788815003
+                },
+                {
+                  "height": 965919,
+                  "mediantime": 1788775579
+                },
+                {
+                  "height": 965948,
+                  "mediantime": 1788793007
+                },
+                {
+                  "height": 965933,
+                  "mediantime": 1788783856
+                },
+                {
+                  "height": 965940,
+                  "mediantime": 1788786395
+                },
+                {
+                  "height": 965936,
+                  "mediantime": 1788785290
+                },
+                {
+                  "height": 965934,
+                  "mediantime": 1788784145
+                },
+                {
+                  "height": 965935,
+                  "mediantime": 1788785013
+                }
+              ],
+              "metadata_neighborhood": [
+                965922,
+                965937
+              ],
+              "observed_raw_timestamps": [
+                {
+                  "height": 965937,
+                  "hash": "0000000000000000000177c260d6d53b2fa13c0f112b7f5dcfdee329eb3c0b0c",
+                  "timestamp": 1788787446
+                },
+                {
+                  "height": 965936,
+                  "hash": "00000000000000000001dfd90cf283a92faa7c92b8eeba5fdac4bafb92cfed61",
+                  "timestamp": 1788787283
+                },
+                {
+                  "height": 965935,
+                  "hash": "00000000000000000000a59cc65ea90f4c9730f4b4d99e14859e4f34abca2470",
+                  "timestamp": 1788786395
+                },
+                {
+                  "height": 965934,
+                  "hash": "00000000000000000001c2929a96566191dd25b1e01931429bd3e028121a0d2d",
+                  "timestamp": 1788786164
+                },
+                {
+                  "height": 965933,
+                  "hash": "00000000000000000000906fd65181eba0adcd2eef552ce624417bd4bcc68638",
+                  "timestamp": 1788785910
+                },
+                {
+                  "height": 965932,
+                  "hash": "0000000000000000000127f68e99377b601753ce4901f26eade0145c4734ec4e",
+                  "timestamp": 1788785873
+                },
+                {
+                  "height": 965931,
+                  "hash": "000000000000000000011b8ec5e0cfd7b715e1134380a8bf68cb912665d7732a",
+                  "timestamp": 1788785290
+                },
+                {
+                  "height": 965930,
+                  "hash": "00000000000000000000c9d4ddb4f1e40811f5e1ea2d20ebe85ff092e89b9b3d",
+                  "timestamp": 1788785013
+                },
+                {
+                  "height": 965929,
+                  "hash": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4",
+                  "timestamp": 1788784145
+                },
+                {
+                  "height": 965928,
+                  "hash": "000000000000000000000074ae671b49c7d0c9ed460ce71f4df1e0353c42907c",
+                  "timestamp": 1788783856
+                },
+                {
+                  "height": 965927,
+                  "hash": "000000000000000000000d283d0abb01af11aa544f833b37149304e0b40af9d2",
+                  "timestamp": 1788783389
+                },
+                {
+                  "height": 965926,
+                  "hash": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1",
+                  "timestamp": 1788783199
+                },
+                {
+                  "height": 965925,
+                  "hash": "00000000000000000001d6db5603a386e71721a24543a1b7ff9ac2ac250fed32",
+                  "timestamp": 1788782637
+                },
+                {
+                  "height": 965924,
+                  "hash": "00000000000000000000d07c171eba8dfa298b1d8713efeb5504488671f1538e",
+                  "timestamp": 1788782061
+                },
+                {
+                  "height": 965923,
+                  "hash": "0000000000000000000119b721e8009fd26953eaf58cc7bbc0eff540e8be89aa",
+                  "timestamp": 1788781745
+                },
+                {
+                  "height": 965922,
+                  "hash": "0000000000000000000098157a5dcc9c87e661c877954295d547428a04f55f0f",
+                  "timestamp": 1788781602
+                }
+              ],
+              "selected_hint": {
+                "height": 965929,
+                "hash": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4",
+                "timestamp": 1788784145
+              },
+              "global_timestamp_floor_proven": false
+            },
+            {
+              "target_timestamp": 1788791411,
+              "mtp_boundary": [
+                965947,
+                965948
+              ],
+              "mtp_steps": [
+                {
+                  "height": 484943,
+                  "mediantime": 1505263529
+                },
+                {
+                  "height": 727414,
+                  "mediantime": 1647326730
+                },
+                {
+                  "height": 848650,
+                  "mediantime": 1718817086
+                },
+                {
+                  "height": 909268,
+                  "mediantime": 1754726205
+                },
+                {
+                  "height": 939577,
+                  "mediantime": 1772794816
+                },
+                {
+                  "height": 954731,
+                  "mediantime": 1782064196
+                },
+                {
+                  "height": 962308,
+                  "mediantime": 1786636857
+                },
+                {
+                  "height": 966097,
+                  "mediantime": 1788881181
+                },
+                {
+                  "height": 964202,
+                  "mediantime": 1787776969
+                },
+                {
+                  "height": 965149,
+                  "mediantime": 1788339236
+                },
+                {
+                  "height": 965623,
+                  "mediantime": 1788613423
+                },
+                {
+                  "height": 965860,
+                  "mediantime": 1788741402
+                },
+                {
+                  "height": 965978,
+                  "mediantime": 1788815003
+                },
+                {
+                  "height": 965919,
+                  "mediantime": 1788775579
+                },
+                {
+                  "height": 965948,
+                  "mediantime": 1788793007
+                },
+                {
+                  "height": 965933,
+                  "mediantime": 1788783856
+                },
+                {
+                  "height": 965940,
+                  "mediantime": 1788786395
+                },
+                {
+                  "height": 965944,
+                  "mediantime": 1788788920
+                },
+                {
+                  "height": 965946,
+                  "mediantime": 1788789142
+                },
+                {
+                  "height": 965947,
+                  "mediantime": 1788789922
+                }
+              ],
+              "metadata_neighborhood": [
+                965935,
+                965950
+              ],
+              "observed_raw_timestamps": [
+                {
+                  "height": 965950,
+                  "hash": "0000000000000000000142bb6a9a03aaebf6ef42efd646864ed7910d0a66ee44",
+                  "timestamp": 1788797365
+                },
+                {
+                  "height": 965949,
+                  "hash": "0000000000000000000234698784de6548b86fb922d224ef53a22ce66cb7a777",
+                  "timestamp": 1788795466
+                },
+                {
+                  "height": 965948,
+                  "hash": "0000000000000000000063273d5cd7d73620a8953d147516dc76cc0d75c44c12",
+                  "timestamp": 1788795106
+                },
+                {
+                  "height": 965947,
+                  "hash": "00000000000000000000aa190050b1299493a53b4cc44b154ed64c73645b7465",
+                  "timestamp": 1788794807
+                },
+                {
+                  "height": 965946,
+                  "hash": "00000000000000000001c2f9e9f9401cddec5e1814b5698770b5865c3cdeebca",
+                  "timestamp": 1788794608
+                },
+                {
+                  "height": 965945,
+                  "hash": "0000000000000000000040ef5a016a905135371f38308c1e615aafbfcd2ade56",
+                  "timestamp": 1788794036
+                },
+                {
+                  "height": 965944,
+                  "hash": "00000000000000000001804c5744e3ac34799aab37dd87a88feba76a84969c6e",
+                  "timestamp": 1788793199
+                },
+                {
+                  "height": 965943,
+                  "hash": "000000000000000000005d4acc980cd626f39659308cfdb88ca7eb3682620d3d",
+                  "timestamp": 1788793007
+                },
+                {
+                  "height": 965942,
+                  "hash": "000000000000000000005a8b873ddd86b0fd9bd6e92af63300c09069ba87d876",
+                  "timestamp": 1788789922
+                },
+                {
+                  "height": 965941,
+                  "hash": "000000000000000000021d99af9921f1d3aac7169902f505c48cc21db27f9096",
+                  "timestamp": 1788789142
+                },
+                {
+                  "height": 965940,
+                  "hash": "00000000000000000001916fe1924dc512dd0bdfc477d4511be186e14f40ac97",
+                  "timestamp": 1788789098
+                },
+                {
+                  "height": 965939,
+                  "hash": "00000000000000000000781dd9d4cb02c31e1f37e90b212e2dc85a772a3b3269",
+                  "timestamp": 1788788920
+                },
+                {
+                  "height": 965938,
+                  "hash": "00000000000000000001a051a23dbd1d9f292996712ba6144362ff1e0b6419f0",
+                  "timestamp": 1788788622
+                },
+                {
+                  "height": 965937,
+                  "hash": "0000000000000000000177c260d6d53b2fa13c0f112b7f5dcfdee329eb3c0b0c",
+                  "timestamp": 1788787446
+                },
+                {
+                  "height": 965936,
+                  "hash": "00000000000000000001dfd90cf283a92faa7c92b8eeba5fdac4bafb92cfed61",
+                  "timestamp": 1788787283
+                },
+                {
+                  "height": 965935,
+                  "hash": "00000000000000000000a59cc65ea90f4c9730f4b4d99e14859e4f34abca2470",
+                  "timestamp": 1788786395
+                }
+              ],
+              "selected_hint": {
+                "height": 965942,
+                "hash": "000000000000000000005a8b873ddd86b0fd9bd6e92af63300c09069ba87d876",
+                "timestamp": 1788789922
+              },
+              "global_timestamp_floor_proven": false
+            }
+          ],
+          "candidate_window": [
+            965925,
+            965943
+          ],
+          "known_publication_height": 965931,
+          "known_publication_inside_window": true,
+          "mtp_header_control": {
+            "height": 965934,
+            "mediantime_recomputed": 1788784145,
+            "headers": [
+              {
+                "height": 965924,
+                "hash": "00000000000000000000d07c171eba8dfa298b1d8713efeb5504488671f1538e",
+                "header_hex": "0060b925aa89bee840f5efc0bbc78cf5ea5369d29f00e821b719010000000000000000006b9dae9ba8674fac4886ebcfa079b4c7715c5124082034b762094c38ff4a9d30eda59e6a5e35021715077481",
+                "timestamp": 1788782061
+              },
+              {
+                "height": 965925,
+                "hash": "00000000000000000001d6db5603a386e71721a24543a1b7ff9ac2ac250fed32",
+                "header_hex": "0000903d8e53f17186480455ebef13871d8b29fa8dba1e177cd00000000000000000000032a5d710a2d5aeb771c4118ee3934d34ec5fd94981ab234011398cf00564f4d12da89e6a5e3502170edf7803",
+                "timestamp": 1788782637
+              },
+              {
+                "height": 965926,
+                "hash": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1",
+                "header_hex": "00a09b2232ed0f25acc29affb7a14345a22117e786a30356dbd601000000000000000000796608cc24788b5618ee739c91539e0b9e1d081d24e427d924e7c4db5598a0565faa9e6a5e35021707bd0b05",
+                "timestamp": 1788783199
+              },
+              {
+                "height": 965927,
+                "hash": "000000000000000000000d283d0abb01af11aa544f833b37149304e0b40af9d2",
+                "header_hex": "00c06b24a1b36830ca78fba51ef7c60b5f7c3585a2a13929dd910000000000000000000025e0ab43e76bc4b0fec8737ac7154c72729c66b3b188e5f5569d9ec48e64a1ba1dab9e6a5e350217d9b71c09",
+                "timestamp": 1788783389
+              },
+              {
+                "height": 965928,
+                "hash": "000000000000000000000074ae671b49c7d0c9ed460ce71f4df1e0353c42907c",
+                "header_hex": "00e0ff3fd2f90ab4e0049314373b834f54aa11af01bb0a3d280d000000000000000000000ea9a75683975311ad8c498ac3723cb3747cab56017da72c5509fff2129c83adf0ac9e6a5e350217dcd912ca",
+                "timestamp": 1788783856
+              },
+              {
+                "height": 965929,
+                "hash": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4",
+                "header_hex": "00c04a2e7c90423c35e0f14d1fe70c46edc9d0c7491b67ae740000000000000000000000cfef0e2eeee5e7bb43d4d328723b4c6119b0bf98190667d034d44b21b08ca8c611ae9e6a5e35021714470fc4",
+                "timestamp": 1788784145
+              },
+              {
+                "height": 965930,
+                "hash": "00000000000000000000c9d4ddb4f1e40811f5e1ea2d20ebe85ff092e89b9b3d",
+                "header_hex": "00e00020d4885752dec99b25a27f37cdf323b7e0bc8337027b4d01000000000000000000cacf8779f806a9eaea3375b8e8574f8b958d7e1b65c6010bbaf6bccf8d6dda3575b19e6a5e3502171a623f85",
+                "timestamp": 1788785013
+              },
+              {
+                "height": 965931,
+                "hash": "000000000000000000011b8ec5e0cfd7b715e1134380a8bf68cb912665d7732a",
+                "header_hex": "008028263d9b9be892f05fe8eb202deae1f51108e4f1b4ddd4c9000000000000000000008a9dfb37f08c6e52e3d00871982b0babd87233938fc9607811eddcaa88ad70918ab29e6a5e3502179fdbed52",
+                "timestamp": 1788785290
+              },
+              {
+                "height": 965932,
+                "hash": "0000000000000000000127f68e99377b601753ce4901f26eade0145c4734ec4e",
+                "header_hex": "000000282a73d7652691cb68bfa8804313e115b7d7cfe0c58e1b01000000000000000000f8f0a2b72059da4ead0a73d2704061ad377d2e60c731180551ba43154d418ac1d1b49e6a5e35021740e0dfd3",
+                "timestamp": 1788785873
+              },
+              {
+                "height": 965933,
+                "hash": "00000000000000000000906fd65181eba0adcd2eef552ce624417bd4bcc68638",
+                "header_hex": "000000364eec34475c14e0ad6ef20149ce5317607b37998ef62701000000000000000000fbacccecd837196f3b46db926b17cbd2265cfb0dcc5ea60edef19e7d518dbb16f6b49e6a5e350217cb8c5792",
+                "timestamp": 1788785910
+              },
+              {
+                "height": 965934,
+                "hash": "00000000000000000001c2929a96566191dd25b1e01931429bd3e028121a0d2d",
+                "header_hex": "0040a5213886c6bcd47b4124e62c55ef2ecdada0eb8151d66f9000000000000000000000e391d91db1dac7f332debbd02d7ca66552ceff6670a716c12890ad2119e3c230f4b59e6a5e35021710adfec8",
+                "timestamp": 1788786164
+              }
+            ],
+            "full_spv_or_expected_difficulty_verified": false
+          },
+          "qualification": "Observed historical metadata heuristic; no body scan or global ordering proof"
+        },
+        {
+          "case": "march_later",
+          "hints": [
+            {
+              "target_timestamp": 1774206911,
+              "mtp_boundary": [
+                941749,
+                941750
+              ],
+              "mtp_steps": [
+                {
+                  "height": 484943,
+                  "mediantime": 1505263529
+                },
+                {
+                  "height": 727414,
+                  "mediantime": 1647326730
+                },
+                {
+                  "height": 848650,
+                  "mediantime": 1718817086
+                },
+                {
+                  "height": 909268,
+                  "mediantime": 1754726205
+                },
+                {
+                  "height": 939577,
+                  "mediantime": 1772794816
+                },
+                {
+                  "height": 954731,
+                  "mediantime": 1782064196
+                },
+                {
+                  "height": 947154,
+                  "mediantime": 1777465392
+                },
+                {
+                  "height": 943365,
+                  "mediantime": 1775135966
+                },
+                {
+                  "height": 941471,
+                  "mediantime": 1774039972
+                },
+                {
+                  "height": 942418,
+                  "mediantime": 1774585747
+                },
+                {
+                  "height": 941944,
+                  "mediantime": 1774308183
+                },
+                {
+                  "height": 941707,
+                  "mediantime": 1774180310
+                },
+                {
+                  "height": 941825,
+                  "mediantime": 1774245375
+                },
+                {
+                  "height": 941766,
+                  "mediantime": 1774214635
+                },
+                {
+                  "height": 941736,
+                  "mediantime": 1774195352
+                },
+                {
+                  "height": 941751,
+                  "mediantime": 1774208223
+                },
+                {
+                  "height": 941743,
+                  "mediantime": 1774200437
+                },
+                {
+                  "height": 941747,
+                  "mediantime": 1774204310
+                },
+                {
+                  "height": 941749,
+                  "mediantime": 1774206105
+                },
+                {
+                  "height": 941750,
+                  "mediantime": 1774207256
+                }
+              ],
+              "metadata_neighborhood": [
+                941737,
+                941752
+              ],
+              "observed_raw_timestamps": [
+                {
+                  "height": 941752,
+                  "hash": "00000000000000000000682ecee7a54d719cbfdb5c22a068fc81be9b39caa263",
+                  "timestamp": 1774210990
+                },
+                {
+                  "height": 941751,
+                  "hash": "000000000000000000007c498644e488e1be003f1e78cefe6a6d9ba0a176fe8a",
+                  "timestamp": 1774210213
+                },
+                {
+                  "height": 941750,
+                  "hash": "000000000000000000007652678fbf411c15f983d65c9b41d29785e0d40b3a6b",
+                  "timestamp": 1774209785
+                },
+                {
+                  "height": 941749,
+                  "hash": "00000000000000000002154426a5bbc40b1fbcf117160524a8f1fd1cb3a13331",
+                  "timestamp": 1774209712
+                },
+                {
+                  "height": 941748,
+                  "hash": "000000000000000000009f706e0e1d021b04b6ed05ab3bb658844baf70200170",
+                  "timestamp": 1774209496
+                },
+                {
+                  "height": 941747,
+                  "hash": "0000000000000000000045eea255e32675c1c24ce0e21ee0b76b1a54c38e76af",
+                  "timestamp": 1774208853
+                },
+                {
+                  "height": 941746,
+                  "hash": "0000000000000000000059bcda3f6678ccaa63aaa1da93b6de38c5c22d1b76b8",
+                  "timestamp": 1774208223
+                },
+                {
+                  "height": 941745,
+                  "hash": "00000000000000000001d44eba25e0b8db4f066c496145976bc12d197e936384",
+                  "timestamp": 1774207256
+                },
+                {
+                  "height": 941744,
+                  "hash": "000000000000000000000c2587b742f777debf9b350ea3ecd3e307fd60996654",
+                  "timestamp": 1774206105
+                },
+                {
+                  "height": 941743,
+                  "hash": "00000000000000000000da712795cd93a0050daac93d4602ac6d60281c927a8e",
+                  "timestamp": 1774205688
+                },
+                {
+                  "height": 941742,
+                  "hash": "000000000000000000017e468d77e3b9aef42fd62622bc0871d73a1f47a1ce66",
+                  "timestamp": 1774204310
+                },
+                {
+                  "height": 941741,
+                  "hash": "00000000000000000001194cf11b4907e4101cc6a952516d9b8d9557c550b5a5",
+                  "timestamp": 1774203771
+                },
+                {
+                  "height": 941740,
+                  "hash": "0000000000000000000142de2d0214b79adb5a8ab8ecefdbb54a81bc26bf858c",
+                  "timestamp": 1774201234
+                },
+                {
+                  "height": 941739,
+                  "hash": "00000000000000000000771eae3215e9b879d3f3afc84b9079e9351b3623b615",
+                  "timestamp": 1774200947
+                },
+                {
+                  "height": 941738,
+                  "hash": "00000000000000000001193de6d90cc9e88eb281c7f2c153f0de9fd07262e27d",
+                  "timestamp": 1774200437
+                },
+                {
+                  "height": 941737,
+                  "hash": "000000000000000000007725456003e3f2fca241a8a122b2237f356d4b01f254",
+                  "timestamp": 1774200209
+                }
+              ],
+              "selected_hint": {
+                "height": 941744,
+                "hash": "000000000000000000000c2587b742f777debf9b350ea3ecd3e307fd60996654",
+                "timestamp": 1774206105
+              },
+              "global_timestamp_floor_proven": false
+            },
+            {
+              "target_timestamp": 1774207811,
+              "mtp_boundary": [
+                941750,
+                941751
+              ],
+              "mtp_steps": [
+                {
+                  "height": 484943,
+                  "mediantime": 1505263529
+                },
+                {
+                  "height": 727414,
+                  "mediantime": 1647326730
+                },
+                {
+                  "height": 848650,
+                  "mediantime": 1718817086
+                },
+                {
+                  "height": 909268,
+                  "mediantime": 1754726205
+                },
+                {
+                  "height": 939577,
+                  "mediantime": 1772794816
+                },
+                {
+                  "height": 954731,
+                  "mediantime": 1782064196
+                },
+                {
+                  "height": 947154,
+                  "mediantime": 1777465392
+                },
+                {
+                  "height": 943365,
+                  "mediantime": 1775135966
+                },
+                {
+                  "height": 941471,
+                  "mediantime": 1774039972
+                },
+                {
+                  "height": 942418,
+                  "mediantime": 1774585747
+                },
+                {
+                  "height": 941944,
+                  "mediantime": 1774308183
+                },
+                {
+                  "height": 941707,
+                  "mediantime": 1774180310
+                },
+                {
+                  "height": 941825,
+                  "mediantime": 1774245375
+                },
+                {
+                  "height": 941766,
+                  "mediantime": 1774214635
+                },
+                {
+                  "height": 941736,
+                  "mediantime": 1774195352
+                },
+                {
+                  "height": 941751,
+                  "mediantime": 1774208223
+                },
+                {
+                  "height": 941743,
+                  "mediantime": 1774200437
+                },
+                {
+                  "height": 941747,
+                  "mediantime": 1774204310
+                },
+                {
+                  "height": 941749,
+                  "mediantime": 1774206105
+                },
+                {
+                  "height": 941750,
+                  "mediantime": 1774207256
+                }
+              ],
+              "metadata_neighborhood": [
+                941738,
+                941753
+              ],
+              "observed_raw_timestamps": [
+                {
+                  "height": 941753,
+                  "hash": "0000000000000000000055c461df5d7c4e858fafc3fee281e90b11c4e7d0d871",
+                  "timestamp": 1774212430
+                },
+                {
+                  "height": 941752,
+                  "hash": "00000000000000000000682ecee7a54d719cbfdb5c22a068fc81be9b39caa263",
+                  "timestamp": 1774210990
+                },
+                {
+                  "height": 941751,
+                  "hash": "000000000000000000007c498644e488e1be003f1e78cefe6a6d9ba0a176fe8a",
+                  "timestamp": 1774210213
+                },
+                {
+                  "height": 941750,
+                  "hash": "000000000000000000007652678fbf411c15f983d65c9b41d29785e0d40b3a6b",
+                  "timestamp": 1774209785
+                },
+                {
+                  "height": 941749,
+                  "hash": "00000000000000000002154426a5bbc40b1fbcf117160524a8f1fd1cb3a13331",
+                  "timestamp": 1774209712
+                },
+                {
+                  "height": 941748,
+                  "hash": "000000000000000000009f706e0e1d021b04b6ed05ab3bb658844baf70200170",
+                  "timestamp": 1774209496
+                },
+                {
+                  "height": 941747,
+                  "hash": "0000000000000000000045eea255e32675c1c24ce0e21ee0b76b1a54c38e76af",
+                  "timestamp": 1774208853
+                },
+                {
+                  "height": 941746,
+                  "hash": "0000000000000000000059bcda3f6678ccaa63aaa1da93b6de38c5c22d1b76b8",
+                  "timestamp": 1774208223
+                },
+                {
+                  "height": 941745,
+                  "hash": "00000000000000000001d44eba25e0b8db4f066c496145976bc12d197e936384",
+                  "timestamp": 1774207256
+                },
+                {
+                  "height": 941744,
+                  "hash": "000000000000000000000c2587b742f777debf9b350ea3ecd3e307fd60996654",
+                  "timestamp": 1774206105
+                },
+                {
+                  "height": 941743,
+                  "hash": "00000000000000000000da712795cd93a0050daac93d4602ac6d60281c927a8e",
+                  "timestamp": 1774205688
+                },
+                {
+                  "height": 941742,
+                  "hash": "000000000000000000017e468d77e3b9aef42fd62622bc0871d73a1f47a1ce66",
+                  "timestamp": 1774204310
+                },
+                {
+                  "height": 941741,
+                  "hash": "00000000000000000001194cf11b4907e4101cc6a952516d9b8d9557c550b5a5",
+                  "timestamp": 1774203771
+                },
+                {
+                  "height": 941740,
+                  "hash": "0000000000000000000142de2d0214b79adb5a8ab8ecefdbb54a81bc26bf858c",
+                  "timestamp": 1774201234
+                },
+                {
+                  "height": 941739,
+                  "hash": "00000000000000000000771eae3215e9b879d3f3afc84b9079e9351b3623b615",
+                  "timestamp": 1774200947
+                },
+                {
+                  "height": 941738,
+                  "hash": "00000000000000000001193de6d90cc9e88eb281c7f2c153f0de9fd07262e27d",
+                  "timestamp": 1774200437
+                }
+              ],
+              "selected_hint": {
+                "height": 941745,
+                "hash": "00000000000000000001d44eba25e0b8db4f066c496145976bc12d197e936384",
+                "timestamp": 1774207256
+              },
+              "global_timestamp_floor_proven": false
+            },
+            {
+              "target_timestamp": 1774215011,
+              "mtp_boundary": [
+                941767,
+                941768
+              ],
+              "mtp_steps": [
+                {
+                  "height": 484943,
+                  "mediantime": 1505263529
+                },
+                {
+                  "height": 727414,
+                  "mediantime": 1647326730
+                },
+                {
+                  "height": 848650,
+                  "mediantime": 1718817086
+                },
+                {
+                  "height": 909268,
+                  "mediantime": 1754726205
+                },
+                {
+                  "height": 939577,
+                  "mediantime": 1772794816
+                },
+                {
+                  "height": 954731,
+                  "mediantime": 1782064196
+                },
+                {
+                  "height": 947154,
+                  "mediantime": 1777465392
+                },
+                {
+                  "height": 943365,
+                  "mediantime": 1775135966
+                },
+                {
+                  "height": 941471,
+                  "mediantime": 1774039972
+                },
+                {
+                  "height": 942418,
+                  "mediantime": 1774585747
+                },
+                {
+                  "height": 941944,
+                  "mediantime": 1774308183
+                },
+                {
+                  "height": 941707,
+                  "mediantime": 1774180310
+                },
+                {
+                  "height": 941825,
+                  "mediantime": 1774245375
+                },
+                {
+                  "height": 941766,
+                  "mediantime": 1774214635
+                },
+                {
+                  "height": 941795,
+                  "mediantime": 1774226462
+                },
+                {
+                  "height": 941780,
+                  "mediantime": 1774217363
+                },
+                {
+                  "height": 941773,
+                  "mediantime": 1774216016
+                },
+                {
+                  "height": 941769,
+                  "mediantime": 1774215433
+                },
+                {
+                  "height": 941767,
+                  "mediantime": 1774214766
+                },
+                {
+                  "height": 941768,
+                  "mediantime": 1774215137
+                }
+              ],
+              "metadata_neighborhood": [
+                941755,
+                941770
+              ],
+              "observed_raw_timestamps": [
+                {
+                  "height": 941770,
+                  "hash": "00000000000000000000792e324c7f0b07fed7e9075ec5ea36e8ef70e781fda5",
+                  "timestamp": 1774216319
+                },
+                {
+                  "height": 941769,
+                  "hash": "00000000000000000001e36f998ebcd2c625b1da53e31a41989bb22a908524f2",
+                  "timestamp": 1774216044
+                },
+                {
+                  "height": 941768,
+                  "hash": "000000000000000000003785d97395b56c575753f973586d9f39a1dd84cb2833",
+                  "timestamp": 1774216016
+                },
+                {
+                  "height": 941767,
+                  "hash": "0000000000000000000027b67d3d5e43e973633ce56908644428533e71767bac",
+                  "timestamp": 1774215622
+                },
+                {
+                  "height": 941766,
+                  "hash": "00000000000000000001e876477ccfa4c6307861c7652ac72a0e22a8c999365e",
+                  "timestamp": 1774215555
+                },
+                {
+                  "height": 941765,
+                  "hash": "00000000000000000000be80c79604e9bff106ff8b334930cec7f5fee5eda887",
+                  "timestamp": 1774215513
+                },
+                {
+                  "height": 941764,
+                  "hash": "000000000000000000004f3f2b43a6840b6b74b0e26b6f59d7f47c8a4fc859b2",
+                  "timestamp": 1774215433
+                },
+                {
+                  "height": 941763,
+                  "hash": "00000000000000000000850d8e2e6c7184438de212635591201bb62a316379a9",
+                  "timestamp": 1774215137
+                },
+                {
+                  "height": 941762,
+                  "hash": "00000000000000000000a39515579f6988f1bdc6e58cac5a1368490fd940f2be",
+                  "timestamp": 1774214766
+                },
+                {
+                  "height": 941761,
+                  "hash": "0000000000000000000176712931bbafd26251a5771b072d0e1944e7582f9e36",
+                  "timestamp": 1774214629
+                },
+                {
+                  "height": 941760,
+                  "hash": "000000000000000000015c9e49710b8760343ab182353f173dca0e00a875c37b",
+                  "timestamp": 1774214635
+                },
+                {
+                  "height": 941759,
+                  "hash": "000000000000000000002a78960d4de2cba254f60744db66ed3e1f9815267af3",
+                  "timestamp": 1774214312
+                },
+                {
+                  "height": 941758,
+                  "hash": "00000000000000000000cf125ae23ee4e0995f888504d2845f2b7c8b99044230",
+                  "timestamp": 1774214195
+                },
+                {
+                  "height": 941757,
+                  "hash": "0000000000000000000036005d33d9db7464f9c1d5eb8e53fc79d782df178e41",
+                  "timestamp": 1774213916
+                },
+                {
+                  "height": 941756,
+                  "hash": "000000000000000000015a9f4cb9597a9bc3ef66d936dfe3977752f3ee874a21",
+                  "timestamp": 1774212873
+                },
+                {
+                  "height": 941755,
+                  "hash": "00000000000000000002107e287a62322584d5afcc13904b60b1d46b162e388f",
+                  "timestamp": 1774212537
+                }
+              ],
+              "selected_hint": {
+                "height": 941762,
+                "hash": "00000000000000000000a39515579f6988f1bdc6e58cac5a1368490fd940f2be",
+                "timestamp": 1774214766
+              },
+              "global_timestamp_floor_proven": false
+            }
+          ],
+          "candidate_window": [
+            941743,
+            941763
+          ],
+          "known_publication_height": 941750,
+          "known_publication_inside_window": true,
+          "mtp_header_control": {
+            "height": 941750,
+            "mediantime_recomputed": 1774207256,
+            "headers": [
+              {
+                "height": 941740,
+                "hash": "0000000000000000000142de2d0214b79adb5a8ab8ecefdbb54a81bc26bf858c",
+                "header_hex": "00803f2715b623361b35e979904bc8aff3d379b8e91532ae1e7700000000000000000000ca8c61dfb6c8c831cce95e03cf3f9ee417d843914acff91cc0192d897341f1429229c069911a0217ba0e41cc",
+                "timestamp": 1774201234
+              },
+              {
+                "height": 941741,
+                "hash": "00000000000000000001194cf11b4907e4101cc6a952516d9b8d9557c550b5a5",
+                "header_hex": "00a008208c85bf26bc814ab5dbefecb88a5adb9ab714022dde420100000000000000000026346b5557fb96cf30f2645f016496ef94b7b64927f4696af69c04d5108a0b547b33c069911a0217456f65ac",
+                "timestamp": 1774203771
+              },
+              {
+                "height": 941742,
+                "hash": "000000000000000000017e468d77e3b9aef42fd62622bc0871d73a1f47a1ce66",
+                "header_hex": "00e0ff3fa5b550c557958d9b6d5152a9c61c10e407491bf14c19010000000000000000005fe6c118d2962cb5416baf163f640e9198a6eceaaf08e02acede84f7954d21f89635c069911a021703771049",
+                "timestamp": 1774204310
+              },
+              {
+                "height": 941743,
+                "hash": "00000000000000000000da712795cd93a0050daac93d4602ac6d60281c927a8e",
+                "header_hex": "00a0482166cea1471f3ad77108bc2226d62ff4aeb9e3778d467e01000000000000000000ec8d88637843bee3f8fcb9b3249392eed5e9a6eb14e1081f905e37250e05aec5f83ac069911a021749ecf17c",
+                "timestamp": 1774205688
+              },
+              {
+                "height": 941744,
+                "hash": "000000000000000000000c2587b742f777debf9b350ea3ecd3e307fd60996654",
+                "header_hex": "000010208e7a921c28606dac02463dc9aa0d05a093cd952771da0000000000000000000058ff3851388bda137b98f1e469b586a012a85c5cb6085a483eecfce13e7187ac993cc069911a02172aec4c2c",
+                "timestamp": 1774206105
+              },
+              {
+                "height": 941745,
+                "hash": "00000000000000000001d44eba25e0b8db4f066c496145976bc12d197e936384",
+                "header_hex": "00c0e72454669960fd07e3d3eca30e359bbfde77f742b787250c00000000000000000000178afc73109bf259d62cb2bda4bd8bf8a8ca36149237fa76e072de6c8bfe49b71841c069911a02171a546697",
+                "timestamp": 1774207256
+              },
+              {
+                "height": 941746,
+                "hash": "0000000000000000000059bcda3f6678ccaa63aaa1da93b6de38c5c22d1b76b8",
+                "header_hex": "0000782e8463937e192dc16b974561496c064fdbb8e025ba4ed401000000000000000000311496fc490007f0a31ed4ad08c55873f3b6647fe98b49babaf112540ddae62adf44c069911a02177416f870",
+                "timestamp": 1774208223
+              },
+              {
+                "height": 941747,
+                "hash": "0000000000000000000045eea255e32675c1c24ce0e21ee0b76b1a54c38e76af",
+                "header_hex": "00e00020b8761b2dc2c538deb693daa1aa63aacc78663fdabc5900000000000000000000dccb8c0b1ce9e86ba59d98173678e39d7a303ecce47c53e0aa08146445d27dae5547c069911a0217e1044614",
+                "timestamp": 1774208853
+              },
+              {
+                "height": 941748,
+                "hash": "000000000000000000009f706e0e1d021b04b6ed05ab3bb658844baf70200170",
+                "header_hex": "0000ff3faf768ec3541a6bb7e01ee2e04cc2c17526e355a2ee4500000000000000000000fbac04d6fe5ce41af8c84dc05933dd3c6776454c5f2464ddd9fa070fcba924d7d849c069911a021706917094",
+                "timestamp": 1774209496
+              },
+              {
+                "height": 941749,
+                "hash": "00000000000000000002154426a5bbc40b1fbcf117160524a8f1fd1cb3a13331",
+                "header_hex": "0060882370012070af4b8458b63bab05edb6041b021d0e6e709f00000000000000000000b422ff7df30a9791e12fa40ffa14913d64a80bc62181b292a1582dc4413d7957b04ac069911a021775c0558a",
+                "timestamp": 1774209712
+              },
+              {
+                "height": 941750,
+                "hash": "000000000000000000007652678fbf411c15f983d65c9b41d29785e0d40b3a6b",
+                "header_hex": "00208c203133a1b31cfdf1a824051617f1bc1f0bc4bba5264415020000000000000000009f4ffbb272a714c0cd21b0f02e688a7f2a7c3175453ea576d4d99fbd11858876f94ac069911a0217ecdf81fe",
+                "timestamp": 1774209785
+              }
+            ],
+            "full_spv_or_expected_difficulty_verified": false
+          },
+          "qualification": "Observed historical metadata heuristic; no body scan or global ordering proof"
+        }
+      ],
+      "issues": [],
+      "status": "historical_metadata_window_feasible",
+      "tip_height": 969886
+    }
+  ],
+  "resources": {
+    "run_id": "a740e00104ce",
+    "response_bytes_this_run": 201269,
+    "response_bytes_session_with_prior_validation": 71131139,
+    "bitcoin_body_attempts": 0,
+    "cache_body_reads": 0,
+    "http_requests": 153,
+    "limits": {
+      "response_bytes": 1800173,
+      "bitcoin_body_attempts": 0,
+      "requests": 250,
+      "overall_seconds": 600
+    },
+    "deadline_expired": false,
+    "conservative_requests": 0,
+    "byte_scope": "HTTP bodies/headers plus conservative interrupted reservations; TLS/TCP overhead excluded",
+    "elapsed_seconds": 112.282
+  },
+  "milestone_usage": {
+    "response_bytes": 401096,
+    "body_attempts": 0,
+    "remaining_bytes": 1598904,
+    "cumulative_response_bytes": 71131139,
+    "run_ids": [
+      "f0b61e48b637",
+      "a740e00104ce"
+    ]
+  },
+  "completed_at": "2026-10-04T18:42:37.546714+00:00"
+}

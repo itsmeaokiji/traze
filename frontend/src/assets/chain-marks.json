@@ -1,0 +1,17 @@
+{
+  "date_pht": "2026-10-06",
+  "sources": {
+    "hemi": "https://static.hemi.xyz/brand/symbol/hemi-logo-orange.svg",
+    "bitcoin": "https://raw.githubusercontent.com/hemilabs/ui-monorepo/2a5175f998f22ff096a755801f8ab68c6906c5cd/portal/components/connectWallets/btcLogo.tsx",
+    "license": "https://raw.githubusercontent.com/hemilabs/ui-monorepo/2a5175f998f22ff096a755801f8ab68c6906c5cd/LICENSE"
+  },
+  "reference_brand_kit": "https://hemi.xyz/brand-kit",
+  "source_sha256": {
+    "hemi": "d5428f4113d9fcc8c49e810d38c456d3520b2b7ed9995a1d22337334c092367b",
+    "bitcoin": "c50cd0b34656654e7b848da6fa5985545e1d6b0d2f204da2d78a3d80f0b1bf0e",
+    "license": "7a0075f5390610069929c336e4ede5dc20c94adc70ebda2395cb9ec6e363a011"
+  },
+  "hemi": "Unmodified standalone orange SVG, including its original path, fill and viewBox",
+  "bitcoin": "Unmodified portal path/fill; added viewBox matches original 32 by 31 canvas",
+  "delivery": "Inline React SVG; static reviewed attributes only; no external SVG loads, script or HTML injection"
+}

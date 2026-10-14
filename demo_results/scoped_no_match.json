@@ -1,0 +1,287 @@
+{
+  "schema": "hemi-publication-receipt-v1",
+  "mode": "live_lookup",
+  "started_at": "2026-10-03T13:38:56.982519+00:00",
+  "query": {
+    "block_number": 5243117,
+    "hemi_chain_id": 43111,
+    "bitcoin_network": "mainnet",
+    "block_hash": "0x3c4a5269efb79626eb56df3c6f5d3993800ccad44b06f25e943b0dfb681a8178",
+    "header": {
+      "number": "0x5000ed",
+      "hash": "0x3c4a5269efb79626eb56df3c6f5d3993800ccad44b06f25e943b0dfb681a8178",
+      "parentHash": "0x0915c0cc5953d720dc741276eee3b25741a98a324ab100f456abd44c7b9afeb5",
+      "stateRoot": "0x4417c7b29901e828fc0c84686af41350f83b717ba711d47b70e0dcb0418f7e9f",
+      "transactionsRoot": "0x91ffbc6e9548ef18f2867077d79de63e183bd0254c53b4bbc7b98173984b211f",
+      "timestamp": "0x6a9eadf3"
+    },
+    "covering_keystone": 5243125,
+    "covering_checkpoint": {
+      "height": 5243125,
+      "header": {
+        "number": "0x5000f5",
+        "hash": "0x0dcf544d8c91c995639d46ff300507aba1c7f4fdb4b8fb55a62717c77187bbca",
+        "parentHash": "0x7216e32a02afdde42ec0dbf8a4b9f5760d2a4c7fd054e03a3685d709717e7e3c",
+        "stateRoot": "0x1a2e76058ee655f1e8727468019ff1dcbb879cdf06db8d3f6c0a4c2f4c75adb4",
+        "transactionsRoot": "0x22363834e78f6f651868ab45257971332cc183a84cfbca84605743d1ea7ba480",
+        "timestamp": "0x6a9eae53"
+      },
+      "previous_header": {
+        "number": "0x5000dc",
+        "hash": "0x4030a6827deb3046a7cbdab2e541ebb8deaee0c173edecf2330b8f8c75fe371a",
+        "parentHash": "0x9543361276b383f3b22a069ffdcd89f239160c0a8337d5f1c3debcfe2faf151b",
+        "stateRoot": "0x9d861792d1d8d6f800f239662b8d7370385c79d8e4d640d939096fb0559de52e",
+        "transactionsRoot": "0x5dbe26a12d9e4ced4730fd9d56a90da1911f3e536b05ba42e47b320b258a2876",
+        "timestamp": "0x6a9ead27"
+      },
+      "attributes_transaction": {
+        "hash": "0xaae90762e6fc0ec2b3b912d8bbfc8967356df85f8c0a335f38d918b65ca3c41d",
+        "type": "0x7e",
+        "to": "0x4200000000000000000000000000000000000015",
+        "from": "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001",
+        "input": "0x098999be000f4240000000000000000000000000000000006a9eadf300000000018b97660000000000000000000000000000000000000000000000000000000006aa3baa00000000000000000000000000000000000000000000000000000000006977a92579537a20e8fc2339d1a73c987ff3e59d3e36d33e017632f0c1fee8745d1e9b00000000000000000000000065115c6d23274e0a29a63b69130efe901aa52e7a000000000000000000000000",
+        "blockHash": "0x0dcf544d8c91c995639d46ff300507aba1c7f4fdb4b8fb55a62717c77187bbca",
+        "blockNumber": "0x5000f5"
+      },
+      "ethereum_origin_height": 25925478,
+      "payload_hex": "01018b9766005000f57216e32a02afdde42ec0db4030a6827deb3046a7cbdab21a2e76058ee655f1e8727468019ff1dcbb879cdf06db8d3f6c0a4c2f4c75adb40dcf544d8c91c995639d46ff",
+      "keystone_id": "0334e86e1bdeb063ab838dd3a461949d825fa18654326f236110a94affb0aa3a"
+    }
+  },
+  "rules": {
+    "codec": "HEMI + 76-byte abbreviated keystone v1",
+    "checkpoint_period": 25,
+    "heminetwork_revision": "bf771ced8cfd2fb782c3b0d6d0bc8ea87b1e7cc1",
+    "construction_reference": "539f4e33c02028c8a4207621cd04fa8102e372a0"
+  },
+  "sources": {
+    "hemi_rpc": "https://rpc.hemi.network/rpc",
+    "bitcoin_apis": [
+      "https://blockstream.info/api",
+      "https://mempool.space/api"
+    ],
+    "hemi_client": "Geth/v0.1.0-untagged-539f4e33-20260901/linux-amd64/go1.24.2"
+  },
+  "coverage": {
+    "blocks": [
+      {
+        "height": 965925,
+        "hash": "00000000000000000001d6db5603a386e71721a24543a1b7ff9ac2ac250fed32",
+        "previous_hash": "00000000000000000000d07c171eba8dfa298b1d8713efeb5504488671f1538e",
+        "header_hex": "0000903d8e53f17186480455ebef13871d8b29fa8dba1e177cd00000000000000000000032a5d710a2d5aeb771c4118ee3934d34ec5fd94981ab234011398cf00564f4d12da89e6a5e3502170edf7803",
+        "timestamp": 1788782637,
+        "transaction_count": 4910,
+        "raw_bytes": 1552977,
+        "cache_hit": true,
+        "source": "verified_local_body_cache",
+        "full_transaction_root_checked": true,
+        "hemi_candidates": 0
+      },
+      {
+        "height": 965926,
+        "hash": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1",
+        "previous_hash": "00000000000000000001d6db5603a386e71721a24543a1b7ff9ac2ac250fed32",
+        "header_hex": "00a09b2232ed0f25acc29affb7a14345a22117e786a30356dbd601000000000000000000796608cc24788b5618ee739c91539e0b9e1d081d24e427d924e7c4db5598a0565faa9e6a5e35021707bd0b05",
+        "timestamp": 1788783199,
+        "transaction_count": 5225,
+        "raw_bytes": 1614462,
+        "cache_hit": true,
+        "source": "verified_local_body_cache",
+        "full_transaction_root_checked": true,
+        "hemi_candidates": 4
+      },
+      {
+        "height": 965927,
+        "hash": "000000000000000000000d283d0abb01af11aa544f833b37149304e0b40af9d2",
+        "previous_hash": "0000000000000000000091dd2939a1a285357c5f0bc6f71ea5fb78ca3068b3a1",
+        "header_hex": "00c06b24a1b36830ca78fba51ef7c60b5f7c3585a2a13929dd910000000000000000000025e0ab43e76bc4b0fec8737ac7154c72729c66b3b188e5f5569d9ec48e64a1ba1dab9e6a5e350217d9b71c09",
+        "timestamp": 1788783389,
+        "transaction_count": 7016,
+        "raw_bytes": 1493806,
+        "cache_hit": true,
+        "source": "verified_local_body_cache",
+        "full_transaction_root_checked": true,
+        "hemi_candidates": 1
+      },
+      {
+        "height": 965928,
+        "hash": "000000000000000000000074ae671b49c7d0c9ed460ce71f4df1e0353c42907c",
+        "previous_hash": "000000000000000000000d283d0abb01af11aa544f833b37149304e0b40af9d2",
+        "header_hex": "00e0ff3fd2f90ab4e0049314373b834f54aa11af01bb0a3d280d000000000000000000000ea9a75683975311ad8c498ac3723cb3747cab56017da72c5509fff2129c83adf0ac9e6a5e350217dcd912ca",
+        "timestamp": 1788783856,
+        "transaction_count": 363,
+        "raw_bytes": 209774,
+        "cache_hit": true,
+        "source": "verified_local_body_cache",
+        "full_transaction_root_checked": true,
+        "hemi_candidates": 0
+      },
+      {
+        "height": 965929,
+        "hash": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4",
+        "previous_hash": "000000000000000000000074ae671b49c7d0c9ed460ce71f4df1e0353c42907c",
+        "header_hex": "00c04a2e7c90423c35e0f14d1fe70c46edc9d0c7491b67ae740000000000000000000000cfef0e2eeee5e7bb43d4d328723b4c6119b0bf98190667d034d44b21b08ca8c611ae9e6a5e35021714470fc4",
+        "timestamp": 1788784145,
+        "transaction_count": 5066,
+        "raw_bytes": 1531725,
+        "cache_hit": true,
+        "source": "verified_local_body_cache",
+        "full_transaction_root_checked": true,
+        "hemi_candidates": 0
+      },
+      {
+        "height": 965930,
+        "hash": "00000000000000000000c9d4ddb4f1e40811f5e1ea2d20ebe85ff092e89b9b3d",
+        "previous_hash": "000000000000000000014d7b023783bce0b723f3cd377fa2259bc9de525788d4",
+        "header_hex": "00e00020d4885752dec99b25a27f37cdf323b7e0bc8337027b4d01000000000000000000cacf8779f806a9eaea3375b8e8574f8b958d7e1b65c6010bbaf6bccf8d6dda3575b19e6a5e3502171a623f85",
+        "timestamp": 1788785013,
+        "transaction_count": 4115,
+        "raw_bytes": 1699907,
+        "cache_hit": true,
+        "source": "verified_local_body_cache",
+        "full_transaction_root_checked": true,
+        "hemi_candidates": 0
+      }
+    ],
+    "fully_scanned_intervals": [
+      [
+        965925,
+        965930
+      ]
+    ],
+    "gaps": [],
+    "unresolved_candidates": [],
+    "unsupported_payloads": 0,
+    "extra_verified_proofs": [],
+    "stop_reason": "explicit_range_end",
+    "plan": {
+      "start": 965925,
+      "initial_end": 965930,
+      "mode": "explicit_range",
+      "automatic_extension": false,
+      "maximum_body_attempts": 20
+    }
+  },
+  "candidate_observations": [
+    {
+      "bitcoin_height": 965926,
+      "txid": "da25ce0939fe79c68766e1266001017fc787e8793454eca72af16060a126cee9",
+      "publishing_height": 5242950
+    },
+    {
+      "bitcoin_height": 965926,
+      "txid": "80df3e5319fe48c3fe25231f1c0b751b92b2f70336b0e63343090494b47bdd1d",
+      "publishing_height": 5242925
+    },
+    {
+      "bitcoin_height": 965926,
+      "txid": "0e83a47d7f6a322c3861fc09304b900e9ebe2e7457d382315ae07693751ab883",
+      "publishing_height": 5242975
+    },
+    {
+      "bitcoin_height": 965926,
+      "txid": "891524ee0f1270e1b9185dea8c6b8c843ecd5482426694dbeefe39b6296ca2d2",
+      "publishing_height": 5243000
+    },
+    {
+      "bitcoin_height": 965927,
+      "txid": "be68935e6e21767448aded1568726a6c4efe5605fdac47f8235e5c7f7c8a1ca5",
+      "publishing_height": 5243025
+    }
+  ],
+  "proofs": [],
+  "issues": [],
+  "status": "not_found_within_coverage",
+  "selection": {
+    "current_proof_index": null,
+    "best_observed_proof_index": null,
+    "global_earliest_proven": false,
+    "earliest_within_scanned_prefix": false
+  },
+  "assurance": {
+    "bitcoin_full_spv_chain_validated": false,
+    "expected_difficulty_transitions_validated": false,
+    "bitcoin_script_utxo_validation": false,
+    "independent_hemi_execution": false,
+    "hemi_header_rlp_hashes_recomputed": false,
+    "miner_reward_eligibility": false,
+    "finality_counter_equivalence": false,
+    "bitcoin_depth_formula": "source_tip_height - publication_height + 1",
+    "canonical_membership": "fresh public-provider hash-by-height / Hemi RPC view, not independent consensus",
+    "negative_coverage": "complete local body parsing/root-check record, not an exported non-inclusion proof"
+  },
+  "bitcoin_tip_before": {
+    "height": 969736,
+    "hash": "000000000000000000004664df069a86895f76b45dc8fab3b3255d585f5c1b78"
+  },
+  "context": {
+    "checked_at": "2026-10-03T13:39:09.108573+00:00",
+    "hemi_network_same": true,
+    "hemi_headers": [
+      {
+        "height": 5243117,
+        "same": true
+      },
+      {
+        "height": 5243125,
+        "same": true
+      }
+    ],
+    "bitcoin_blocks": [
+      {
+        "height": 965925,
+        "same": true,
+        "source_api": "https://blockstream.info/api"
+      },
+      {
+        "height": 965926,
+        "same": true,
+        "source_api": "https://blockstream.info/api"
+      },
+      {
+        "height": 965927,
+        "same": true,
+        "source_api": "https://blockstream.info/api"
+      },
+      {
+        "height": 965928,
+        "same": true,
+        "source_api": "https://blockstream.info/api"
+      },
+      {
+        "height": 965929,
+        "same": true,
+        "source_api": "https://blockstream.info/api"
+      },
+      {
+        "height": 965930,
+        "same": true,
+        "source_api": "https://blockstream.info/api"
+      }
+    ],
+    "bitcoin_secondary": [],
+    "current_view_confirmed": true,
+    "hemi_chain_id": 43111,
+    "distinct_bitcoin_api_crosscheck": false
+  },
+  "bitcoin_tip_after": {
+    "height": 969736,
+    "hash": "000000000000000000004664df069a86895f76b45dc8fab3b3255d585f5c1b78"
+  },
+  "resources": {
+    "run_id": "bf9c9485fdb4",
+    "response_bytes_this_run": 51544,
+    "response_bytes_session_with_prior_validation": 51658312,
+    "bitcoin_body_attempts": 0,
+    "cache_body_reads": 6,
+    "http_requests": 32,
+    "limits": {
+      "response_bytes": 40000000,
+      "bitcoin_body_attempts": 20,
+      "requests": 600
+    },
+    "byte_scope": "counted HTTP response bodies and measured headers; TLS/TCP overhead excluded",
+    "elapsed_seconds": 18.281
+  },
+  "completed_at": "2026-10-03T13:39:15.271540+00:00"
+}

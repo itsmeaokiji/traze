@@ -1,0 +1,25 @@
+import { formatNumber } from './format';
+import type { Receipt } from './types';
+
+export function searchCoverageText(receipt: Receipt): string {
+  const coverage = receipt.coverage || {};
+  const checked = (coverage.fully_scanned_intervals || []).map(([a, b]) => a === b ? formatNumber(a) : `${formatNumber(a)}–${formatNumber(b)}`).join(', ');
+  let text = checked ? `Bitcoin blocks scanned: ${checked}.` : 'No complete Bitcoin block scan was recorded.';
+  if (receipt.mode === 'offline_catalogue') text += ' Compiled retained-data coverage; no new Bitcoin blocks were scanned for this request.';
+  if (coverage.plan) text += ` ${coverage.plan.mode === 'explicit_range' ? 'Requested range' : 'Initial estimated range'}: ${formatNumber(coverage.plan.start)}–${formatNumber(coverage.plan.initial_end)}.`;
+  if (receipt.mode === 'live_metadata_refresh') text += ' Coverage from the original search. This operation rechecked source views without scanning additional Bitcoin blocks.';
+  return text;
+}
+
+export function searchStopText(receipt: Receipt): string {
+  const labels: Record<string, string> = {
+    first_matching_height_fully_processed: 'Stopped after processing the Bitcoin block containing matching evidence.',
+    explicit_range_end: 'Reached the end of the requested range.',
+    observed_tip_reached: 'Reached the Bitcoin chain tip reported by the source.',
+    budget_limit: 'Search limit reached. Results cover only the Bitcoin blocks shown.',
+    body_attempt_budget: 'Search limit reached. Results cover only the Bitcoin blocks shown.',
+    time_budget_exhausted: 'Search timed out.', lookup_incomplete: 'The search could not finish.',
+    retained_corpus_processed: 'Recorded evidence retrieved from the processed retained corpus.',
+  };
+  return `${receipt.mode === 'live_metadata_refresh' ? 'Original search: ' : ''}${labels[receipt.coverage?.stop_reason || ''] || 'The search stopping reason was not recorded.'}`;
+}

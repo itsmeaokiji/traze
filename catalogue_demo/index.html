@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Traze · Retained block evidence</title>
+  <link rel="stylesheet" href="/demo.css">
+  <script type="module" src="/demo.mjs"></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/">Traze</a><span>Retained-data reference consumer</span></header>
+  <main>
+    <div class="heading"><p class="eyebrow">HEMI MAINNET · BITCOIN MAINNET</p><h1>Retained Hemi block</h1><p>Inspect publication evidence for an exact block recorded in the local catalogue.</p></div>
+    <section class="block-page" aria-labelledby="block-title">
+      <div class="block-choice"><label for="example">Recorded block</label><select id="example" disabled><option>Loading retained records…</option></select></div>
+      <h2 id="block-title">Select a recorded Hemi block</h2>
+      <label for="target">Exact Hemi block hash</label>
+      <input id="target" spellcheck="false" autocomplete="off" maxlength="66" placeholder="0x…" disabled>
+      <button id="view" class="primary" type="button" disabled>View publication evidence</button>
+      <p id="scope-note" class="muted">Reading the local catalogue…</p>
+    </section>
+    <p id="operation" role="status" aria-live="polite"></p>
+    <section id="evidence" hidden aria-labelledby="evidence-title">
+      <div class="result-heading"><div><p class="eyebrow">PUBLICATION EVIDENCE</p><h2 id="evidence-title"></h2></div><button id="download" class="secondary" type="button" hidden>Download evidence JSON</button></div>
+      <p id="qualification" class="qualification"></p>
+      <div class="publication-choice" id="publication-choice" hidden><label for="publication">Matching publication record</label><select id="publication"></select><p class="muted">Inspect one publication. JSON includes all matching evidence records for the requested target.</p></div>
+      <div id="route" class="route" aria-label="Recorded publication association"></div>
+      <dl id="facts" class="facts"></dl>
+      <details><summary>Coverage, unresolved records and verification limits</summary><div id="coverage-details"></div></details>
+    </section>
+    <footer>This reference page uses retained data. Source observations are historical; current chain membership has not been rechecked.</footer>
+  </main>
+</body>
+</html>
