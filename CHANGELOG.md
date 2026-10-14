@@ -16,5 +16,7 @@
 - Indexed retrieval during collection, qualified source-view changes and collection status in the existing UI.
 - Bounded atomic-ledger replacement retries for transient Windows reader locks.
 - Collection/recovery documentation and controlled interruption, source-change and read-availability checks.
+- Persisted finite follow windows, configurable polling/backoff and runner ownership across waits.
+- Separate tip-observation, body-processing and fully supported evidence-readiness timing records.
 
 This version runs locally. Initial finite collection is implemented; sustained operating capacity and a supported hosted service require further validation.

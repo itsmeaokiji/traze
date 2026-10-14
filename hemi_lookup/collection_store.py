@@ -3,14 +3,24 @@
 import copy
 import json
 import sqlite3
+import time
 import uuid
 from contextlib import closing
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .bitcoin import hex32
 from .catalogue import Catalogue, digest, encode, timestamp
 from .errors import DataError
 from .storage import SAFETY_MARGIN
+
+
+def epoch(stamp):
+    """Read a persisted UTC observation without accepting a timezone-free clock."""
+    value = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    if value.tzinfo is None:
+        raise DataError("invalid_collection_clock", "Collection timestamps require a timezone")
+    return value.timestamp()
 
 
 class RunnerLock:
@@ -75,8 +85,9 @@ class CollectionStore:
 
     def create(self, start, end, *, batch_size=4, max_bytes=40_000_000, max_attempts=20,
                max_requests=600, max_seconds=600, cumulative_limit=100_000_000,
-               segment_seconds=60):
-        values = (start, end, batch_size, max_bytes, max_attempts, max_requests, max_seconds, cumulative_limit, segment_seconds)
+               segment_seconds=60, wall_seconds=7200, poll_seconds=60, backoff_max_seconds=600):
+        values = (start, end, batch_size, max_bytes, max_attempts, max_requests, max_seconds,
+                  cumulative_limit, segment_seconds, wall_seconds, poll_seconds, backoff_max_seconds)
         if any(isinstance(n, bool) or not isinstance(n, int) for n in values):
             raise DataError("invalid_collection", "Collection settings must be whole numbers")
         if start < 0 or end < start or end - start + 1 > 200 or not 1 <= batch_size <= 20:
@@ -85,14 +96,56 @@ class CollectionStore:
             raise DataError("invalid_collection", "Positive limits and at most 600 active seconds per update are required")
         if max_bytes <= SAFETY_MARGIN or cumulative_limit <= SAFETY_MARGIN:
             raise DataError("invalid_collection", "Response allowances must include a safety margin")
+        if not 1 <= wall_seconds <= 86400 or not 1 <= poll_seconds <= backoff_max_seconds <= 3600:
+            raise DataError("invalid_collection", "Use a finite wall-time allowance of at most one day and positive bounded polling/backoff intervals")
         job = {"id": uuid.uuid4().hex, "created_at": timestamp(), "updated_at": timestamp(),
                "state": "queued", "range": [start, end], "batch_size": batch_size,
                "limits": {"response_bytes": max_bytes, "body_attempts": max_attempts,
                           "requests": max_requests, "active_seconds_per_update": max_seconds,
-                          "cumulative_response_bytes": cumulative_limit, "segment_seconds": segment_seconds},
-               "items": {}, "associations": {}, "updates": [], "issue": None}
+                          "cumulative_response_bytes": cumulative_limit, "segment_seconds": segment_seconds,
+                          "wall_seconds": wall_seconds, "poll_seconds": poll_seconds,
+                          "backoff_max_seconds": backoff_max_seconds},
+               "items": {}, "associations": {}, "updates": [], "issue": None,
+               "clock": {}, "tip_observations": []}
         self.save(job)
         return job
+
+    def start_clock(self, job, started_at=None):
+        """Arm once. Waiting, downtime and resume all consume the same window."""
+        seconds = job["limits"].get("wall_seconds")
+        if seconds is None:
+            return  # Earlier finite jobs retain their existing policy.
+        clock = job.setdefault("clock", {})
+        if clock.get("started_at"):
+            if started_at and started_at != clock["started_at"]:
+                raise DataError("collection_clock_changed", "A started collection window cannot be reset")
+            return
+        started_at = started_at or timestamp()
+        clock.update(started_at=started_at,
+                     expires_at=datetime.fromtimestamp(epoch(started_at) + seconds, timezone.utc).isoformat())
+        self.save(job)
+
+    def wall_remaining(self, job):
+        clock = job.get("clock", {})
+        if not clock.get("expires_at"):
+            return float("inf")
+        current = time.time()
+        if current < epoch(clock["started_at"]) - 1:
+            raise DataError("collection_clock_changed", "The current clock precedes the persisted collection window; source work is paused")
+        return max(0, epoch(clock["expires_at"]) - current)
+
+    def tip(self, job, height, block_hash, source):
+        observation = {"height": height, "hash": block_hash, "source": source, "observed_at": timestamp()}
+        observations = job.setdefault("tip_observations", [])
+        if observations:
+            gap = max(0, epoch(observation["observed_at"]) - epoch(observations[-1]["observed_at"]))
+            job["max_tip_observation_gap_seconds"] = max(job.get("max_tip_observation_gap_seconds", 0), gap)
+        observations.append(observation)
+        for number in range(job["range"][0], min(height, job["range"][1]) + 1):
+            item = job["items"].setdefault(str(number), {})
+            item.setdefault("first_observed_at", observation["observed_at"])
+        self.save(job)
+        return observation
 
     def save(self, job):
         job["updated_at"] = timestamp()

@@ -29,9 +29,22 @@ python -B -m hemi_lookup.collector status
 
 Run the same job ID to resume unfinished work. Completed bodies and job-local
 metadata are reused. `--max-updates 1` runs one unfinished update. `--follow`
-retries a job that is waiting for Bitcoin blocks, within its original range and
-remaining allowance. It never expands the configured range. `--recheck` performs
+waits for Bitcoin blocks and backs off on transient source failures, within its
+original range, persisted time window and remaining allowance. It never expands
+the configured range. `--recheck` performs
 new source-view checks within the same remaining job allowance.
+
+New jobs default to a 7,200-second wall-time window, sixty-second waiting polls
+and a 600-second maximum backoff. Configure these with `--wall-seconds`,
+`--poll-seconds` and `--backoff-max-seconds` when creating the job. The wall clock
+starts at the first run, includes waiting and downtime, and does not reset on
+resume. Following an earlier job without a finite wall-time setting is rejected;
+preserve that job and its accounting. Normal retained-data reads are unaffected.
+
+The runner lock remains owned while following waits; indexed reads still work
+and the source-operation lock is released while idle. Saved next-attempt time is
+respected when following resumes. An expired window retains processed evidence
+and pending work without starting another public request.
 
 ## Storage and read availability
 
@@ -49,6 +62,15 @@ transactions provide consistent packets while collection commits updates.
 The website shows processed Bitcoin blocks, supported publications, keystone
 associations, unresolved work and the last recorded progress. These counts are
 separate: a processed block does not imply that every Hemi association is ready.
+
+Jobs record public tip observations and their actual gaps. `first_observed_at`
+means the first successful observed tip at or above the height; `processed_at`
+records parsed body availability. `evidence_ready_at` is set only after all
+supported publications have checked metadata/ancestry and the update's source
+checks complete. Empty blocks can be fully processed without any publication.
+These observations do not establish exact mining/provider-arrival time or
+ongoing current-chain membership. Per-block timing records remain separate from
+mathematical proof checks and coverage completeness.
 
 ## Resource controls and recovery
 

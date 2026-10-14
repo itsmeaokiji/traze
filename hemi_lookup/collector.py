@@ -4,11 +4,12 @@ import argparse
 import copy
 import json
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .bitcoin import MAX_RAW_BLOCK, display_hash, hex32, parse_block
 from .catalogue import encode, timestamp
-from .collection_store import CollectionStore, RunnerLock, collection_status
+from .collection_store import CollectionStore, RunnerLock, collection_status, epoch
 from .engine import Engine
 from .errors import BudgetError, DataError, DeadlineError
 from .network import PublicSources
@@ -46,6 +47,42 @@ class Collector:
         self.state = Path(state or self.root / ".hemi_lookup_data").resolve()
         self.sources_factory = sources_factory
         self.event = event or (lambda value: None)
+        self.wall_deadlines = {}
+
+    def _wall_remaining(self, store, job):
+        remaining = store.wall_remaining(job)
+        if job["id"] not in self.wall_deadlines:
+            self.wall_deadlines[job["id"]] = time.monotonic() + remaining
+        return max(0, min(remaining, self.wall_deadlines[job["id"]] - time.monotonic()))
+
+    def _window_expired(self, store, job):
+        job.update(state="limited", issue={"code": "collection_window_expired",
+                   "message": "Collection window ended; completed evidence and pending work are retained"})
+        job.setdefault("clock", {})["ended_at"] = timestamp()
+        job["usage"] = store.usage(job)
+        store.save(job)
+        self.event({"stage": "collection_window_expired", "job": job["id"]})
+        return job
+
+    def _ready(self, store, job, low, high, changed):
+        for height in range(low, high + 1):
+            item = job["items"].get(str(height), {})
+            if item.get("state") != "processed":
+                continue
+            identities = [row[0] for row in store.db.execute(
+                "SELECT id FROM publications WHERE block_hash=? AND supported=1", (item["hash"],))]
+            item["supported_publications"] = len(identities)
+            item["unresolved_publications"] = sum(job["associations"].get(identity, {}).get("state") != "complete" for identity in identities)
+            if not changed and not item["unresolved_publications"]:
+                first_ready = "evidence_ready_at" not in item
+                item.setdefault("evidence_ready_at", timestamp())
+                if item.get("first_observed_at"):
+                    item["ready_latency_seconds"] = max(0, epoch(item["evidence_ready_at"]) - epoch(item["first_observed_at"]))
+                if first_ready:
+                    self.event({"stage": "block_evidence_ready", "height": height,
+                                "supported_publications": len(identities),
+                                "ready_latency_seconds": item.get("ready_latency_seconds")})
+        store.save(job)
 
     def _body(self, store, job, height, sources, session, cache):
         started = time.monotonic()
@@ -82,6 +119,8 @@ class Collector:
         store.body_source(import_id, item.get("body_source", "reused_compiled_evidence"))
         store.observe("bitcoin", height, block_hash, source)
         item.update(state="processed", processed_at=timestamp(), processing_seconds=item.get("processing_seconds", 0) + time.monotonic() - started)
+        if item.get("first_observed_at"):
+            item["body_latency_seconds"] = max(0, epoch(item["processed_at"]) - epoch(item["first_observed_at"]))
         store.save(job)
         self.event({"stage": "block_processed", "height": height, "hash": block_hash})
 
@@ -167,95 +206,145 @@ class Collector:
 
     def run(self, identity, *, max_updates=None, recheck=False):
         with RunnerLock(self.state), CollectionStore(self.state) as store:
-            job = store.job(identity)
-            store.recover_session(job)
-            limits = job["limits"]
-            cache = BlockCache(self.state / "collection_blocks")
-            start, end = job["range"]
-            count = 0
-            for index, low in enumerate(range(start, end + 1, job["batch_size"])):
-                high = min(end, low + job["batch_size"] - 1)
-                if len(job["updates"]) <= index:
-                    job["updates"].append({"range": [low, high], "state": "queued"})
-                update = job["updates"][index]
-                if update["state"] == "complete" and not recheck:
-                    continue
-                if max_updates is not None and count >= max_updates:
-                    break
-                count += 1
-                while True:
-                    usage = store.usage(job, index)
-                    remaining = {"bytes": limits["response_bytes"] - usage["response_bytes"],
-                                 "attempts": limits["body_attempts"] - usage["body_attempts"],
-                                 "requests": limits["requests"] - usage["requests"],
-                                 "seconds": limits["active_seconds_per_update"] - usage["active_seconds"]}
-                    if remaining["bytes"] <= 0 or remaining["requests"] <= 0 or remaining["seconds"] <= 0:
-                        job.update(state="limited", issue={"code": "collection_limit", "message": "Collection allowance exhausted; progress and evidence are retained"})
-                        store.save(job)
-                        return job
-                    job["state"], update["state"] = "running", "running"
-                    job["issue"] = None
+            return self._run(store, identity, max_updates=max_updates, recheck=recheck)
+
+    def _run(self, store, identity, *, max_updates=None, recheck=False):
+        if max_updates is not None and (isinstance(max_updates, bool) or not isinstance(max_updates, int) or max_updates < 1):
+            raise DataError("invalid_collection", "The update limit must be a positive whole number")
+        job = store.job(identity)
+        store.recover_session(job)
+        limits = job["limits"]
+        cache = BlockCache(self.state / "collection_blocks")
+        start, end = job["range"]
+        count = 0
+        for index, low in enumerate(range(start, end + 1, job["batch_size"])):
+            high = min(end, low + job["batch_size"] - 1)
+            if len(job["updates"]) <= index:
+                job["updates"].append({"range": [low, high], "state": "queued"})
+            update = job["updates"][index]
+            if update["state"] == "complete" and not recheck:
+                continue
+            if max_updates is not None and count >= max_updates:
+                break
+            count += 1
+            store.start_clock(job)
+            while True:
+                wall_remaining = self._wall_remaining(store, job)
+                if wall_remaining <= 0:
+                    return self._window_expired(store, job)
+                usage = store.usage(job, index)
+                remaining = {"bytes": limits["response_bytes"] - usage["response_bytes"],
+                             "attempts": limits["body_attempts"] - usage["body_attempts"],
+                             "requests": limits["requests"] - usage["requests"],
+                             "seconds": limits["active_seconds_per_update"] - usage["active_seconds"]}
+                if remaining["bytes"] <= 0 or remaining["requests"] <= 0 or remaining["seconds"] <= 0:
+                    job.update(state="limited", issue={"code": "collection_limit", "message": "Collection allowance exhausted; progress and evidence are retained"})
                     store.save(job)
-                    try:
-                        with Session(self.state, self.root, max_bytes=remaining["bytes"] + SAFETY_MARGIN,
-                                     max_blocks=max(0, remaining["attempts"]), max_requests=remaining["requests"],
-                                     max_seconds=min(limits["segment_seconds"], remaining["seconds"]),
-                                     session_limit=limits["cumulative_response_bytes"],
-                                     context={"collection_job": job["id"], "update": index}) as session:
-                            sources = self.sources_factory(session)
-                            if int(sources.rpc("eth_chainId", []), 16) != 43111:
-                                raise DataError("wrong_network", "Collector requires Hemi mainnet")
-                            if not recheck:
-                                tip_hash = hex32(sources.btc("/blocks/tip/hash", False)).hex()
-                                tip = sources.btc("/block/" + tip_hash)
-                                if tip.get("id") != tip_hash or isinstance(tip.get("height"), bool) or not isinstance(tip.get("height"), int) or tip["height"] < 0:
-                                    raise DataError("invalid_response", "Invalid observed Bitcoin tip")
-                                update["tip_observation"] = {"height": tip["height"], "hash": tip_hash, "observed_at": timestamp()}
-                                if tip["height"] < low:
-                                    job["state"], update["state"] = "waiting", "waiting"
-                                    store.save(job)
-                                    return job
-                                available = min(high, tip["height"])
-                                for height in range(low, available + 1):
-                                    self._body(store, job, height, sources, session, cache)
-                                self._associations(store, job, low, available, sources, session)
-                                if available < high:
-                                    job["state"], update["state"] = "waiting", "waiting"
-                                    store.save(job)
-                                    return job
-                            changed = self._recheck(store, job, low, high, sources, session)
-                        ids = {row[0] for h in range(low, high + 1) for row in store.db.execute(
-                            "SELECT id FROM publications WHERE block_hash=? AND supported=1",
-                            (job["items"].get(str(h), {}).get("hash", ""),))}
-                        incomplete = any(job["associations"].get(identity, {}).get("state") != "complete" for identity in ids)
-                        update["state"] = "source_conflict" if changed else "incomplete_associations" if incomplete else "complete"
-                        if not changed:
-                            job["issue"] = {"code": "unresolved_associations", "message": "Some publications still need Hemi metadata or ancestry"} if incomplete else None
-                        update["completed_at"] = timestamp()
-                        store.save(job)
-                        break
-                    except DeadlineError:
-                        job["issue"] = {"code": "segment_interrupted", "message": "Processing segment expired; remaining job allowance is preserved"}
-                        store.save(job)
-                        continue
-                    except (DataError, OSError, KeyError, TypeError, ValueError) as exc:
-                        message = str(exc) if isinstance(exc, DataError) else "Local collection work could not finish. Progress is retained; review the operator log and resume the same job."
-                        job.update(state="limited" if isinstance(exc, BudgetError) else "incomplete",
-                                   issue={"code": getattr(exc, "code", "collection_error"), "message": message},
-                                   diagnostic={"type": type(exc).__name__, "message": str(exc)})
-                        update["state"] = job["state"]
-                        store.save(job)
-                        return job
-            processed = sum(item.get("state") == "processed" for item in job["items"].values())
-            pending = sum(a.get("state") != "complete" for a in job["associations"].values())
-            task_count = sum(store.db.execute("SELECT COUNT(*) FROM publications WHERE block_hash=? AND supported=1", (i["hash"],)).fetchone()[0]
-                             for i in job["items"].values() if i.get("state") == "processed")
-            associated = sum(a.get("state") == "complete" for a in job["associations"].values())
-            conflict = any(u["state"] == "source_conflict" for u in job["updates"])
-            job["state"] = "source_conflict" if conflict else "complete" if processed == end - start + 1 and not pending and associated == task_count else "incomplete"
-            job["usage"] = store.usage(job)
-            store.save(job)
-            return job
+                    return job
+                job["state"], update["state"] = "running", "running"
+                job["issue"] = None
+                store.save(job)
+                try:
+                    with Session(self.state, self.root, max_bytes=remaining["bytes"] + SAFETY_MARGIN,
+                                 max_blocks=max(0, remaining["attempts"]), max_requests=remaining["requests"],
+                                 max_seconds=min(limits["segment_seconds"], remaining["seconds"], wall_remaining),
+                                 session_limit=limits["cumulative_response_bytes"],
+                                 context={"collection_job": job["id"], "update": index}) as session:
+                        sources = self.sources_factory(session)
+                        if int(sources.rpc("eth_chainId", []), 16) != 43111:
+                            raise DataError("wrong_network", "Collector requires Hemi mainnet")
+                        if not recheck:
+                            tip_hash = hex32(sources.btc("/blocks/tip/hash", False)).hex()
+                            tip = sources.btc("/block/" + tip_hash)
+                            if tip.get("id") != tip_hash or isinstance(tip.get("height"), bool) or not isinstance(tip.get("height"), int) or tip["height"] < 0:
+                                raise DataError("invalid_response", "Invalid observed Bitcoin tip")
+                            update["tip_observation"] = store.tip(job, tip["height"], tip_hash, sources.last_btc_api)
+                            self.event({"stage": "tip_observed", **update["tip_observation"]})
+                            if tip["height"] < low:
+                                job["state"], update["state"] = "waiting", "waiting"
+                                store.save(job)
+                                return job
+                            available = min(high, tip["height"])
+                            for height in range(low, available + 1):
+                                self._body(store, job, height, sources, session, cache)
+                            self._associations(store, job, low, available, sources, session)
+                            if available < high:
+                                job["state"], update["state"] = "waiting", "waiting"
+                                store.save(job)
+                                return job
+                        changed = self._recheck(store, job, low, high, sources, session)
+                        self._ready(store, job, low, high, changed)
+                    ids = {row[0] for h in range(low, high + 1) for row in store.db.execute(
+                        "SELECT id FROM publications WHERE block_hash=? AND supported=1",
+                        (job["items"].get(str(h), {}).get("hash", ""),))}
+                    incomplete = any(job["associations"].get(identity, {}).get("state") != "complete" for identity in ids)
+                    update["state"] = "source_conflict" if changed else "incomplete_associations" if incomplete else "complete"
+                    if not changed:
+                        job["issue"] = {"code": "unresolved_associations", "message": "Some publications still need Hemi metadata or ancestry"} if incomplete else None
+                    update["completed_at"] = timestamp()
+                    store.save(job)
+                    break
+                except DeadlineError:
+                    job["issue"] = {"code": "segment_interrupted", "message": "Processing segment expired; remaining job allowance is preserved"}
+                    store.save(job)
+                    continue
+                except (DataError, OSError, KeyError, TypeError, ValueError) as exc:
+                    message = str(exc) if isinstance(exc, DataError) else "Local collection work could not finish. Progress is retained; review the operator log and resume the same job."
+                    job.update(state="limited" if isinstance(exc, BudgetError) else "incomplete",
+                               issue={"code": getattr(exc, "code", "collection_error"), "message": message},
+                               diagnostic={"type": type(exc).__name__, "message": str(exc)})
+                    update["state"] = job["state"]
+                    store.save(job)
+                    return job
+        processed = sum(item.get("state") == "processed" for item in job["items"].values())
+        pending = sum(a.get("state") != "complete" for a in job["associations"].values())
+        task_count = sum(store.db.execute("SELECT COUNT(*) FROM publications WHERE block_hash=? AND supported=1", (i["hash"],)).fetchone()[0]
+                         for i in job["items"].values() if i.get("state") == "processed")
+        associated = sum(a.get("state") == "complete" for a in job["associations"].values())
+        conflict = any(u["state"] == "source_conflict" for u in job["updates"])
+        job["state"] = "source_conflict" if conflict else "complete" if processed == end - start + 1 and not pending and associated == task_count else "incomplete"
+        job["usage"] = store.usage(job)
+        store.save(job)
+        return job
+
+    def follow(self, identity, *, max_updates=None, recheck=False, sleep=time.sleep):
+        """Follow a fixed range inside one persisted window and owned runner lock."""
+        with RunnerLock(self.state), CollectionStore(self.state) as store:
+            job = store.job(identity)
+            if not job["limits"].get("wall_seconds"):
+                raise DataError("invalid_collection", "Following requires a saved finite wall-time allowance; preserve earlier jobs and accounting")
+            while True:
+                job = store.job(identity)
+                next_attempt = job.get("clock", {}).get("next_attempt_at")
+                if next_attempt:
+                    remaining = self._wall_remaining(store, job)
+                    if remaining <= 0:
+                        return self._window_expired(store, job)
+                    wait = min(remaining, max(0, epoch(next_attempt) - time.time()))
+                    if wait:
+                        sleep(wait)
+                    job["clock"].pop("next_attempt_at", None)
+                    store.save(job)
+                job = self._run(store, identity, max_updates=max_updates, recheck=recheck)
+                issue = job.get("issue") or {}
+                retryable = job["state"] == "incomplete" and issue.get("code") == "source_unavailable"
+                if job["state"] == "incomplete" and issue.get("code") == "unresolved_associations":
+                    issues = [a.get("issue", {}).get("code") for a in job["associations"].values() if a.get("state") != "complete"]
+                    retryable = bool(issues) and all(code in ("source_unavailable", "invalid_response") for code in issues)
+                if job["state"] != "waiting" and not retryable:
+                    return job
+                remaining = self._wall_remaining(store, job)
+                if remaining <= 0:
+                    return self._window_expired(store, job)
+                clock = job.setdefault("clock", {})
+                failures = clock.get("consecutive_failures", 0) + 1 if retryable else 0
+                clock["consecutive_failures"] = failures
+                poll = job["limits"]["poll_seconds"]
+                seconds = min(remaining, min(job["limits"]["backoff_max_seconds"], poll * 2 ** min(failures, 10)))
+                clock["next_attempt_at"] = datetime.fromtimestamp(time.time() + seconds, timezone.utc).isoformat()
+                store.save(job)
+                self.event({"stage": "collection_wait", "state": job["state"], "seconds": seconds,
+                            "retry": retryable, "range": job["range"]})
 
 
 def main(argv=None):
@@ -272,6 +361,9 @@ def main(argv=None):
     create.add_argument("--max-seconds", type=int, default=600)
     create.add_argument("--cumulative-limit", type=int, default=SESSION_LIMIT)
     create.add_argument("--segment-seconds", type=int, default=60)
+    create.add_argument("--wall-seconds", type=int, default=7200)
+    create.add_argument("--poll-seconds", type=int, default=60)
+    create.add_argument("--backoff-max-seconds", type=int, default=600)
     run = sub.add_parser("run", help="Run/resume a saved job within its remaining allowance")
     run.add_argument("job")
     run.add_argument("--max-updates", type=int)
@@ -284,16 +376,15 @@ def main(argv=None):
         with CollectionStore(args.state_dir) as store:
             result = store.create(args.start, args.end, batch_size=args.batch_size, max_bytes=args.max_bytes,
                                   max_attempts=args.max_attempts, max_requests=args.max_requests, max_seconds=args.max_seconds,
-                                  cumulative_limit=args.cumulative_limit, segment_seconds=args.segment_seconds)
+                                  cumulative_limit=args.cumulative_limit, segment_seconds=args.segment_seconds,
+                                  wall_seconds=args.wall_seconds, poll_seconds=args.poll_seconds,
+                                  backoff_max_seconds=args.backoff_max_seconds)
     elif args.command == "status":
         result = collection_status(args.state_dir)
     else:
         collector = Collector(root, args.state_dir, event=lambda value: print(encode(value), flush=True))
-        while True:
-            result = collector.run(args.job, max_updates=args.max_updates, recheck=args.recheck)
-            if not args.follow or result["state"] != "waiting":
-                break
-            time.sleep(15)
+        operation = collector.follow if args.follow else collector.run
+        result = operation(args.job, max_updates=args.max_updates, recheck=args.recheck)
     print(json.dumps(result, indent=2))
     return 0 if not result or result["state"] in ("complete", "queued", "waiting") else 2
 
