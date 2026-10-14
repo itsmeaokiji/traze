@@ -13,6 +13,12 @@ python -B -m unittest discover -s tests -v
 
 Catalogue and main-app tests build isolated databases from the included body corpus. They do not require a pre-existing private catalogue or cache. Retained fixtures and controlled sources exercise proof checks, input binding, coverage, missing/corrupt data, interrupted work, source conflicts and accounting.
 
+Collection controls additionally exercise hard process exits before/after body
+commit, owned-lock recovery, resumed resource limits, metadata repair, indexed
+reads during a source operation, read snapshots, changed views, cache eviction
+and transient Windows ledger-reader locks. They use included bodies and
+controlled RPC responses; see [the collection workflow](COLLECTION.md).
+
 Some transport tests use loopback servers or subprocesses. Public Hemi/Bitcoin requests are not needed. Controlled source changes are not evidence of a naturally observed reorg.
 
 ## Frontend checks and build

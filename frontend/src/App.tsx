@@ -10,6 +10,7 @@ import ThemeToggle from './ThemeToggle';
 import { OperationProgress } from './OperationProgress';
 import { StatusIcon } from './StatusIcon';
 import { ExternalLink } from './ExternalLink';
+import { CollectionStatus } from './CollectionStatus';
 
 function savedLabel(receipt: SavedResult): string {
   const examples: Record<string, string> = { 'example-ordinary': 'Ordinary block', 'example-checkpoint': 'Keystone block', 'example-no-match': 'No match in range' };
@@ -90,6 +91,7 @@ export default function App() {
           <SavedResults receipts={saved} ready={Boolean(workspace.workspace)} busy={workspace.busy} onSelect={id => { setInvalidField(undefined); void workspace.openSaved(id); }} /></div>
         </form>
       </section>
+      <CollectionStatus value={workspace.workspace?.collection} />
       {workspace.error && <div id="error-message" className="error-message" role="alert"><StatusIcon tone="error" /><p>{errorMessage}</p></div>}
       {workspace.job ? <OperationProgress job={workspace.job} /> : workspace.result ? <EvidenceView key={workspace.result.id} wrapper={workspace.result} fresh={workspace.fresh} busy={workspace.busy} onError={workspace.report} onNewLookup={newLookup} onRecheck={() => { if (workspace.result) void workspace.startOperation('refresh', { receipt_id: workspace.result.id }); }} /> : <section id="empty-state" className="empty-state"><div className="empty-path" aria-hidden="true"><span>Hemi block</span><span>→</span><span>Keystone</span><span>→</span><span>Bitcoin publication</span></div>{workspace.busy ? <p role="status">{workspace.workspace ? 'Loading evidence…' : 'Loading local workspace…'}</p> : <p>Search for a Hemi block or open a saved result to inspect its publication evidence.</p>}</section>}
       <Diagnostics workspace={workspace.workspace} result={workspace.result} activity={workspace.activity} error={workspace.error} running={Boolean(workspace.job)} />

@@ -81,7 +81,7 @@ The catalogue, session ledger, cached bodies and new browser receipts live in `.
 
 Live lookup/refresh retain the prototype's response, request, body-attempt, ancestry and overall-time controls. Resource limits are operator safeguards, not protocol rules or personal daily quotas. Live source operations stop with qualified incomplete results when limits or unavailable data prevent completion.
 
-This local server binds to loopback. Maintained collection and public hosting are [planned work](ROADMAP.md).
+This local server binds to loopback. [Optional finite collection](COLLECTION.md) can populate a separate managed index; it does not start automatically. Public hosting and supported service operation remain [planned work](ROADMAP.md).
 
 ## Common setup issues
 

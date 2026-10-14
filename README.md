@@ -6,7 +6,7 @@ Inspect keystone connections and Bitcoin transactions, with clear sources and ch
 
 Traze is a Hemi–Bitcoin publication explorer that connects Hemi blocks and keystones to applicable Bitcoin publication transactions, with inspectable evidence, recorded source observations, and clear search coverage.
 
-**Status:** Local prototype. Maintained collection, durable live jobs and public hosting are planned work.
+**Status:** Local prototype with an opt-in finite collector, durable jobs and reusable indexed evidence. Sustained service operation and public hosting remain planned work.
 
 ![Recorded Hemi-to-Bitcoin publication route](docs/images/publication-route.jpg)
 
@@ -55,7 +55,9 @@ Python standard-library discovery/verification, SQLite catalogue and immutable J
 
 The demonstrated live path uses basic public Hemi RPC and configured public Bitcoin APIs. It requires no private node, TBC/BFG access, API key or paid service for this demo. External-source availability and sustainable production access remain operating questions.
 
-The fixture corpus contains 17 historical Bitcoin bodies totaling 25,845,550 bytes across two disjoint periods. The catalogue currently compiles 22 supported publication occurrences, with 10 associated and 12 unassociated records. This is declared sample coverage, not complete Hemi/Bitcoin history.
+The fixture corpus contains 17 historical Bitcoin bodies totaling 25,845,550 bytes across two disjoint periods. The supplied fixture catalogue compiles 22 supported publication occurrences, with 10 associated and 12 unassociated records. This is declared sample coverage, not complete Hemi/Bitcoin history.
+
+An optional finite collector can acquire additional Bitcoin blocks ahead of user searches, check Hemi associations and update a managed evidence index. It retains job progress and resource accounting on resume. Indexed searches remain available during collection. Starting the website does not start collection; see [collection and recovery](docs/COLLECTION.md).
 
 ## Evidence boundaries
 
@@ -85,7 +87,7 @@ Follow [development instructions](docs/DEVELOPMENT.md) and [contribution guidanc
 
 ## Roadmap
 
-The reusable evidence foundation and local demonstration are implemented. Next comes a measured maintained-service pilot, followed by a supported public beta and selected expansions.
+The reusable evidence foundation, local demonstration and initial finite collector are implemented. Initial acquisition and recovery controls support further maintained-service validation; sustained source capacity and public-service readiness remain open. A supported public beta and selected expansions follow the pilot.
 
 See [the roadmap](docs/ROADMAP.md), [repository contents](docs/REPOSITORY.md) and [change notes](CHANGELOG.md). Current automated results are available in [Repository checks](https://github.com/itsmeaokiji/traze/actions/workflows/checks.yml).
 

@@ -21,6 +21,7 @@ from .proof import verify_receipt
 from .storage import BlockCache, Session, SESSION_LIMIT, PRIOR_REPORTS, now
 from .inputs import block_input
 from .catalogue_lookup import recorded_lookup
+from .collection_store import collection_status
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "web"
@@ -104,7 +105,11 @@ class Jobs:
                                   "completed_at": r.get("completed_at"), "mode": r.get("mode")})
             except (OSError, ValueError, KeyError, TypeError):
                 continue
-        return {"receipts": summaries[-24:], "active_job": active, "resources": self.resources(),
+        try:
+            collection = collection_status(self.state_dir)
+        except (OSError, ValueError, sqlite3.Error):
+            collection = {"state": "unavailable"}
+        return {"receipts": summaries[-24:], "active_job": active, "resources": self.resources(), "collection": collection,
                 "limits": {"response_mb_per_lookup": 40, "bitcoin_body_attempts": 20,
                            "ancestry_links": 256, "session_response_mb": 100}}
 
@@ -150,8 +155,10 @@ class Jobs:
         else:
             raise WebError("unknown_operation", "Unknown operation.", 404)
         with self.guard:
-            if self.active is not None or (self.state_dir / "session.lock").exists():
-                raise WebError("busy", "A lookup is already active. Wait for it to finish; the shared ledger is preserved.", 409)
+            recorded_allowed = operation == "lookup" and scope is None and not force_discovery
+            if self.active is not None or ((self.state_dir / "session.lock").exists()
+                    and (not recorded_allowed or self.recorded(target) is None)):
+                raise WebError("busy", "A public-source operation is active. Indexed searches and saved results remain available.", 409)
             # Bound in-memory jobs. Receipts remain on disk and downloadable.
             if len(self.jobs) >= 24:
                 self.jobs.pop(next(iter(self.jobs)))
@@ -174,13 +181,23 @@ class Jobs:
             if session:
                 job["resources"] = session.metrics()
 
+    def recorded(self, target):
+        for database in ("service.sqlite3", "catalogue.sqlite3"):
+            try:
+                receipt = recorded_lookup(self.state_dir / database, target)
+            except (DataError, OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+                receipt = None
+            if receipt is not None:
+                return receipt
+        return None
+
     def run(self, identity, operation, value):
         try:
             receipt = None
             if operation == "lookup" and value[1] is None and not self.jobs[identity]["force_discovery"]:
                 self.event(identity, "Checking recorded publication evidence…")
                 try:
-                    receipt = recorded_lookup(self.state_dir / "catalogue.sqlite3", value[0])
+                    receipt = self.recorded(value[0])
                 except (DataError, OSError, ValueError, KeyError, TypeError, sqlite3.Error):
                     self.event(identity, "Recorded evidence is unavailable or inconsistent; starting normal discovery…")
             if receipt is None:
@@ -207,6 +224,8 @@ class Jobs:
                     self.active = None
 
     def public_operation(self, identity, operation, value):
+        if (self.state_dir / "session.lock").exists():
+            raise WebError("busy", "Public-source collection is active and this input has no usable indexed evidence. Open a saved result or retry after collection finishes.", 409)
         self.event(identity, "Reading public sources…" if operation == "lookup" else "Refreshing source views; proof data is preserved…")
         with Session(self.state_dir, self.root) as session:
             engine = Engine(PublicSources(session), session, BlockCache(self.state_dir / "blocks"),

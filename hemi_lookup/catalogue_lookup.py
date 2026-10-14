@@ -59,6 +59,7 @@ def recorded_lookup(database, requested):
         return None
     requested = block_input(requested)
     with Catalogue(database, readonly=True) as catalogue:
+        catalogue.db.execute("BEGIN")
         resolved = catalogue.resolve_number(requested) if isinstance(requested, int) else requested
         packet = catalogue.query(resolved)
         # Do not let absence/ambiguity in a small corpus replace generic discovery.
@@ -74,10 +75,18 @@ def recorded_lookup(database, requested):
     else:
         packet["issues"].append({"code": "catalogue_recheck_unavailable",
                                  "message": "Recorded covering metadata is insufficient for source recheck; run a new lookup"})
-    times = sorted({source["observation"].get("context", {}).get("checked_at")
+    times = {source["observation"].get("context", {}).get("checked_at")
                     for source in packet["coverage"]["historical_observations"]
-                    if isinstance(source["observation"].get("context", {}).get("checked_at"), str)})
-    packet["catalogue"] = {"historical_source_times": times,
+                    if isinstance(source["observation"].get("context", {}).get("checked_at"), str)}
+    times.update(item["observed_at"] for source in packet["coverage"]["historical_observations"]
+                 for item in source["observation"].get("metadata_observations", []) if isinstance(item.get("observed_at"), str))
+    times = sorted(times)
+    # Display bounds stay compact as indexed metadata grows. Individual RPC
+    # observation times remain in the portable packet's coverage records.
+    display_times = [times[0], times[-1]] if len(times) > 2 else times
+    packet["catalogue"] = {"historical_source_times": display_times,
+                           "historical_source_time_count": len(times),
+                           "source_observation_range": {"first": times[0], "last": times[-1]} if times else None,
                            "number_resolved_from_retained_view": isinstance(requested, int)}
     recorded_sources = [source["observation"].get("sources", {}) for source in packet["coverage"]["historical_observations"]]
     hemi_urls = {source.get("hemi_rpc_used") or source.get("hemi_rpc") for source in recorded_sources}

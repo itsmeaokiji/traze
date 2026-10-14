@@ -263,19 +263,20 @@ class Catalogue:
         scopes, blocks, gaps, observations = [], {}, [], []
         for import_id in import_ids:
             source = self.db.execute("SELECT * FROM imports WHERE id=?", (import_id,)).fetchone()
-            observations.append({"receipt_sha256": import_id, "label": source["label"],
+            origin_key = "source_record_id" if source["label"] == "Collected Bitcoin block" else "receipt_sha256"
+            observations.append({origin_key: import_id, "label": source["label"],
                                  "observation": json.loads(source["observation"])})
             complete = []
             for row in self.db.execute("SELECT n.height,n.hash,b.status,b.data,b.issue FROM nominations n JOIN blocks b ON b.hash=n.hash WHERE n.import_id=? ORDER BY n.height,n.hash", (import_id,)):
                 if row["status"] != "complete":
-                    gaps.append({"height": row["height"], "hash": row["hash"], "receipt_sha256": import_id,
+                    gaps.append({"height": row["height"], "hash": row["hash"], origin_key: import_id,
                                  "reason": row["status"], "issue": json.loads(row["issue"]) if row["issue"] else None})
                     continue
                 data = json.loads(row["data"])
                 entry = {**data, "height": row["height"], "source": "compiled_retained_body", "cache_hit": True}
                 complete.append(entry)
                 blocks[(row["height"], row["hash"])] = entry
-            scopes.append({"receipt_sha256": import_id, "label": source["label"],
+            scopes.append({origin_key: import_id, "label": source["label"],
                            "fully_scanned_intervals": intervals(complete), "height_scope": "source_reported"})
         return {"blocks": sorted(blocks.values(), key=lambda item: (item["height"], item["hash"])),
                 "scopes": scopes, "gaps": gaps,
@@ -285,15 +286,22 @@ class Catalogue:
                 "historical_observations": observations}
 
     def query(self, requested_hash):
+        # A read transaction keeps a packet consistent while a collector commits
+        # new bodies or metadata. The constructor itself remains network-free.
+        if not self.db.in_transaction:
+            self.db.execute("BEGIN")
         requested_hash = block_input(requested_hash)
         if not isinstance(requested_hash, str):
             raise DataError("exact_hash_required", "Catalogue query requires an exact Hemi block hash")
         key = hex32(requested_hash).hex()
         headers = self.db.execute("SELECT * FROM headers WHERE hash=?", (key,)).fetchall()
         import_ids = [row[0] for row in self.db.execute("SELECT DISTINCT import_id FROM header_origins WHERE hash=? ORDER BY import_id", (key,))]
-        if not import_ids:
+        maintained = self.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='collection_jobs'").fetchone() is not None
+        if not import_ids or maintained:
             import_ids = [row[0] for row in self.db.execute("SELECT id FROM imports ORDER BY id")]
         coverage = self._scope(import_ids)
+        if maintained:
+            coverage["fully_scanned_intervals"] = intervals(coverage["blocks"])
         packet = {"schema": SCHEMA, "mode": "offline_catalogue", "started_at": timestamp(),
                   "query": {"input_type": "hash", "requested_block_hash": requested_hash,
                             "block_hash": requested_hash, "block_number": None,
@@ -330,9 +338,9 @@ class Catalogue:
             for match in matches:
                 template = json.loads(match["data"])
                 indexes = [i for i, item in enumerate(template["ancestry"]) if hex32(item["hash"]).hex() == key and same_header(item, header)]
-                if not indexes:
+                path = template["ancestry"][indexes[0]:] if indexes else self._linked_path(header, template["checkpoint"]["header"]) if maintained else None
+                if not path:
                     continue
-                path = template["ancestry"][indexes[0]:]
                 record = json.loads(candidate["data"])
                 reported = sorted({row[0] for row in self.db.execute("SELECT height FROM nominations WHERE hash=?", (candidate["block_hash"],))})
                 record.update(checkpoint=template["checkpoint"], ancestry=path,
@@ -362,9 +370,50 @@ class Catalogue:
             packet["issues"].append({"code": "historical_height_conflict", "message": "Historical sources report different heights for an inclusion; no earliest-height selection is made"})
         if len(packet["proofs"]) > 128:
             raise DataError("packet_capacity", "Compiled matches exceed this receipt verifier's packet capacity; no truncated success is returned")
+        if maintained:
+            self._collection_views(packet)
         packet["completed_at"] = timestamp()
         packet["offline_recomputation"] = verify_receipt(packet)
         return packet
+
+    def _linked_path(self, requested, publishing):
+        """Reuse an unambiguous stored parent graph, bounded to 256 links."""
+        distance = height(publishing) - height(requested)
+        if not 0 <= distance <= 256:
+            return None
+        path = [publishing]
+        while height(path[-1]) > height(requested):
+            rows = self.db.execute("SELECT data FROM headers WHERE hash=?", (hex32(path[-1]["parentHash"]).hex(),)).fetchall()
+            if len(rows) != 1:
+                return None
+            parent = json.loads(rows[0][0])
+            if height(parent) + 1 != height(path[-1]):
+                return None
+            path.append(parent)
+        if not same_header(path[-1], requested):
+            return None
+        return list(reversed(path))
+
+    def _collection_views(self, packet):
+        """Attach last observed source differences without discarding proofs."""
+        checks = []
+        requested = packet["query"]["header"]
+        targets = [("hemi", height(requested), hex32(requested["hash"]).hex())]
+        targets.extend(("bitcoin", proof["bitcoin_height"], proof["bitcoin_block_hash"]) for proof in packet["proofs"])
+        targets.extend(("hemi", proof["checkpoint"]["height"], hex32(proof["checkpoint"]["header"]["hash"]).hex()) for proof in packet["proofs"])
+        for chain, number, block_hash in sorted(set(targets), key=lambda item: (item[0], item[1] or -1, item[2])):
+            if number is None:
+                continue
+            row = self.db.execute("SELECT data FROM collection_views WHERE chain=? AND height=? ORDER BY sequence DESC LIMIT 1", (chain, number)).fetchone()
+            if not row:
+                continue
+            observation = json.loads(row[0])
+            changed = observation.get("hash") != block_hash or observation.get("status") != "observed"
+            checks.append({**observation, "record_hash": block_hash, "matches_record": not changed})
+            if changed:
+                packet["issues"].append({"code": "collection_source_view_changed", "message": f"Last observed {chain} source view differs or is unavailable for height {number}; retained proof is historical"})
+        packet["context"]["collection_source_views"] = checks
+        packet["context"]["current_view_confirmed"] = False
 
 
 def build_catalogue(root, database=None, *, block_directory=None):

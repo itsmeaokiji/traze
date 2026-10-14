@@ -29,14 +29,27 @@ def atomic_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(path.name + ".tmp")
     temp.write_text(json.dumps(value, indent=2), encoding="utf-8")
-    temp.replace(path)
+    # Windows readers can briefly deny replacement even after a complete temp
+    # write. Keep the old ledger intact and retry for less than one second.
+    for attempt in range(12):
+        try:
+            temp.replace(path)
+            break
+        except PermissionError:
+            if attempt == 11:
+                raise
+            time.sleep(min(.01 * (2 ** attempt), .1))
 
 
 class Session:
-    def __init__(self, directory, prior_root=None, max_bytes=40_000_000, max_blocks=20, max_requests=600, max_seconds=600):
+    def __init__(self, directory, prior_root=None, max_bytes=40_000_000, max_blocks=20, max_requests=600, max_seconds=600,
+                 *, session_limit=SESSION_LIMIT, context=None):
         if (isinstance(max_seconds, bool) or not isinstance(max_seconds, (int, float))
                 or not math.isfinite(max_seconds) or not 0 < max_seconds <= 600):
             raise DataError("invalid_limits", "Overall lookup time must be positive and at most 600 seconds")
+        if isinstance(session_limit, bool) or not isinstance(session_limit, int) or session_limit <= SAFETY_MARGIN:
+            raise DataError("invalid_limits", "Cumulative response allowance must be a positive integer with a safety margin")
+        self.session_limit = session_limit
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self.path = self.directory / "session.json"
@@ -62,7 +75,7 @@ class Session:
                     path = Path(prior_root) / name
                     if path.exists():
                         value = json.loads(path.read_text(encoding="utf-8")).get("http_response_bytes")
-                        if not isinstance(value, int) or not 0 <= value <= SESSION_LIMIT:
+                        if not isinstance(value, int) or not 0 <= value <= self.session_limit:
                             raise DataError("invalid_prior_budget", "Prior validation budget is invalid")
                         prior[name] = value
             if self.path.exists():
@@ -75,6 +88,9 @@ class Session:
                         "body_attempts": 0, "requests": [], "cache_reads": 0,
                         "limits": {"response_bytes": max_bytes, "bitcoin_body_attempts": max_blocks,
                                    "requests": max_requests, "overall_seconds": max_seconds}}
+            if context:
+                self.run["context"] = dict(context)
+                self.run["limits"]["cumulative_response_bytes"] = self.session_limit
             self.state["runs"].append(self.run)
             self.save()
         except Exception:
@@ -109,8 +125,8 @@ class Session:
         amount = ceiling + HEADER_RESERVE
         if self.run["received_bytes"] + amount > self.max_bytes - SAFETY_MARGIN:
             raise BudgetError("Per-lookup response budget reached")
-        if self.total_bytes + amount > SESSION_LIMIT - SAFETY_MARGIN:
-            raise BudgetError("Combined 100 MB session budget reached")
+        if self.total_bytes + amount > self.session_limit - SAFETY_MARGIN:
+            raise BudgetError(f"Combined {self.session_limit / 1_000_000:g} MB session budget reached")
         entry = {"url": url, "status": "reserved", "reserved_bytes": amount}
         self.run["requests"].append(entry)
         self.run["received_bytes"] += amount
@@ -149,6 +165,10 @@ class Session:
                 for callback in self._closers:
                     callback()
             finally:
+                if hasattr(self, "run"):
+                    self.run["closed_at"] = now()
+                    self.run["elapsed_seconds"] = max(0, time.monotonic() - self.started)
+                    self.save()
                 if self.lock_path.exists() and self.lock_path.read_text() == self.token:
                     self.lock_path.unlink()
                 self.closed = True

@@ -112,9 +112,24 @@ export interface Job {
   error?: Issue | null;
 }
 export interface WorkspaceState {
+  collection?: CollectionStatus | null;
   csrf_token: string;
   receipts: SavedResult[];
   active_job: Job | null;
   resources: { available: boolean; total_response_bytes?: number; session_limit_bytes: number; remaining_bytes?: number };
   limits: { response_mb_per_lookup: number; bitcoin_body_attempts: number; ancestry_links: number; session_response_mb: number };
+}
+export interface CollectionStatus {
+  state: string;
+  range?: [number, number];
+  processed_blocks?: number;
+  processed_job_blocks?: number;
+  requested_job_blocks?: number;
+  supported_publications?: number;
+  associated_publications?: number;
+  unresolved_publications?: number;
+  pending_ancestry?: number;
+  source_conflicts?: number;
+  updated_at?: string;
+  issue?: Issue | null;
 }

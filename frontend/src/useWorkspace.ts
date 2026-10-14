@@ -71,6 +71,20 @@ export function useWorkspace() {
     return () => connection.abort();
   }, []);
 
+  useEffect(() => {
+    const poll = new AbortController();
+    let stopped = false;
+    void (async () => {
+      while (!stopped) {
+        try {
+          await delay(4000, poll.signal);
+          if (token.current) await loadState(poll.signal);
+        } catch { if (poll.signal.aborted) break; }
+      }
+    })();
+    return () => { stopped = true; poll.abort(); };
+  }, []);
+
   async function openSaved(id: string) {
     const signal = controller.current?.signal;
     if (!signal || signal.aborted || occupied.current || !workspace) return;
