@@ -43,14 +43,19 @@ def atomic_json(path, value):
 
 class Session:
     def __init__(self, directory, prior_root=None, max_bytes=40_000_000, max_blocks=20, max_requests=600, max_seconds=600,
-                 *, session_limit=SESSION_LIMIT, context=None):
+                 *, session_limit=SESSION_LIMIT, context=None, interrupt=None, operating_budget=None):
         if (isinstance(max_seconds, bool) or not isinstance(max_seconds, (int, float))
                 or not math.isfinite(max_seconds) or not 0 < max_seconds <= 600):
             raise DataError("invalid_limits", "Overall lookup time must be positive and at most 600 seconds")
         if isinstance(session_limit, bool) or not isinstance(session_limit, int) or session_limit <= SAFETY_MARGIN:
             raise DataError("invalid_limits", "Cumulative response allowance must be a positive integer with a safety margin")
         self.session_limit = session_limit
+        self.interrupt = interrupt
+        self.operating_budget = operating_budget
+        self.context = dict(context or {})
         self.directory = Path(directory).resolve()
+        if (self.directory / "restore-guard.json").exists():
+            raise DataError("restored_state_requires_review", "Restored accounting requires operator reconciliation before source acquisition. Indexed reads remain available.")
         self.directory.mkdir(parents=True, exist_ok=True)
         self.path = self.directory / "session.json"
         self.lock_path = self.directory / "session.lock"
@@ -75,7 +80,7 @@ class Session:
                     path = Path(prior_root) / name
                     if path.exists():
                         value = json.loads(path.read_text(encoding="utf-8")).get("http_response_bytes")
-                        if not isinstance(value, int) or not 0 <= value <= self.session_limit:
+                        if not isinstance(value, int) or value < 0 or (not operating_budget and value > self.session_limit):
                             raise DataError("invalid_prior_budget", "Prior validation budget is invalid")
                         prior[name] = value
             if self.path.exists():
@@ -84,6 +89,8 @@ class Session:
                     raise DataError("session_changed", "Session/prior budget changed; refusing to reset accounting")
             else:
                 self.state = {"schema": 1, "prior_validation_bytes": prior, "downloaded_bytes": 0, "runs": []}
+            if self.operating_budget:
+                self.operating_budget.prepare(self)
             self.run = {"id": self.token[:12], "started_at": now(), "received_bytes": 0,
                         "body_attempts": 0, "requests": [], "cache_reads": 0,
                         "limits": {"response_bytes": max_bytes, "bitcoin_body_attempts": max_blocks,
@@ -105,6 +112,10 @@ class Session:
         atomic_json(self.path, self.state)
 
     def check_deadline(self):
+        if self.interrupt:
+            self.interrupt()
+        if self.operating_budget:
+            self.operating_budget.check_clock()
         if time.monotonic() >= self.deadline:
             self.deadline_expired = True
             raise DeadlineError()
@@ -123,6 +134,8 @@ class Session:
         if block and self.run["body_attempts"] >= self.max_blocks:
             raise BudgetError("Bitcoin body-attempt limit reached")
         amount = ceiling + HEADER_RESERVE
+        if self.operating_budget:
+            self.operating_budget.before_request(self, amount, block)
         if self.run["received_bytes"] + amount > self.max_bytes - SAFETY_MARGIN:
             raise BudgetError("Per-lookup response budget reached")
         if self.total_bytes + amount > self.session_limit - SAFETY_MARGIN:

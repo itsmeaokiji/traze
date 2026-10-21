@@ -10,10 +10,13 @@ export interface Identity {
 }
 export interface Keystone { height: number; keystone_id: string }
 export interface Proof {
+  publication_id?: string;
   checkpoint: Keystone;
   bitcoin_height: number;
   bitcoin_block_hash: string;
   txid: string;
+  tx_index?: number;
+  vout_index?: number;
   ancestry: unknown[];
   current_bitcoin_depth_in_provider_view?: number | null;
 }
@@ -87,8 +90,76 @@ export interface ReceiptWrapper {
   id: string;
   label: string;
   filename: string;
+  record_url?: string;
+  selected_publication?: string | null;
+  selected_publication_available?: boolean;
   receipt: Receipt;
   verification: { proofs_checked: number; current_chain_membership_checked: boolean };
+  first_publication?: FirstPublicationAssessment;
+}
+
+export interface FirstPublicationAssessment {
+  status: string;
+  query: { number: number | null; hash?: string };
+  publication?: { bitcoin_height: number; bitcoin_hash: string; keystone_number: number; txid: string; tx_index: number; vout: number } | null;
+  packet_available: boolean;
+  packet_digest?: string;
+  download_url?: string;
+  globally_first_proven: false;
+  policy_id: string;
+  accepted_by_operator: boolean;
+  assumptions: { id: string; description: string }[];
+  issues: Issue[];
+  source_context?: { packet_prepared_at?: string; recorded_at?: string; source_checked_at?: string };
+  result?: {
+    schema?: string;
+    status: string;
+    first_height_assessment?: { status: string; bitcoin_height: number | null; policy_id?: string; context_sha256?: string };
+    assurance?: { first_height_under_accepted_assumptions?: boolean; globally_first_proven?: boolean };
+    policy?: { id: string; accepted_by_caller: boolean; accepted_from_packet: boolean;
+      context_accepted_by_caller?: boolean; context_sha256_selected_by_caller?: string | null };
+    context_evidence?: {
+      status: string; sha256?: string;
+      snapshot?: { number: number; hash: string; timestamp: number };
+      domain?: { first_hemi_keystone: number; last_hemi_block: number; tip_hash: string };
+      source?: string; observed_from?: string; observed_through?: string;
+      historical_execution_certified?: boolean; current_bitcoin_membership_verified?: boolean;
+    };
+    interval_evidence?: {
+      status: string;
+      query: { number: number; hash: string };
+      publication: { bitcoin_height: number; bitcoin_hash: string; keystone_number: number; txid: string; tx_index: number; vout: number };
+      verified_interval: { first_height: number; last_height: number };
+      assurance: { first_in_checked_interval: boolean };
+    };
+  };
+}
+
+export interface IndexSummary {
+  index_kind: 'maintained' | 'catalogue';
+  counts: { processed_bodies: number; supported_publications: number; associated_publications: number; unassociated_publications: number; unsupported_publications: number; failed_or_pending_bodies: number };
+  bitcoin_height_bounds: [number, number] | null;
+  source_observations_current: false;
+  history_complete: false;
+  last_import_stored_at: string | null;
+}
+export interface PublicationSummary {
+  id: string; record_url: string; bitcoin_block_hash: string; bitcoin_height: number | null;
+  height_conflict: boolean; txid: string; vout_index: number;
+  keystone_height: number | null; keystone_id: string | null;
+  state: 'associated' | 'pending' | 'unsupported'; association_available: boolean;
+}
+export interface KeystoneSummary {
+  height: number; keystone_id: string; publication_count: number; associated_count: number; publications_url: string;
+}
+export interface IndexPage<T> {
+  items: T[]; page: { limit: number; next_cursor: string | null }; retrieved_at: string;
+}
+export interface PublicationDetail {
+  publication: PublicationSummary; retrieved_at: string;
+  reported_bitcoin_heights: number[]; reported_heights_truncated: boolean;
+  hemi_records: { height: number; hash: string; record_url: string }[]; hemi_records_truncated: boolean;
+  data: { raw_transaction_hex: string; bitcoin_header_hex: string; tx_index: number; vout_index: number; merkle_siblings_display_hex: string[] };
 }
 export interface SavedResult {
   id: string;
@@ -103,6 +174,7 @@ export interface SavedResult {
 export interface Job {
   id: string;
   operation: 'lookup' | 'refresh';
+  phase?: 'recorded_lookup' | 'public_discovery' | 'source_refresh' | 'first_publication_check';
   block_input?: number | string;
   block_number: number | null;
   started_at: string;
@@ -112,6 +184,10 @@ export interface Job {
   error?: Issue | null;
 }
 export interface WorkspaceState {
+  deployment?: 'hosted-candidate';
+  service_status?: { monitoring: 'available' | 'unavailable'; generated_at?: string | null;
+    observations: Partial<Record<'bitcoin' | 'hemi', { observed_at?: string | null; recency: 'recent' | 'stale' | 'unavailable'; age_seconds?: number | null }>> };
+  serving_mode?: 'indexed-only' | 'discovery';
   collection?: CollectionStatus | null;
   csrf_token: string;
   receipts: SavedResult[];
@@ -121,7 +197,12 @@ export interface WorkspaceState {
 }
 export interface CollectionStatus {
   state: string;
-  range?: [number, number];
+  kind?: 'job' | 'service';
+  next_height?: number;
+  recorded_state?: string;
+  runner?: { state: 'active' | 'inactive' | 'unavailable'; last_seen_at?: string | null };
+  stop?: { reason: string; requested_at: string; acknowledged_at?: string } | null;
+  range?: [number, number] | null;
   processed_blocks?: number;
   processed_job_blocks?: number;
   requested_job_blocks?: number;

@@ -5,6 +5,8 @@ const states: Record<string, string> = {
   queued: 'Collection queued', running: 'Collection in progress', waiting: 'Waiting for Bitcoin blocks',
   complete: 'Collection completed', incomplete: 'Collection incomplete', limited: 'Collection paused at its limit',
   source_conflict: 'Source views changed', unavailable: 'Collection status unavailable',
+  stopped: 'Collection stopped', stopping: 'Stopping collection', stop_requested: 'Collection stop requested',
+  blocked: 'Collection needs operator review', storage_limited: 'Collection paused for storage review',
 };
 
 export function CollectionStatus({ value }: { value?: Collection | null }) {
@@ -13,9 +15,16 @@ export function CollectionStatus({ value }: { value?: Collection | null }) {
   return <section className="collection-status" aria-labelledby="collection-heading">
     <div className="collection-heading"><h2 id="collection-heading">Indexed evidence</h2><span>{states[value.state] || 'Recorded collection state'}</span></div>
     {value.processed_blocks !== undefined && <p>{formatNumber(value.processed_blocks)} Bitcoin blocks processed · {formatNumber(value.supported_publications)} supported publications · {formatNumber(value.associated_publications)} keystone associations</p>}
-    {value.range && <p className="muted">Collection range: Bitcoin {formatNumber(value.range[0])}–{formatNumber(value.range[1])} · {formatNumber(value.processed_job_blocks)} of {formatNumber(value.requested_job_blocks)} blocks processed</p>}
     {uncertain && <p className="collection-warning">{formatNumber(value.unresolved_publications)} unresolved publications · {formatNumber(value.pending_ancestry)} pending ancestry checks · {formatNumber(value.source_conflicts)} source-view issues</p>}
-    {value.issue && <p className="collection-warning">{value.issue.message || 'Some collection work remains incomplete.'}</p>}
-    {value.updated_at && <p className="muted">Last progress recorded: <time dateTime={value.updated_at}>{new Date(value.updated_at).toLocaleString('en-US')}</time>. Coverage and source times remain scoped to the recorded observations.</p>}
+    {value.state === 'source_conflict' && <p className="collection-warning">Conflicting source views require review. Retained evidence remains historical.</p>}
+    {['blocked', 'incomplete', 'limited', 'storage_limited'].includes(value.state) && <p className="collection-warning">Collection is not advancing. Available evidence is limited to collected coverage.</p>}
+    {value.state === 'unavailable' && <p className="collection-warning">An active collector could not be confirmed. Retained evidence remains available.</p>}
+    {value.updated_at && <p className="muted">Last collection update: <time dateTime={value.updated_at}>{new Date(value.updated_at).toLocaleString('en-US')}</time>. Coverage and source times remain scoped to the recorded observations.</p>}
+    <details className="limits-details collection-diagnostics"><summary>Collection diagnostics</summary>
+      {value.range && <p className="muted">Collection job range: Bitcoin {formatNumber(value.range[0])}–{formatNumber(value.range[1])} · {formatNumber(value.processed_job_blocks)} of {formatNumber(value.requested_job_blocks)} blocks processed</p>}
+      {value.next_height !== undefined && <p className="muted">Next collection height: Bitcoin {formatNumber(value.next_height)}. This cursor advances only through contiguous, checked updates.</p>}
+      {value.issue && <p>{value.issue.message || 'Some collection work remains incomplete.'}</p>}
+      {value.runner?.last_seen_at && <p className="muted">Last runner observation: <time dateTime={value.runner.last_seen_at}>{new Date(value.runner.last_seen_at).toLocaleString('en-US')}</time>. Runner activity does not confirm current chain views.</p>}
+    </details>
   </section>;
 }

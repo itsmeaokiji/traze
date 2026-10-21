@@ -125,7 +125,7 @@ describe('Evidence state qualifications', () => {
     const wrapper = wrap(); incomplete(wrapper);
     wrapper.receipt.context!.checked_at = undefined;
     render(<EvidenceView wrapper={wrapper} {...props} fresh />);
-    expect(document.getElementById('observation-line')!.textContent).toContain('Sources last checked: not recorded');
+    expect(document.getElementById('observation-line')!.textContent).toContain('Ordinary source check: not recorded');
     expect(document.getElementById('result-origin')!.textContent).toBe('SEARCH RESULT · CONTROLLED TEST DATA');
     expect(document.getElementById('result')!.classList.contains('result-warning')).toBe(true);
   });

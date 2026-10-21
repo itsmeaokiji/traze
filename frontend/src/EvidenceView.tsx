@@ -11,9 +11,12 @@ import { CopyAction } from './CopyAction';
 import { ExternalLink } from './ExternalLink';
 import { bitcoinReference } from './evidenceLinks';
 import { evidenceSummary } from './evidenceSummary';
-import { searchCoverageText, searchStopText } from './coveragePresentation';
+import { coverageIssuesText, searchCoverageText, searchStopText } from './coveragePresentation';
 import { receiptIssues } from './receiptIssues';
 import { historicalSourceTimes, isRecorded } from './recordedEvidence';
+import { EvidenceDownload } from './EvidenceDownload';
+import { FirstPublication } from './FirstPublication';
+import { firstPublicationState } from './firstPublicationState';
 export { receiptIssues } from './receiptIssues';
 
 function BitcoinLink({ type, hash, label }: { type: 'block' | 'tx'; hash?: string; label: ReactNode }) {
@@ -25,19 +28,21 @@ function BitcoinLink({ type, hash, label }: { type: 'block' | 'tx'; hash?: strin
 function Check({ label, value, note, status = 'unknown' }: { label: string; value: ReactNode; note?: string; status?: 'pass' | 'warning' | 'unknown' }) {
   return <div className="verification-row"><dt>{label}{note && <small>{note}</small>}</dt><dd className={`check-${status}`}><StatusIcon tone={status === 'unknown' ? 'neutral' : status} /><span>{value}</span></dd></div>;
 }
-export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLookup }: { wrapper: ReceiptWrapper; fresh: boolean; busy: boolean; onRecheck: () => void; onError: (error: unknown) => void; onNewLookup?: () => void }) {
+export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLookup, sourceOperationsEnabled = true }: { wrapper: ReceiptWrapper; fresh: boolean; busy: boolean; onRecheck: () => void; onError: (error: unknown) => void; onNewLookup?: () => void; sourceOperationsEnabled?: boolean }) {
   const [viewChoice, setViewChoice] = useState<{ receiptId: string; index: number } | null>(null);
   const choicesSummary = useRef<HTMLElement>(null);
   const summaryDetails = useRef<HTMLDetailsElement>(null);
   const summaryText = useRef<HTMLTextAreaElement>(null);
   const r = wrapper.receipt;
   const recorded = isRecorded(r);
-  const defaultProof = selectedProof(r);
+  const defaultProof = (wrapper.selected_publication ? r.proofs.find(item => item.publication_id === wrapper.selected_publication) : undefined) || selectedProof(r);
   const defaultIndex = defaultProof ? r.proofs.indexOf(defaultProof) : undefined;
   const chosenIndex = viewChoice?.receiptId === wrapper.id ? viewChoice.index : undefined;
   const hasChoice = chosenIndex !== undefined && Number.isInteger(chosenIndex) && chosenIndex >= 0 && chosenIndex < r.proofs.length;
   const displayedIndex = hasChoice ? chosenIndex : defaultIndex;
   const proof = displayedIndex !== undefined ? r.proofs[displayedIndex] : undefined;
+  const recordLink = wrapper.record_url ? new URL(wrapper.record_url, window.location.origin) : undefined;
+  if (recordLink && proof?.publication_id) recordLink.searchParams.set('publication', proof.publication_id);
   const viewingAnother = hasChoice && chosenIndex !== defaultIndex;
   const sameTransaction = Boolean(viewingAnother && defaultProof && proof && proof.txid === defaultProof.txid && proof.bitcoin_block_hash === defaultProof.bitcoin_block_hash);
   const identity = r.context?.requested_block_identity;
@@ -48,11 +53,13 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
   const origin = recorded ? 'RECORDED EVIDENCE' : fresh ? r.mode === 'live_metadata_refresh' ? 'SOURCE RECHECK' : 'SEARCH RESULT' : 'SAVED RESULT';
   const coverage = r.coverage || {};
   const blocks = coverage.blocks || [];
-  const { warnings } = receiptIssues(r);
+  const coverageIssues = coverageIssuesText(r);
+  const { warnings } = receiptIssues(r, sourceOperationsEnabled);
   const state = resultState(r, Boolean(proof));
+  const firstHeight = firstPublicationState(wrapper, proof);
   const summary = viewingAnother
     ? `Viewing another matching proof record from this receipt. ${state.tone === 'pass' ? 'Earlier publications may exist outside the scanned data.' : state.summary}`
-    : state.summary;
+    : firstHeight.qualified ? 'Matching publication evidence with a conditional first-height assessment in the recorded chain view. Review the supported rules and assumptions below.' : state.summary;
   const identityLabels = { matches_current_rpc_view: 'Matched at the last check', different_current_rpc_block: 'Different block hash at the last check', unavailable: 'Unconfirmed at the last check', not_rechecked: 'Current identity not rechecked' };
   const identitySummary = identity?.status === 'matches_current_rpc_view' ? 'Requested block identity: Matched the Hemi RPC view at the last check.'
     : identity?.status === 'different_current_rpc_block' ? 'At the last check, the Hemi RPC reported a different block hash at this height.'
@@ -69,27 +76,29 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
   return <section id="result" className={`result result-${state.tone}`} aria-labelledby="result-heading">
     <div className="result-heading-row">
       <div><p id="result-origin" className="eyebrow">{origin}{controlled ? ' · CONTROLLED TEST DATA' : ''}</p><div className="result-title"><StatusIcon tone={state.tone} /><h2 id="result-heading">{state.title}</h2></div><p id="result-summary">{summary}</p></div>
-      <div className="result-actions">{recorded && onNewLookup && <button id="new-lookup-button" className="secondary" disabled={busy} onClick={onNewLookup} title="Run the normal source search for this input, using any specified Bitcoin range.">Run new lookup</button>}<button id="refresh-button" className="secondary" disabled={busy || !r.query.header || !r.query.covering_checkpoint} onClick={onRecheck} title="Checks source views again. Original scan coverage is preserved.">Recheck sources <span aria-hidden="true">↻</span></button><CopyAction id="copy-summary" label="Copy summary" className="secondary summary-copy" value={readableSummary} scope={copyScope} disabled={busy} onManualCopy={openManualSummary} /><a id="download-link" className="download-link" href={`/api/receipts/${encodeURIComponent(wrapper.id)}/download`} download={wrapper.filename}>Download JSON <span aria-hidden="true">↓</span></a></div>
+      <div className="result-actions">{sourceOperationsEnabled && recorded && onNewLookup && <button id="new-lookup-button" className="secondary" disabled={busy} onClick={onNewLookup} title="Run the normal source search for this input, using any specified Bitcoin range.">Run new lookup</button>}{sourceOperationsEnabled && <button id="refresh-button" className="secondary" disabled={busy || !r.query.header || !r.query.covering_checkpoint} onClick={onRecheck} title="Checks source views again. Original scan coverage is preserved.">Recheck sources <span aria-hidden="true">↻</span></button>}{wrapper.record_url && <CopyAction id="copy-record-link" label="Copy record link" className="secondary" value={recordLink!.href} disabled={busy} />}<CopyAction id="copy-summary" label="Copy summary" className="secondary summary-copy" value={readableSummary} scope={copyScope} disabled={busy} onManualCopy={openManualSummary} /><EvidenceDownload wrapper={wrapper} /></div>
     </div>
-    <div className="result-context"><p id="observation-line" className="observation-line">{recorded ? `Evidence generated: ${formatDate(r.completed_at)} · Historical source observations: ${historicalSourceTimes(r)} · Current source views not rechecked.` : <>Result recorded: {formatDate(r.completed_at)} · Sources last checked: {formatDate(r.context?.checked_at)}{controlled ? ' · Controlled test data. This is not a live chain observation.' : fresh ? '' : ' · Use Recheck sources for a new check.'}{r.mode === 'live_metadata_refresh' ? ' Original scan coverage is preserved.' : ''}</>}</p>
-    {requestedHash && identity && <p id="input-identity-line" className={`input-identity-line${identity.status !== 'matches_current_rpc_view' ? ' is-warning' : ''}`}>{identitySummary}</p>}</div>
     {warnings.length > 0 && <div id="issues-section" className="issues-section"><h3><StatusIcon tone="warning" />Warnings</h3><ul id="issues-list">{warnings.map(message => <li key={message}>{message}</li>)}</ul></div>}
-    <PublicationChoices receipt={r} defaultIndex={defaultIndex} displayedIndex={displayedIndex} onSelect={chooseProof} summaryRef={choicesSummary} />
-    {proof && <div id="publication-view" className={`publication-view${viewingAnother ? ' is-manual' : ''}`}>
-      <div><p id="publication-view-label">{viewingAnother ? sameTransaction ? 'Viewing another proof record' : 'Viewing another publication' : 'Receipt default'} <span>· Proof record {displayedIndex! + 1}</span></p><p className="field-help">{viewingAnother ? 'This is a view selection. Download JSON and Recheck sources use the original receipt.' : 'Default selection follows the earliest observed applicable Bitcoin height; earlier publications may exist outside the scanned data.'}</p></div>
-      {viewingAnother && <button type="button" className="secondary" onClick={resetProof}>Back to receipt default</button>}
+    {wrapper.selected_publication_available === false && <p className="coverage-issues" role="alert">The linked publication is unavailable in this indexed view. Other available evidence is shown below.</p>}
+    <PublicationChoices receipt={r} defaultIndex={defaultIndex} displayedIndex={displayedIndex} onSelect={chooseProof} summaryRef={choicesSummary} defaultLabel={wrapper.selected_publication && wrapper.selected_publication_available ? 'Linked publication' : 'Receipt default'} />
+    {proof && r.proofs.length > 1 && <div id="publication-view" className={`publication-view${viewingAnother ? ' is-manual' : ''}`}>
+      <div><p id="publication-view-label">{viewingAnother ? sameTransaction ? 'Viewing another proof record' : 'Viewing another publication' : wrapper.selected_publication && wrapper.selected_publication_available ? 'Linked publication' : 'Receipt default'} <span>· Proof record {displayedIndex! + 1}</span></p><p className="field-help">{viewingAnother ? `This is a view selection. Download JSON${sourceOperationsEnabled ? ' and Recheck sources use' : ' uses'} the original receipt.` : firstHeight.qualified ? 'This selection carries the qualified first-height assessment shown below.' : wrapper.selected_publication && wrapper.selected_publication_available ? 'This view follows the publication identified in the record link. It is not a globally earliest-publication claim.' : 'Default selection follows the earliest observed applicable Bitcoin height; earlier publications may exist outside the scanned data.'}</p></div>
+      {viewingAnother && <button type="button" className="secondary" onClick={resetProof}>{wrapper.selected_publication && wrapper.selected_publication_available ? 'Back to linked publication' : 'Back to receipt default'}</button>}
     </div>}
     <RecordWorkspace key={`${wrapper.id}:${displayedIndex ?? 'unresolved'}`} receipt={r} proof={proof}>
       {proof && <div id="transaction-line" className="transaction-line"><span className="detail-label">Publication transaction</span><ExternalLink id="transaction-link" href={bitcoinReference('tx', proof.txid)!} title="Open the publication transaction in a new tab">{proof.txid}</ExternalLink><CopyAction id="copy-txid" label="Copy transaction ID" value={proof.txid} scope={copyScope} disabled={busy} onError={onError} /></div>}
     </RecordWorkspace>
+    <FirstPublication wrapper={wrapper} proof={proof} />
     <dl id="evidence-assessment" className="evidence-assessment" aria-label="Evidence status">
       <div><dt>Proof checks</dt><dd><StatusIcon tone={wrapper.verification.proofs_checked > 0 ? 'pass' : 'neutral'} /><span>{wrapper.verification.proofs_checked > 0 ? `${formatNumber(wrapper.verification.proofs_checked)} proof record${wrapper.verification.proofs_checked === 1 ? '' : 's'} checked` : 'No publication proof to check'}</span></dd></div>
       <div><dt>Source confirmation</dt><dd><StatusIcon tone={recorded ? 'neutral' : sourceConfirmed ? 'pass' : 'warning'} /><span>{recorded ? 'Current views not rechecked' : sourceConfirmed ? 'Confirmed at the last check' : sources === 'conflict' ? 'Conflict at the last check' : 'Incomplete at the last check'}</span></dd></div>
-      <div><dt>Search coverage</dt><dd><StatusIcon tone={coverage.gaps?.length || coverage.unresolved_candidates?.length || coverage.unsupported_payloads ? 'warning' : 'neutral'} /><span>{formatNumber(blocks.length)} Bitcoin block{blocks.length === 1 ? '' : 's'} scanned{coverage.gaps?.length || coverage.unresolved_candidates?.length || coverage.unsupported_payloads ? ' · gaps remain' : ''}</span></dd></div>
+      <div><dt>Search coverage</dt><dd><StatusIcon tone={coverageIssues ? 'warning' : 'neutral'} /><span>{formatNumber(blocks.length)} Bitcoin block{blocks.length === 1 ? '' : 's'} scanned{coverageIssues ? ` · ${coverageIssues}` : ''}</span></dd></div>
     </dl>
+    <div className="result-context"><p id="observation-line" className="observation-line">{recorded ? `Receipt generated: ${formatDate(r.completed_at)} · Historical source observations: ${historicalSourceTimes(r)} · Current source views not rechecked.` : <>Receipt completed: {formatDate(r.completed_at)} · Ordinary source check: {formatDate(r.context?.checked_at)}{controlled ? ' · Controlled test data.' : fresh || !sourceOperationsEnabled ? '' : ' · Use Recheck sources for a new check.'}{r.mode === 'live_metadata_refresh' ? ' Original scan coverage is preserved.' : ''}</>}</p>
+    {requestedHash && identity && <p id="input-identity-line" className={`input-identity-line${identity.status !== 'matches_current_rpc_view' ? ' is-warning' : ''}`}>{identitySummary}</p>}</div>
     <div className="result-detail-grid">
       <section className="checks-section" aria-labelledby="checks-heading">
-        <div className="section-heading"><h3 id="checks-heading">Verification</h3><span id="proof-count" className="muted">{formatNumber(wrapper.verification.proofs_checked)} proof record{wrapper.verification.proofs_checked === 1 ? '' : 's'} checked</span></div>
+        <details id="verification-details" className="evidence-disclosure"><summary><h3 id="checks-heading">Verification details</h3></summary>
         <h4 className="check-group-heading">Proof checks</h4>
         <p className="section-help">Recomputed from the supplied Bitcoin headers and Hemi RPC data. Passing these checks does not confirm the current source view.</p>
         <dl id="verification-list" className="verification-list">
@@ -107,15 +116,16 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
           <Check label="Source checks" value={recorded ? 'Not rechecked' : sourceConfirmed ? 'Confirmed at the last check' : sources === 'conflict' ? 'Conflict at the last check' : 'Incomplete at the last check'} note={recorded ? 'Historical observations retain their original target and scope' : 'Recorded checks of the Hemi RPC and Bitcoin API views; not full independent chain validation'} status={recorded ? 'unknown' : sourceConfirmed ? 'pass' : 'warning'} />
         </dl>
         <details className="limits-details"><summary>About these checks</summary><p>Proof checks use the supplied Bitcoin headers and Hemi RPC data. Source checks describe the views returned at the recorded check time.</p><p>Traze does not validate the full Bitcoin header chain or independently execute Hemi blocks. It does not calculate Hemi Bitcoin-finality counters or PoP reward eligibility.</p></details>
+        </details>
       </section>
       <section className="coverage-section" aria-labelledby="coverage-heading">
-        <div className="section-heading"><h3 id="coverage-heading">Search coverage</h3><span id="scanned-count" className="muted">{formatNumber(blocks.length)} Bitcoin block{blocks.length === 1 ? '' : 's'} scanned</span></div>
+        <div className="section-heading"><h3 id="coverage-heading">Search coverage</h3></div>
         <p id="coverage-summary" className="section-help">{searchCoverageText(r)}</p>
-        <div className="table-scroll"><table className="coverage-table"><thead><tr><th>Bitcoin block</th><th>Transactions</th><th title="Transaction outputs containing HEMI publication data; candidates may not be applicable to this block">Publication candidates</th></tr></thead><tbody id="coverage-body">
-          {blocks.length ? blocks.map(block => <tr key={`${block.height}:${block.hash}`}><td><BitcoinLink type="block" hash={block.hash} label={formatNumber(block.height)} /></td><td>{formatNumber(block.transaction_count)}</td><td>{formatNumber(block.hemi_candidates)}</td></tr>) : <tr><td colSpan={3} className="muted">No complete Bitcoin block scan was recorded.</td></tr>}
-        </tbody></table></div>
-        {Boolean(coverage.gaps?.length || coverage.unresolved_candidates?.length || coverage.unsupported_payloads) && <p id="coverage-issues" className="coverage-issues">Some blocks or publication candidates could not be checked.</p>}
+        {coverageIssues && <p id="coverage-issues" className="coverage-issues">{coverageIssues}. Scan gaps and unresolved associations are separate.</p>}
         <p id="stop-reason" className="field-help">{searchStopText(r)}</p>
+        <details id="coverage-details" className="limits-details"><summary>Scanned Bitcoin blocks</summary><div className="table-scroll"><table className="coverage-table"><thead><tr><th>Bitcoin block</th><th>Transactions</th><th title="Transaction outputs containing HEMI publication data; candidates may not be applicable to this block">Publication candidates</th></tr></thead><tbody id="coverage-body">
+          {blocks.length ? blocks.map(block => <tr key={`${block.height}:${block.hash}`}><td><BitcoinLink type="block" hash={block.hash} label={formatNumber(block.height)} /></td><td>{formatNumber(block.transaction_count)}</td><td>{formatNumber(block.hemi_candidates)}</td></tr>) : <tr><td colSpan={3} className="muted">No complete Bitcoin block scan was recorded.</td></tr>}
+        </tbody></table></div></details>
       </section>
     </div>
     {(requestedHash || r.query.covering_checkpoint || proof) && <details id="record-details" className="limits-details"><summary>Record details</summary><dl id="record-details-list" className="verification-list">
@@ -129,9 +139,9 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
         <Check label="Bitcoin block hash" value={proof.bitcoin_block_hash} />
         <Check label="Checked Hemi ancestry links" value={formatNumber(proof.ancestry.length - 1)} />
         <Check label="Bitcoin block depth at last check" value={sourceConfirmed && Number.isInteger(proof.current_bitcoin_depth_in_provider_view) ? `${formatNumber(proof.current_bitcoin_depth_in_provider_view)} blocks` : 'Unavailable'} note="Calculated from the source-reported Bitcoin tip. This is not Hemi's Bitcoin-finality counter." />
-        <Check label="Globally earliest publication" value="Not established" />
+        <Check label={firstHeight.qualified ? 'Unconditional global proof' : 'Globally earliest publication'} value="Not established" />
       </>}
-    </dl></details>}
+    </dl>{wrapper.record_url && <p className="record-view-note">This link identifies the exact Hemi block. Indexed evidence may change as collection progresses; Download JSON preserves this displayed snapshot.</p>}</details>}
     <details id="evidence-summary" ref={summaryDetails} className="limits-details evidence-summary"><summary>Readable evidence summary</summary><p className="section-help">Plain-text summary of the displayed evidence. Download the original JSON separately for offline verification.</p><label className="sr-only" htmlFor="evidence-summary-text">Evidence summary</label><textarea id="evidence-summary-text" ref={summaryText} readOnly value={readableSummary} rows={14} spellCheck={false} /></details>
   </section>;
 }

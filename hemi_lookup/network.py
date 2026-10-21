@@ -5,7 +5,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from .errors import DataError, BudgetError, DeadlineError
+from .errors import CollectionStopped, DataError, BudgetError, DeadlineError
 from .storage import HEADER_RESERVE
 from .transport import ProcessHTTP, NoRedirect
 from .recovery import HemiRecovery
@@ -16,7 +16,8 @@ HEMI_RPC = "https://rpc.hemi.network/rpc"
 HEMI_RPCS = (HEMI_RPC, "https://hemi.drpc.org")
 BTC_APIS = ("https://blockstream.info/api", "https://mempool.space/api")
 HOSTS = {"rpc.hemi.network", "hemi.drpc.org", "blockstream.info", "mempool.space"}
-METHODS = {"eth_chainId", "web3_clientVersion", "eth_getBlockByNumber", "eth_getBlockByHash", "eth_getTransactionByBlockNumberAndIndex"}
+METHODS = {"eth_chainId", "web3_clientVersion", "eth_getBlockByNumber", "eth_getBlockByHash", "eth_getTransactionByBlockNumberAndIndex",
+           "eth_getProof", "eth_getTransactionCount"}
 
 
 class HTTP:
@@ -54,7 +55,8 @@ class HTTP:
 
         try:
             if self.opener is self._default_opener:
-                raw = self.transport.read(url, body, headers, ceiling, self.session.deadline, count_received)
+                raw = self.transport.read(url, body, headers, ceiling, self.session.deadline, count_received,
+                                          check=self.session.check_deadline)
                 self.session.check_deadline()
                 status = "ok"
                 return raw
@@ -81,6 +83,10 @@ class HTTP:
             self.session.check_deadline()
             status = "ok"
             return bytes(result)
+        except (CollectionStopped, KeyboardInterrupt) as exc:
+            uncertain, status, error = True, "operator_interrupted", str(exc) or "Operator interrupted collection"
+            self.transport.close()
+            raise
         except DeadlineError as exc:
             self.session.deadline_expired = True
             uncertain, status, error = True, "deadline_interrupted", str(exc)
@@ -110,10 +116,12 @@ class PublicSources:
         self.timestamp_events = []
         self.timestamp_failed = False
         self.bitcoin_conflict = None
+        self.last_evidence_rpc = None
 
     def _rpc_at(self, endpoint, method, params):
         try:
-            data = json.loads(self.http.read(endpoint, 524288,
+            ceiling = 2_000_000 if method in ("eth_getBlockByNumber", "eth_getBlockByHash") and len(params) == 2 and params[1] is True else 524288
+            data = json.loads(self.http.read(endpoint, ceiling,
                 {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}))
         except (ValueError, TypeError) as exc:
             raise DataError("invalid_response", "Hemi RPC response is not valid JSON") from exc
@@ -125,6 +133,23 @@ class PublicSources:
         return data["result"]
 
     def rpc(self, method, params):
+        if method in ("eth_getProof", "eth_getTransactionCount"):
+            # Optional archive availability is separate from a contradictory
+            # chain observation. Proofs still authenticate against exact roots;
+            # account nonces only nominate an anchor for full authentication.
+            errors = []
+            endpoints = (self.hemi.active,) + tuple(url for url in HEMI_RPCS if url != self.hemi.active)
+            for endpoint in endpoints:
+                self.http.session.check_deadline()
+                try:
+                    value = self._rpc_at(endpoint, method, params)
+                    self.last_evidence_rpc = endpoint
+                    return value
+                except BudgetError:
+                    raise
+                except DataError as exc:
+                    errors.append(str(exc))
+            raise DataError("history_source_unavailable", "The public RPCs could not return the required historical evidence.")
         return self.hemi.rpc(method, params)
 
     def provenance(self):

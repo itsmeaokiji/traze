@@ -26,6 +26,7 @@ describe('main recorded-evidence integration', () => {
     expect(document.querySelector('#input-identity-line')?.textContent).toContain('recorded Hemi view');
     expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current views not rechecked');
     expect(screen.queryByText('Source checks remain incomplete.')).toBeNull();
+    fireEvent.click(screen.getByText('Verification details', { exact: true }));
     expect(screen.getByRole('heading',{name:'Current source checks'})).toBeTruthy();
     expect(document.querySelector('#source-check-list')?.textContent).toContain('Not rechecked');
     expect(document.querySelector('#source-check-list')?.textContent).not.toContain('Incomplete at the last check');
@@ -56,7 +57,7 @@ describe('main recorded-evidence integration', () => {
     const evidence=wrapper();
     evidence.receipt.coverage!.gaps=[{message:'Controlled processing gap'}];
     render(<EvidenceView wrapper={evidence} fresh busy={false} onRecheck={vi.fn()} onError={vi.fn()} />);
-    expect(screen.getByRole('heading',{name:'Recorded evidence · coverage incomplete'})).toBeTruthy();
+    expect(screen.getByRole('heading',{name:'Recorded evidence · scan gaps'})).toBeTruthy();
     expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current views not rechecked');
   });
 

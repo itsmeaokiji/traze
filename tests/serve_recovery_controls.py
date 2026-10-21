@@ -46,7 +46,7 @@ if __name__=='__main__':
         assert root.is_relative_to(Path(tempfile.gettempdir()).resolve())
         (root/'demo_results').mkdir()
         (root/'demo_results/mainnet_5243117.json').write_text(json.dumps(ORDINARY),encoding='utf-8')
-        jobs=Jobs(root)
+        jobs=Jobs(root, mode="discovery")
         BlockCache(jobs.state_dir/'blocks').put(REFERENCE['proofs'][0]['bitcoin_block_hash'],BODY)
         with patch('hemi_lookup.web.PublicSources',RecoveryFactory()),patch('hemi_lookup.web.Engine',BrowserEngine):
             server=LocalServer(8767,jobs)

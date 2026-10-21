@@ -54,14 +54,20 @@ def intervals(rows):
 
 
 class Catalogue:
-    def __init__(self, path, *, readonly=False):
+    def __init__(self, path, *, readonly=False, check=None):
         self.path = Path(path).resolve()
+        self.check = check
         if readonly:
-            self.db = sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True)
+            self.db = sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True, timeout=.25 if check else 5)
         else:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.db = sqlite3.connect(self.path)
         self.db.row_factory = sqlite3.Row
+        if check:
+            self.db.set_progress_handler(check.progress, 1000)
+            self.db.set_trace_callback(check.trace)
+            if hasattr(self.db, "setlimit"):
+                self.db.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 8_000_000)
         self.db.execute("PRAGMA foreign_keys=ON")
         if not readonly:
             self.db.executescript("""
@@ -122,6 +128,11 @@ class Catalogue:
 
     def __exit__(self, *args):
         self.close()
+
+    def read_json(self, raw):
+        if self.check:
+            self.check(len(raw.encode("utf-8")))
+        return json.loads(raw)
 
     def _header(self, header, import_id):
         normalized, variant = hex32(header["hash"]).hex(), digest(header)
@@ -254,7 +265,7 @@ class Catalogue:
 
     def resolve_number(self, number):
         covering(number)
-        hashes = self.db.execute("SELECT DISTINCT hash FROM headers WHERE height=?", (number,)).fetchall()
+        hashes = self.db.execute("SELECT DISTINCT hash FROM headers WHERE height=? LIMIT 2", (number,)).fetchall()
         if len(hashes) != 1:
             raise DataError("unresolved_retained_height", "Retained height is unavailable or has conflicting hashes; use an exact retained hash")
         return "0x" + hashes[0][0]
@@ -262,17 +273,19 @@ class Catalogue:
     def _scope(self, import_ids):
         scopes, blocks, gaps, observations = [], {}, [], []
         for import_id in import_ids:
+            if self.check:
+                self.check()
             source = self.db.execute("SELECT * FROM imports WHERE id=?", (import_id,)).fetchone()
             origin_key = "source_record_id" if source["label"] == "Collected Bitcoin block" else "receipt_sha256"
             observations.append({origin_key: import_id, "label": source["label"],
-                                 "observation": json.loads(source["observation"])})
+                                 "observation": self.read_json(source["observation"])})
             complete = []
             for row in self.db.execute("SELECT n.height,n.hash,b.status,b.data,b.issue FROM nominations n JOIN blocks b ON b.hash=n.hash WHERE n.import_id=? ORDER BY n.height,n.hash", (import_id,)):
                 if row["status"] != "complete":
                     gaps.append({"height": row["height"], "hash": row["hash"], origin_key: import_id,
-                                 "reason": row["status"], "issue": json.loads(row["issue"]) if row["issue"] else None})
+                                 "reason": row["status"], "issue": self.read_json(row["issue"]) if row["issue"] else None})
                     continue
-                data = json.loads(row["data"])
+                data = self.read_json(row["data"])
                 entry = {**data, "height": row["height"], "source": "compiled_retained_body", "cache_hit": True}
                 complete.append(entry)
                 blocks[(row["height"], row["hash"])] = entry
@@ -294,7 +307,7 @@ class Catalogue:
         if not isinstance(requested_hash, str):
             raise DataError("exact_hash_required", "Catalogue query requires an exact Hemi block hash")
         key = hex32(requested_hash).hex()
-        headers = self.db.execute("SELECT * FROM headers WHERE hash=?", (key,)).fetchall()
+        headers = self.db.execute("SELECT * FROM headers WHERE hash=? LIMIT 2", (key,)).fetchall()
         import_ids = [row[0] for row in self.db.execute("SELECT DISTINCT import_id FROM header_origins WHERE hash=? ORDER BY import_id", (key,))]
         maintained = self.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='collection_jobs'").fetchone() is not None
         if not import_ids or maintained:
@@ -319,36 +332,40 @@ class Catalogue:
             packet["issues"] = [{"code": "conflicting_retained_headers" if headers else "outside_retained_headers",
                                  "message": "Requested hash has conflicting retained metadata" if headers else "Requested hash is outside retained Hemi metadata"}]
             packet["completed_at"] = timestamp()
-            packet["offline_recomputation"] = verify_receipt(packet)
+            packet["offline_recomputation"] = verify_receipt(packet, self.check)
             return packet
-        header = json.loads(headers[0]["data"])
+        header = self.read_json(headers[0]["data"])
         number, expected_cover = height(header), covering(height(header))
         packet["query"].update(block_number=number, header=header, covering_keystone=expected_cover)
         placeholders = ",".join("?" for _ in import_ids)
-        candidates = self.db.execute("SELECT DISTINCT p.* FROM publications p JOIN nominations n ON n.hash=p.block_hash WHERE n.import_id IN (" + placeholders + ") ORDER BY p.block_hash,p.txid,p.vout", import_ids).fetchall()
+        candidates = self.db.execute("SELECT DISTINCT p.* FROM publications p JOIN nominations n ON n.hash=p.block_hash WHERE n.import_id IN (" + placeholders + ") ORDER BY p.block_hash,p.txid,p.vout", import_ids)
         unresolved, unsupported = [], []
+        supported_count = 0
         for candidate in candidates:
+            if self.check:
+                self.check(len(candidate["data"]))
             if not candidate["supported"]:
                 unsupported.append(candidate["id"])
                 continue
+            supported_count += 1
             if candidate["keystone_height"] < expected_cover:
                 continue
-            matches = self.db.execute("SELECT t.data,t.id FROM associations a JOIN templates t ON t.id=a.template_id WHERE a.publication_id=? ORDER BY t.id", (candidate["id"],)).fetchall()
+            matches = self.db.execute("SELECT t.data,t.id FROM associations a JOIN templates t ON t.id=a.template_id WHERE a.publication_id=? ORDER BY t.id", (candidate["id"],))
             accepted = False
             for match in matches:
-                template = json.loads(match["data"])
+                template = self.read_json(match["data"])
                 indexes = [i for i, item in enumerate(template["ancestry"]) if hex32(item["hash"]).hex() == key and same_header(item, header)]
                 path = template["ancestry"][indexes[0]:] if indexes else self._linked_path(header, template["checkpoint"]["header"]) if maintained else None
                 if not path:
                     continue
-                record = json.loads(candidate["data"])
+                record = self.read_json(candidate["data"])
                 reported = sorted({row[0] for row in self.db.execute("SELECT height FROM nominations WHERE hash=?", (candidate["block_hash"],))})
                 record.update(checkpoint=template["checkpoint"], ancestry=path,
                               bitcoin_height=reported[0] if len(reported) == 1 else None,
                               reported_bitcoin_heights=reported, publication_id=candidate["id"],
                               current_bitcoin_depth_in_provider_view=None,
                               relationship="direct_to_covering_checkpoint" if template["checkpoint"]["height"] == expected_cover else "later_checkpoint_support")
-                record["verification"] = {"against_provided_headers": True, "checks": verify_proof(record)}
+                record["verification"] = {"against_provided_headers": True, "checks": verify_proof(record, self.check)}
                 if not any(p["publication_id"] == candidate["id"] and p["checkpoint"] == record["checkpoint"] and p["ancestry"] == path for p in packet["proofs"]):
                     packet["proofs"].append(record)
                 accepted = True
@@ -359,7 +376,7 @@ class Catalogue:
         packet["proofs"].sort(key=lambda p: (p["bitcoin_height"] is None, p["bitcoin_height"] or 0,
                                                 p["checkpoint"]["height"], p["txid"], p["vout_index"]))
         coverage.update(unresolved_candidates=unresolved, unsupported_payloads=len(unsupported),
-                        unsupported_publication_ids=unsupported, supported_candidates_in_scope=sum(row["supported"] for row in candidates),
+                        unsupported_publication_ids=unsupported, supported_candidates_in_scope=supported_count,
                         target_association_complete=bool(coverage["blocks"]) and not unresolved and not unsupported and not coverage["gaps"])
         if not coverage["blocks"]:
             packet["issues"].append({"code": "no_processed_scope", "message": "No complete Bitcoin bodies are available in this target's retained scope"})
@@ -373,7 +390,7 @@ class Catalogue:
         if maintained:
             self._collection_views(packet)
         packet["completed_at"] = timestamp()
-        packet["offline_recomputation"] = verify_receipt(packet)
+        packet["offline_recomputation"] = verify_receipt(packet, self.check)
         return packet
 
     def _linked_path(self, requested, publishing):
@@ -383,10 +400,10 @@ class Catalogue:
             return None
         path = [publishing]
         while height(path[-1]) > height(requested):
-            rows = self.db.execute("SELECT data FROM headers WHERE hash=?", (hex32(path[-1]["parentHash"]).hex(),)).fetchall()
+            rows = self.db.execute("SELECT data FROM headers WHERE hash=? LIMIT 2", (hex32(path[-1]["parentHash"]).hex(),)).fetchall()
             if len(rows) != 1:
                 return None
-            parent = json.loads(rows[0][0])
+            parent = self.read_json(rows[0][0])
             if height(parent) + 1 != height(path[-1]):
                 return None
             path.append(parent)
@@ -407,7 +424,7 @@ class Catalogue:
             row = self.db.execute("SELECT data FROM collection_views WHERE chain=? AND height=? ORDER BY sequence DESC LIMIT 1", (chain, number)).fetchone()
             if not row:
                 continue
-            observation = json.loads(row[0])
+            observation = self.read_json(row[0])
             changed = observation.get("hash") != block_hash or observation.get("status") != "observed"
             checks.append({**observation, "record_hash": block_hash, "matches_record": not changed})
             if changed:

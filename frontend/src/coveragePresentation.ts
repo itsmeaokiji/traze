@@ -1,6 +1,15 @@
 import { formatNumber } from './format';
 import type { Receipt } from './types';
 
+export function coverageIssuesText(receipt: Receipt): string {
+  const coverage = receipt.coverage || {};
+  const parts: string[] = [];
+  if (coverage.gaps?.length) parts.push(`${formatNumber(coverage.gaps.length)} scan gap${coverage.gaps.length === 1 ? '' : 's'}`);
+  if (coverage.unresolved_candidates?.length) parts.push(`${formatNumber(coverage.unresolved_candidates.length)} unresolved publication association${coverage.unresolved_candidates.length === 1 ? '' : 's'}`);
+  if (coverage.unsupported_payloads) parts.push(`${formatNumber(coverage.unsupported_payloads)} unsupported payload${coverage.unsupported_payloads === 1 ? '' : 's'}`);
+  return parts.join(' · ');
+}
+
 export function searchCoverageText(receipt: Receipt): string {
   const coverage = receipt.coverage || {};
   const checked = (coverage.fully_scanned_intervals || []).map(([a, b]) => a === b ? formatNumber(a) : `${formatNumber(a)}–${formatNumber(b)}`).join(', ');

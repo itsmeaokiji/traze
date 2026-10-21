@@ -62,7 +62,7 @@ if __name__ == "__main__":
         build_catalogue(ROOT, state / "catalogue.sqlite3", block_directory=fixture_bodies)
         for block in ORDINARY["coverage"]["blocks"]:
             shutil.copyfile(fixture_bodies / (block["hash"] + ".bin"), blocks / (block["hash"] + ".bin"))
-        jobs = ControlledJobs(root)
+        jobs = ControlledJobs(root, mode="discovery")
         server = LocalServer(8767, jobs)
         def commands():
             for line in sys.stdin:

@@ -1,8 +1,9 @@
 import { issueMessage } from './api';
 import { operationTimedOut } from './evidenceState';
+import { coverageIssuesText } from './coveragePresentation';
 import type { Issue, Receipt } from './types';
 
-export function receiptIssues(r: Receipt): { warnings: string[]; raw: Issue[] } {
+export function receiptIssues(r: Receipt, sourceOperationsEnabled = true): { warnings: string[]; raw: Issue[] } {
   const coverage = r.coverage || {};
   const blocks = coverage.blocks || [];
   const gaps = coverage.gaps || [];
@@ -14,10 +15,10 @@ export function receiptIssues(r: Receipt): { warnings: string[]; raw: Issue[] } 
   const warnings = new Set((r.issues || []).map(issue => refresh && issue.code === 'time_budget_exhausted'
     ? 'Source recheck timed out. Retained evidence and original search coverage are preserved.'
     : refresh && issue.code === 'budget_limit' ? 'Source recheck limit reached. Retained evidence and original search coverage are preserved.'
-      : issue.code === 'catalogue_recheck_unavailable' ? 'Recorded keystone metadata is not sufficient for a source recheck. Use Run new lookup for a new search.'
+      : issue.code === 'catalogue_recheck_unavailable' ? `Recorded keystone metadata is not sufficient for a source recheck.${sourceOperationsEnabled ? ' Use Run new lookup for a new search.' : ''}`
       : issueMessage(issue, { partial: Boolean(r.proofs.length || blocks.length), sourceConfirmed: context.current_view_confirmed === true })));
-  if (gaps.length || unresolved.length) warnings.add('Some blocks or publication candidates could not be checked.');
-  if (coverage.unsupported_payloads) warnings.add('Some publication data could not be verified.');
+  const coverageIssues = coverageIssuesText(r);
+  if (coverageIssues) warnings.add(`Coverage issues: ${coverageIssues}.`);
   if (observations.some(item => item.same === false)) warnings.add('Recorded block data did not match the source view at the last check. Chain status could not be confirmed.');
   else if (r.mode !== 'offline_catalogue' && context.current_view_confirmed !== true) warnings.add('Source checks remain incomplete.');
   if (operationTimedOut(r) && !(r.issues || []).some(issue => issue.code === 'time_budget_exhausted')) {

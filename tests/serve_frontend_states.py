@@ -30,7 +30,7 @@ if __name__ == "__main__":
         samples.mkdir()
         for name in ("mainnet_5243117.json", "mainnet_5243125.json", "scoped_no_match.json"):
             (samples / name).write_bytes((ROOT / "demo_results" / name).read_bytes())
-        jobs = VisualJobs(root)
+        jobs = VisualJobs(root, mode="discovery")
         ordinary = json.loads((samples / "mainnet_5243117.json").read_text())
         negative = json.loads((samples / "scoped_no_match.json").read_text())
 

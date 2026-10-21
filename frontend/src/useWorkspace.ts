@@ -15,6 +15,7 @@ export function useWorkspace() {
   const controller = useRef<AbortController | null>(null);
   const occupied = useRef(true);
   const token = useRef('');
+  const connected = useRef(false);
 
   function report(error: unknown) {
     setError(error instanceof Error ? error : new Error('The operation could not finish.'));
@@ -23,6 +24,7 @@ export function useWorkspace() {
     const next = await api<WorkspaceState>('/api/state', signal);
     if (signal.aborted) return;
     token.current = next.csrf_token;
+    connected.current = true;
     setWorkspace(next);
     return next;
   }
@@ -32,6 +34,15 @@ export function useWorkspace() {
     setResult(next);
     setFresh(isFresh);
     setInput(receiptInput(next.receipt));
+    window.history.replaceState(null, '', '/');
+  }
+  async function loadIndexed(target: string | number, signal: AbortSignal, publication?: string | null) {
+    setInput(String(target));
+    const suffix = publication ? `?publication=${encodeURIComponent(publication)}` : '';
+    const next = await api<ReceiptWrapper>(`/api/v1/blocks/${encodeURIComponent(target)}${suffix}`, signal);
+    if (signal.aborted) return;
+    if (next.record_url) window.history.replaceState(null, '', next.record_url);
+    setResult(next); setFresh(true); setInput(receiptInput(next.receipt));
   }
   async function watchJob(initial: Job, signal: AbortSignal) {
     let current = initial;
@@ -58,7 +69,10 @@ export function useWorkspace() {
     void (async () => {
       try {
         const initial = await loadState(signal);
-        if (initial?.active_job?.state === 'running') {
+        const exactRecord = /^\/records\/hemi\/(0x[0-9a-f]{64})$/.exec(window.location.pathname);
+        if (exactRecord) {
+          await loadIndexed(exactRecord[1], signal, new URLSearchParams(window.location.search).get('publication'));
+        } else if (initial?.serving_mode !== 'indexed-only' && initial?.active_job?.state === 'running') {
           await watchJob(initial.active_job, signal);
           await loadState(signal);
         }
@@ -78,7 +92,7 @@ export function useWorkspace() {
       while (!stopped) {
         try {
           await delay(4000, poll.signal);
-          if (token.current) await loadState(poll.signal);
+          if (connected.current) await loadState(poll.signal);
         } catch { if (poll.signal.aborted) break; }
       }
     })();
@@ -104,9 +118,17 @@ export function useWorkspace() {
     setBusy(true);
     setError(undefined);
     setActivity(undefined);
+    // A new query must not keep a previous record's shareable URL on failure.
+    if (operation === 'lookup') window.history.replaceState(null, '', '/');
     try {
+      if (workspace.serving_mode === 'indexed-only' && operation === 'lookup') {
+        const query = payload as { block: string | number };
+        setResult(undefined);
+        await loadIndexed(query.block, signal);
+        return;
+      }
       const started = await api<Job>(`/api/${operation}`, signal, payload, token.current);
-      if (!signal.aborted) setResult(undefined);
+      if (!signal.aborted) { setResult(undefined); window.history.replaceState(null, '', '/'); }
       await watchJob(started, signal);
     } catch (error) { if (!signal.aborted) report(error); }
     finally {

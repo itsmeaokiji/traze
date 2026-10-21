@@ -7,6 +7,12 @@ from .errors import DataError, BudgetError
 from .storage import now
 
 
+def request_key(method, params):
+    def freeze(value):
+        return tuple(freeze(item) for item in value) if isinstance(value, (list, tuple)) else value
+    return method, freeze(params)
+
+
 def fingerprint(method, value):
     try:
         if method == "eth_chainId": return int(value, 16)
@@ -44,7 +50,7 @@ class HemiRecovery:
         if method == "eth_chainId" and fp != 43111:
             self.block("wrong_network", "Hemi source does not report mainnet 43111", source=self.active)
         if fp is not None:
-            key = (method, tuple(params))
+            key = request_key(method, params)
             existing = self.journal.get(key)
             if existing and existing["fingerprint"] != fp:
                 # Return this changed observation once so Engine can identify
@@ -81,7 +87,7 @@ class HemiRecovery:
             item["last_source"] = alternate
         self.event("hemi_fallback_activated", previous_source=old, source=alternate,
                    revalidated_observations=len(replayed), chain_id_checked=43111)
-        key = (method, tuple(params))
+        key = request_key(method, params)
         value = chain if method == "eth_chainId" else replayed[key] if key in replayed else self.fetch(alternate, method, params)
         return self.observe(method, params, value)
 

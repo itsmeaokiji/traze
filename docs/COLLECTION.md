@@ -5,6 +5,10 @@ user searches, checks supported publication commitments against basic Hemi RPC
 metadata, and stores reusable evidence in SQLite. Starting the website does not
 start collection.
 
+For automatic continuation across bounded jobs under an explicit renewable
+policy, see [ongoing collection](OPERATING.md). The commands below describe
+individual finite jobs and keep their original immutable allowances.
+
 ## Create and run a job
 
 Use Python 3.10 or later, from the repository root. Inspect available settings:
@@ -27,7 +31,7 @@ python -B -m hemi_lookup.collector run JOB_ID
 python -B -m hemi_lookup.collector status
 ```
 
-Run the same job ID to resume unfinished work. Completed bodies and job-local
+Run the same job ID to recover unfinished, unstopped work. Completed bodies and job-local
 metadata are reused. `--max-updates 1` runs one unfinished update. `--follow`
 waits for Bitcoin blocks and backs off on transient source failures, within its
 original range, persisted time window and remaining allowance. It never expands
@@ -45,6 +49,42 @@ The runner lock remains owned while following waits; indexed reads still work
 and the source-operation lock is released while idle. Saved next-attempt time is
 respected when following resumes. An expired window retains processed evidence
 and pending work without starting another public request.
+
+## Operator stop and runner status
+
+From another terminal, request a durable stop for the existing job:
+
+```text
+python -B -m hemi_lookup.collector stop JOB_ID --reason "Maintenance window ended"
+python -B -m hemi_lookup.collector status
+```
+
+For custom state, pass `--state-dir DIRECTORY` before the subcommand. The command
+validates the saved job through a read-only database connection and writes an
+operator signal outside evidence transactions. It makes no source requests.
+An active runner may initially return `stop_requested`; the stop is acknowledged
+only when the saved job says `stopped`. Waiting polls are interruptible. Active
+HTTP workers are terminated, with uncertain response reservations retained in
+accounting. Completed evidence and unfinished items remain recorded.
+
+A stopped job is terminal: `run`, `--follow` and `--recheck` cannot reopen it.
+Recovery after an unexpected process exit remains explicit and uses the same
+unstopped job's original deadline and remaining limits. A new operating job
+needs its own finite policy and allowance; it does not reset `session.json`.
+Ctrl+C during collection records an operator stop when the process can complete
+normal cleanup; forced OS termination remains an unexpected-exit case.
+
+Runner activity requires both the matching local OS lock and a heartbeat no
+older than fifteen seconds. The runner refreshes its heartbeat at five-second
+intervals while checking work and interruptible waits. No matching/fresh runner
+observation produces `Collection status unavailable` for an old running/waiting
+record. It does not prove that a runner stopped intentionally. Older jobs have
+no invented heartbeat or stop reason. Status reads never start collection.
+
+The website reports runner observation time separately from the last collection
+update and source-observation times. Runner activity does not establish current
+chain membership, complete coverage or authoritative finality. The local CLI is
+the operator interface; visitors have no stop/start controls.
 
 ## Storage and read availability
 

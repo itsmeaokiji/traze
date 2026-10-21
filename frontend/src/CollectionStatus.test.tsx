@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { CollectionStatus } from './CollectionStatus';
 
@@ -14,8 +14,20 @@ describe('Indexed evidence status', () => {
   it('describes source conflict without claiming finality or fresh verification', () => {
     const { container } = render(<CollectionStatus value={{ state: 'source_conflict', updated_at: '2026-10-14T01:00:00Z', issue: { message: 'Retained evidence remains historical.' } }} />);
     expect(screen.getByText('Source views changed')).toBeTruthy();
-    expect(screen.getByText(/Retained evidence remains historical/)).toBeTruthy();
+    expect(screen.getByText(/Conflicting source views require review/)).toBeTruthy();
     expect(container.textContent).toContain('recorded observations');
     expect(container.textContent).not.toContain('Superfinality');
+  });
+
+  it('shows a stopped cursor and operator review without suggesting complete indexing', () => {
+    render(<CollectionStatus value={{ state: 'blocked', kind: 'service', next_height: 965931,
+      unresolved_publications: 2, issue: { message: 'Retained evidence remains historical.' } }} />);
+    expect(screen.getByText('Collection needs operator review')).toBeTruthy();
+    expect((document.querySelector('.collection-diagnostics') as HTMLDetailsElement).open).toBe(false);
+    fireEvent.click(screen.getByText('Collection diagnostics', { exact: true }));
+    expect(screen.getByText(/Next collection height: Bitcoin 965,931/)).toBeTruthy();
+    expect(screen.getByText(/contiguous, checked updates/)).toBeTruthy();
+    expect(screen.getByText(/2 unresolved publications/)).toBeTruthy();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

@@ -125,6 +125,7 @@ describe('Portable evidence actions', () => {
     const wrapper = wrap(); const write = clipboard();
     render(<EvidenceView wrapper={wrapper} {...props} />);
     const panel = () => within(document.getElementById('record-inspector')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect Bitcoin publication' }));
     fireEvent.click(panel().getByRole('button', { name: 'Copy Bitcoin block hash' }));
     await panel().findByRole('button', { name: 'Bitcoin block hash copied' });
     expect(write).toHaveBeenLastCalledWith(wrapper.receipt.proofs[0].bitcoin_block_hash);

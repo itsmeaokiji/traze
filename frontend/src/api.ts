@@ -12,6 +12,20 @@ export function issueMessage(issue: Issue, options: { partial?: boolean; sourceC
   }
   if (issue.code === 'time_budget_exhausted') return `Search timed out.${partial ? ' Partial results are available.' : ''}`;
   const messages: Record<string, string> = {
+    index_unavailable: 'The publication index is unavailable. Retry later; no source search was started.',
+    retained_view_conflict: 'Retained metadata has conflicting views. Use an exact recorded hash; current chain membership is not confirmed.',
+    record_not_found: 'This record is not available in the selected index. This does not mean no publication exists.',
+    invalid_filter: 'Check the height and evidence filters. Use supported whole-number heights and valid choices.',
+    invalid_record: 'Use a complete publication record identifier.',
+    invalid_cursor: 'This page cursor is invalid for the filters. Start browsing again.',
+    read_busy: 'Indexed read capacity is busy. Retry shortly.',
+    read_rate: 'Read request rate is busy. Retry shortly with backoff.',
+    service_unavailable: 'The read service is unavailable. Retry later.',
+    read_capacity: 'This indexed view exceeds the read budget. Narrow the request or retry later.',
+    response_capacity: 'This indexed response exceeds the response limit. Narrow the request.',
+    read_api_required: 'Reload Traze to use the current indexed search interface.',
+    indexed_evidence_unavailable: 'No usable indexed evidence is available for this input. Collected coverage may be incomplete; this does not mean no publication exists.',
+    source_operations_disabled: 'This website serves indexed evidence. Live discovery and source rechecks are unavailable here.',
     invalid_block: blockInputHelp,
     invalid_input: blockInputHelp,
     invalid_range: 'Enter an ascending Bitcoin range of at most 200 existing block heights.',
@@ -38,9 +52,9 @@ export function issueMessage(issue: Issue, options: { partial?: boolean; sourceC
     refresh_unavailable: 'This result needs a new search before its sources can be rechecked.',
     unknown_receipt: 'This saved result could not be found. Choose another saved result.',
     unknown_job: 'This operation could not be found. Reload the page to reconnect.',
-    invalid_origin: 'Reload the local demo before starting another operation.',
-    invalid_host: 'Open Traze at the local address shown when the demo starts.',
-    local_connection_unavailable: 'Unable to contact the local demo. A search may still be running. Reload the page to reconnect.',
+    invalid_origin: 'Open Traze at its configured website address.',
+    invalid_host: 'Open Traze at its configured website address.',
+    local_connection_unavailable: 'Unable to contact Traze. Reload the page to reconnect.',
   };
   return messages[issue.code || ''] || 'Some checks could not be completed. Review the result and search coverage.';
 }

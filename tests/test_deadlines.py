@@ -78,9 +78,9 @@ class LoopbackTransport:
         self.worker = ProcessHTTP()
         self.requests = []
 
-    def read(self, url, body, headers, ceiling, deadline, on_count):
+    def read(self, url, body, headers, ceiling, deadline, on_count, check=None):
         self.requests.append(url)
-        return self.worker.read(self.base + self.route, body, headers, ceiling, deadline, on_count)
+        return self.worker.read(self.base + self.route, body, headers, ceiling, deadline, on_count, check=check)
 
     def close(self):
         self.worker.close()
@@ -375,7 +375,7 @@ class DeadlineTests(unittest.TestCase):
         samples.mkdir()
         original = samples / "mainnet_5243117.json"
         original.write_text(json.dumps(REFERENCE), encoding="utf-8")
-        jobs = Jobs(self.directory)
+        jobs = Jobs(self.directory, mode="discovery")
 
         class Expiring(FakeSources):
             def __init__(self, session):

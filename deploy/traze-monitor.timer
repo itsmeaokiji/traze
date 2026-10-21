@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh Traze local monitoring snapshot
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+Unit=traze-monitor.service
+
+[Install]
+WantedBy=timers.target

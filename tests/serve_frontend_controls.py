@@ -43,7 +43,7 @@ if __name__ == "__main__":
         samples.mkdir()
         for name in ("mainnet_5243117.json", "mainnet_5243125.json", "scoped_no_match.json"):
             (samples / name).write_bytes((ROOT / "demo_results" / name).read_bytes())
-        jobs = Jobs(root)
+        jobs = Jobs(root, mode="discovery")
         # Make the March saved case permanently available in this test menu.
         jobs.receipts["a" * 32] = {
             "path": ROOT / "demo_results/milestone3_march_later_hash_20261004T174823173306Z.json",

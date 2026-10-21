@@ -5,4 +5,5 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  window.history.replaceState(null, '', '/');
 });

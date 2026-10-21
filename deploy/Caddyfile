@@ -1,0 +1,35 @@
+{
+	admin off
+	persist_config off
+	servers {
+		max_header_size 8KB
+		timeouts {
+			read_header 5s
+			read_body 5s
+			write 20s
+			idle 30s
+		}
+	}
+}
+
+# Set to one reviewed hostname; do not use a wildcard or on-demand TLS.
+{$TRAZE_HOST} {
+	@write not method GET HEAD
+	respond @write "Read-only service" 405
+
+	request_body {
+		max_size 1KB
+	}
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+	}
+	reverse_proxy 127.0.0.1:8000 {
+		header_up -Forwarded
+		header_up -X-Forwarded-Host
+		transport http {
+			dial_timeout 2s
+			response_header_timeout 10s
+		}
+	}
+}

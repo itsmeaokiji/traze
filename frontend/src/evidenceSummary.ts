@@ -5,6 +5,7 @@ import { formatDate, formatNumber, selectedProof } from './format';
 import { receiptIssues } from './receiptIssues';
 import type { ReceiptWrapper } from './types';
 import { historicalSourceTimes, isRecorded } from './recordedEvidence';
+import { firstPublicationState } from './firstPublicationState';
 
 export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number | undefined, fresh: boolean): string {
   const r = wrapper.receipt;
@@ -13,6 +14,7 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
   const defaultIndex = defaultProof ? r.proofs.indexOf(defaultProof) : undefined;
   const index = displayedIndex !== undefined && Number.isInteger(displayedIndex) && displayedIndex >= 0 && displayedIndex < r.proofs.length ? displayedIndex : defaultIndex;
   const proof = index !== undefined ? r.proofs[index] : undefined;
+  const firstHeight = firstPublicationState(wrapper, proof);
   const manual = Boolean(proof && index !== defaultIndex);
   const state = resultState(r, Boolean(proof));
   const source = sourceState(r);
@@ -58,7 +60,7 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
     `Fully scanned Bitcoin blocks: ${formatNumber(r.coverage?.blocks?.length || 0)}`,
     searchStopText(r),
   );
-  const { warnings } = receiptIssues(r);
+  const { warnings } = receiptIssues(r, false);
   if (warnings.length) lines.push('', 'Warnings:', ...warnings.map(warning => `- ${warning}`));
   const references: string[] = [];
   const hemi = recordedHemiSource(r);
@@ -71,7 +73,18 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
   }
   references.push(...recordedBitcoinSources(r).map(url => `Bitcoin API source: ${url}`));
   lines.push('', 'Source references:', ...(references.length ? references : ['No supported source URL was recorded.']), '',
-    'Globally earliest publication: Not established. Publications may exist outside the checked coverage.',
+    ...(firstHeight.qualified ? [
+      `First-publication assessment: ${firstHeight.title}, at Bitcoin ${formatNumber(proof?.bitcoin_height)}.`,
+      'This is conditional on operator-accepted chain, execution, derivation, history and computational assumptions in the recorded view.',
+      ...(firstHeight.snapshot && firstHeight.context?.snapshot && firstHeight.context.domain ? [
+        `Hemi snapshot: ${formatNumber(firstHeight.context.snapshot.number)} (${firstHeight.context.snapshot.hash}).`,
+        `Eligible same-branch keystones: ${formatNumber(firstHeight.context.domain.first_hemi_keystone)}–${formatNumber(firstHeight.context.domain.last_hemi_block)}; future snapshots excluded.`,
+        `Accepted context checksum: ${firstHeight.context.sha256}.`,
+        'Historical profile and validating-source branch premises are external; historical execution is not independently certified. Bitcoin observations were not refreshed.',
+      ] : []),
+      'Unconditional global proof: Not established.',
+    ] : ['Globally earliest publication: Not established. Publications may exist outside the checked coverage.',
+      `First-publication assessment: ${firstHeight.title}.`]),
     'Checks use supplied Bitcoin headers and Hemi RPC data. Full Bitcoin header-chain validation, independent Hemi execution, Hemi Bitcoin-finality counters, and PoP reward eligibility are outside these checks.',
     'This summary reflects recorded evidence. Copying or opening it does not recheck sources. Provider backend independence is not established.',
     `JSON evidence: ${wrapper.filename} (original receipt; download separately for offline verification).`,

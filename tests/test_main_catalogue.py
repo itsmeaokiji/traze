@@ -53,7 +53,7 @@ class MainCatalogueTests(unittest.TestCase):
         blocks.mkdir()
         block_hash = self.packet["proofs"][0]["bitcoin_block_hash"]
         shutil.copyfile(ROOT / "tests/fixtures/mainnet_965931.bin", blocks / (block_hash + ".bin"))
-        self.jobs = Jobs(self.root)
+        self.jobs = Jobs(self.root, mode="discovery")
 
     def wait(self, identity):
         deadline = time.monotonic() + 4

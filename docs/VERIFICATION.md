@@ -29,6 +29,8 @@ The default selects the earliest observed applicable Bitcoin height within avail
 
 Viewing another proof changes the displayed record, not the receipt's original selection, source time or search coverage. JSON export preserves the packet; the readable summary is explanatory context.
 
+The route is visible by default. Select a chain node or open **Inspect record details** for exact identifiers and source links. **Verification details** and **Scanned Bitcoin blocks** expose the longer checks and per-block table. The range, stopping reason and unresolved coverage issues remain visible without opening them. Missing scan coverage is different from an unresolved Hemi association or an unsupported payload.
+
 ## Boundaries
 
 Traze does not independently execute Hemi, validate the entire Bitcoin header/chainwork/UTXO state, establish authoritative Hemi finality-counter equivalence, or verify PoP reward eligibility. Bitcoin depth and supplied-data proof validity are not substitutes for those guarantees.

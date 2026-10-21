@@ -28,7 +28,7 @@ class WebTests(unittest.TestCase):
         samples.mkdir()
         self.path = samples / "mainnet_5243117.json"
         self.path.write_text(json.dumps(REFERENCE), encoding="utf-8")
-        self.jobs = Jobs(self.root)
+        self.jobs = Jobs(self.root, mode="discovery")
         self.server = LocalServer(0, self.jobs)
         self.thread = threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": .01}, daemon=True)
         self.thread.start()
@@ -74,6 +74,49 @@ class WebTests(unittest.TestCase):
         self.assertEqual(json.loads(raw), REFERENCE)
         self.assertEqual(self.path.read_bytes(), before)
         self.assertFalse((self.root / ".hemi_lookup_data/session.json").exists())
+
+    def test_default_indexed_mode_missing_index_never_starts_source_work(self):
+        self.jobs = self.server.jobs = Jobs(self.root)
+        self.assertEqual(self.jobs.state()['serving_mode'], 'indexed-only')
+        with patch('hemi_lookup.web.PublicSources', side_effect=AssertionError('No source construction')), \
+             patch('hemi_lookup.web.Session', side_effect=AssertionError('No source session')):
+            status, _, raw = self.request('/api/v1/blocks/12345')
+            self.assertEqual(status, 503)
+        self.assertEqual(json.loads(raw)['error']['code'], 'index_unavailable')
+        self.assertEqual(self.jobs.jobs, {})
+        self.assertFalse((self.root / '.hemi_lookup_data/session.json').exists())
+
+    def test_indexed_mode_rejects_forged_source_actions_without_new_jobs(self):
+        self.jobs = self.server.jobs = Jobs(self.root)
+        with patch('hemi_lookup.web.PublicSources', side_effect=AssertionError('No source construction')):
+            for path, payload in [('/api/refresh', {'receipt_id': 'example-ordinary'}),
+                                  ('/api/lookup', {'block': 5243119, 'new_lookup': True}),
+                                  ('/api/lookup', {'block': 5243119, 'bitcoin_range': [1, 2]})]:
+                status, _, raw = self.request(path, payload)
+                self.assertEqual(status, 403)
+                self.assertEqual(json.loads(raw)['error']['code'], 'source_operations_disabled')
+        self.assertEqual(self.jobs.jobs, {})
+        self.assertFalse((self.root / '.hemi_lookup_data/session.json').exists())
+
+    def test_indexed_hit_number_hash_inspection_and_export_preserve_accounting(self):
+        from collection_fixtures import CollectionSources
+        from hemi_lookup.collection_store import CollectionStore
+        from hemi_lookup.collector import Collector
+        state = self.root / '.hemi_lookup_data'
+        with CollectionStore(state) as store:
+            identity = store.create(965931, 965931)['id']
+        Collector(self.root, sources_factory=CollectionSources).run(identity)
+        ledger = (state / 'session.json').read_bytes()
+        self.jobs = self.server.jobs = Jobs(self.root)
+        number = 5243119
+        with patch('hemi_lookup.web.Session', side_effect=AssertionError('No acquisition')):
+            for target in [number, '0x9520c8410a38e2feaeb1878dc39c0fceb57d75cb4873dc89b4b1370a777293f9']:
+                status, _, raw = self.request('/api/v1/blocks/' + str(target))
+                self.assertEqual(status, 200)
+                self.assertGreater(json.loads(raw)['verification']['proofs_checked'], 0)
+                self.assertGreater(verify_receipt(json.loads(raw)['receipt'])['proofs_checked'], 0)
+        self.assertEqual((state / 'session.json').read_bytes(), ledger)
+        self.assertFalse((state / 'receipts').exists())
 
     def test_tampered_saved_receipt_has_no_success_response(self):
         receipt = copy.deepcopy(REFERENCE)

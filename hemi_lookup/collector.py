@@ -10,15 +10,19 @@ from pathlib import Path
 from .bitcoin import MAX_RAW_BLOCK, display_hash, hex32, parse_block
 from .catalogue import encode, timestamp
 from .collection_store import CollectionStore, RunnerLock, collection_status, epoch
+from .collection_control import CONTROL_POLL_SECONDS, RunnerRecord, request_stop, stop_request
 from .engine import Engine
-from .errors import BudgetError, DataError, DeadlineError
+from .errors import BudgetError, CollectionStopped, DataError, DeadlineError
 from .network import PublicSources
 from .proof import same_header
 from .storage import BlockCache, SAFETY_MARGIN, Session, SESSION_LIMIT
 
 
 class MetadataSources:
-    """Reuse job-local RPC observations; new source checks always bypass this cache."""
+    """Reuse retained job observations, including bounded successor carryover.
+
+    Original source times survive reuse. New source checks bypass this cache.
+    """
 
     def __init__(self, sources, store, job, session):
         self.sources, self.store, self.job, self.session = sources, store, job, session
@@ -42,12 +46,86 @@ class MetadataSources:
 
 
 class Collector:
-    def __init__(self, root, state=None, *, sources_factory=PublicSources, event=None):
+    def __init__(self, root, state=None, *, sources_factory=PublicSources, event=None,
+                 operating_budget=None, cache_directory=None, cache_bytes=40_000_000, previous_block=None):
         self.root = Path(root).resolve()
         self.state = Path(state or self.root / ".hemi_lookup_data").resolve()
         self.sources_factory = sources_factory
         self.event = event or (lambda value: None)
         self.wall_deadlines = {}
+        self.runner = None
+        self.control_job = None
+        self.last_control_poll = float("-inf")
+        self.operating_budget = operating_budget
+        self.cache_directory = Path(cache_directory) if cache_directory else self.state / "collection_blocks"
+        self.cache_bytes = cache_bytes
+        self.previous_block = previous_block
+
+    def _check_control(self, force=False):
+        if self.runner is None:
+            return
+        current = time.monotonic()
+        if force or current - self.last_control_poll >= CONTROL_POLL_SECONDS:
+            try:
+                request = stop_request(self.state, self.control_job)
+            except DataError as exc:
+                raise CollectionStopped(str(exc)) from exc
+            if request:
+                raise CollectionStopped("Operator requested collection stop")
+            self.last_control_poll = current
+            self.runner.touch()
+
+    def _operate(self, identity, operation):
+        with RunnerLock(self.state), CollectionStore(self.state) as store:
+            job = store.job(identity)
+            if job.get("operating_service"):
+                raise DataError("service_owned_job", "Run the owning collection service so its saved operating policy remains enforced")
+            if job["state"] == "stopped":
+                return job
+            if stop_request(self.state, identity):
+                return store.acknowledge_stop(identity)
+            self.control_job = identity
+            self.last_control_poll = float("-inf")
+            self.runner = RunnerRecord(self.state, identity)
+            try:
+                self._check_control(force=True)
+                result = operation(store)
+                # A request racing the final commit still gets acknowledged.
+                self._check_control(force=True)
+                return result
+            except KeyboardInterrupt:
+                request_stop(self.state, identity, "Operator interrupted collection")
+                return store.acknowledge_stop(identity)
+            except CollectionStopped:
+                # Session/transport contexts have closed before acknowledgement.
+                try:
+                    return store.acknowledge_stop(identity)
+                except DataError as exc:
+                    if exc.code != "collection_control_unavailable":
+                        raise
+                    job = store.job(identity)
+                    job.update(state="incomplete", issue={"code": exc.code, "message": str(exc)})
+                    job["usage"] = store.usage(job)
+                    store.save(job)
+                    return job
+            finally:
+                self.runner.close()
+                self.runner = None
+                self.control_job = None
+
+    def stop(self, identity, reason="Stopped by operator"):
+        job = CollectionStore.read_job(self.state, identity)
+        if job["state"] in ("complete", "stopped") or job.get("clock", {}).get("ended_at"):
+            return job
+        request = request_stop(self.state, identity, reason)
+        try:
+            with RunnerLock(self.state), CollectionStore(self.state) as store:
+                return store.acknowledge_stop(identity)
+        except DataError as exc:
+            if exc.code != "collector_busy":
+                raise
+            return {"id": identity, "state": "stop_requested", "stop": request,
+                    "message": "Stop requested; waiting for runner acknowledgement"}
 
     def _wall_remaining(self, store, job):
         remaining = store.wall_remaining(job)
@@ -91,6 +169,10 @@ class Collector:
         if item.get("state") == "processed":
             return
         block_hash = hex32(sources.btc("/block-height/" + str(height), False)).hex()
+        inherited_hash = job.get("work_reuse", {}).get("bitcoin_hashes", {}).get(key)
+        if inherited_hash and inherited_hash != block_hash:
+            store.observe("bitcoin", height, block_hash, sources.last_btc_api, status="changed")
+            raise DataError("source_conflict", "The unfinished Bitcoin height changed before reuse; retained work remains historical")
         metadata = sources.btc("/block/" + block_hash)
         if metadata.get("id") != block_hash or metadata.get("height") != height:
             raise DataError("source_conflict", "Bitcoin height/hash metadata disagree; collection remains incomplete")
@@ -111,11 +193,18 @@ class Collector:
                 source = item.get("body_source", "verified_local_collection_cache")
             parsed = parse_block(raw, block_hash, session.check_deadline)
             previous = job["items"].get(str(height - 1))
+            if previous is None and self.previous_block and self.previous_block["height"] == height - 1:
+                previous = {**self.previous_block, "state": "processed"}
             if previous and previous.get("state") == "processed" and display_hash(parsed["header"][4:36]) != previous["hash"]:
                 store.observe("bitcoin", height, block_hash, source, status="source_conflict")
                 raise DataError("source_conflict", "Collected Bitcoin headers do not link across adjacent heights")
             cache.put(block_hash, raw)
             store.catalogue._store_body(block_hash, raw, parsed)
+        elif self.previous_block and self.previous_block["height"] == height - 1:
+            compiled = json.loads(row[1])
+            if compiled["previous_hash"] != self.previous_block["hash"]:
+                store.observe("bitcoin", height, block_hash, source, status="source_conflict")
+                raise DataError("source_conflict", "Reused Bitcoin evidence does not link to the preceding service block")
         store.body_source(import_id, item.get("body_source", "reused_compiled_evidence"))
         store.observe("bitcoin", height, block_hash, source)
         item.update(state="processed", processed_at=timestamp(), processing_seconds=item.get("processing_seconds", 0) + time.monotonic() - started)
@@ -175,6 +264,8 @@ class Collector:
                     store.save(job)
 
     def _recheck(self, store, job, low, high, sources, session):
+        # Inherited association markers are not current-view confirmation.
+        # Both chains are checked afresh before _ready can release the cursor.
         changed = False
         for height in range(low, high + 1):
             item = job["items"].get(str(height))
@@ -205,16 +296,21 @@ class Collector:
         return changed
 
     def run(self, identity, *, max_updates=None, recheck=False):
-        with RunnerLock(self.state), CollectionStore(self.state) as store:
-            return self._run(store, identity, max_updates=max_updates, recheck=recheck)
+        return self._operate(identity, lambda store: self._run(store, identity, max_updates=max_updates, recheck=recheck))
 
     def _run(self, store, identity, *, max_updates=None, recheck=False):
         if max_updates is not None and (isinstance(max_updates, bool) or not isinstance(max_updates, int) or max_updates < 1):
             raise DataError("invalid_collection", "The update limit must be a positive whole number")
         job = store.job(identity)
+        if job.get("operating_service") and (
+                self.operating_budget is None or self.control_job != job["operating_service"]
+                or self.operating_budget.identity != job["operating_service"]
+                or self.operating_budget.period != job["operating_period"]):
+            raise DataError("service_owned_job", "The owning service and operating period must match before source work")
+        self._check_control(force=True)
         store.recover_session(job)
         limits = job["limits"]
-        cache = BlockCache(self.state / "collection_blocks")
+        cache = BlockCache(self.cache_directory, max_bytes=self.cache_bytes)
         start, end = job["range"]
         count = 0
         for index, low in enumerate(range(start, end + 1, job["batch_size"])):
@@ -229,6 +325,7 @@ class Collector:
             count += 1
             store.start_clock(job)
             while True:
+                self._check_control(force=True)
                 wall_remaining = self._wall_remaining(store, job)
                 if wall_remaining <= 0:
                     return self._window_expired(store, job)
@@ -245,11 +342,18 @@ class Collector:
                 job["issue"] = None
                 store.save(job)
                 try:
+                    period_remaining = self.operating_budget.remaining_seconds() if self.operating_budget else float("inf")
+                    context = {"collection_job": job["id"], "update": index}
+                    if self.operating_budget:
+                        context.update(collection_service=self.operating_budget.identity,
+                                       operating_period=self.operating_budget.period,
+                                       operating_policy=self.operating_budget.digest)
                     with Session(self.state, self.root, max_bytes=remaining["bytes"] + SAFETY_MARGIN,
                                  max_blocks=max(0, remaining["attempts"]), max_requests=remaining["requests"],
-                                 max_seconds=min(limits["segment_seconds"], remaining["seconds"], wall_remaining),
+                                 max_seconds=min(limits["segment_seconds"], remaining["seconds"], wall_remaining, period_remaining),
                                  session_limit=limits["cumulative_response_bytes"],
-                                 context={"collection_job": job["id"], "update": index}) as session:
+                                 context=context, interrupt=self._check_control,
+                                 operating_budget=self.operating_budget) as session:
                         sources = self.sources_factory(session)
                         if int(sources.rpc("eth_chainId", []), 16) != 43111:
                             raise DataError("wrong_network", "Collector requires Hemi mainnet")
@@ -296,6 +400,7 @@ class Collector:
                     update["state"] = job["state"]
                     store.save(job)
                     return job
+        self._check_control(force=True)
         processed = sum(item.get("state") == "processed" for item in job["items"].values())
         pending = sum(a.get("state") != "complete" for a in job["associations"].values())
         task_count = sum(store.db.execute("SELECT COUNT(*) FROM publications WHERE block_hash=? AND supported=1", (i["hash"],)).fetchone()[0]
@@ -309,42 +414,54 @@ class Collector:
 
     def follow(self, identity, *, max_updates=None, recheck=False, sleep=time.sleep):
         """Follow a fixed range inside one persisted window and owned runner lock."""
-        with RunnerLock(self.state), CollectionStore(self.state) as store:
+        return self._operate(identity, lambda store: self._follow(store, identity, max_updates, recheck, sleep))
+
+    def _follow(self, store, identity, max_updates, recheck, sleep):
+        job = store.job(identity)
+        if not job["limits"].get("wall_seconds"):
+            raise DataError("invalid_collection", "Following requires a saved finite wall-time allowance; preserve earlier jobs and accounting")
+        while True:
+            self._check_control(force=True)
             job = store.job(identity)
-            if not job["limits"].get("wall_seconds"):
-                raise DataError("invalid_collection", "Following requires a saved finite wall-time allowance; preserve earlier jobs and accounting")
-            while True:
-                job = store.job(identity)
-                next_attempt = job.get("clock", {}).get("next_attempt_at")
-                if next_attempt:
-                    remaining = self._wall_remaining(store, job)
-                    if remaining <= 0:
-                        return self._window_expired(store, job)
-                    wait = min(remaining, max(0, epoch(next_attempt) - time.time()))
-                    if wait:
-                        sleep(wait)
-                    job["clock"].pop("next_attempt_at", None)
-                    store.save(job)
-                job = self._run(store, identity, max_updates=max_updates, recheck=recheck)
-                issue = job.get("issue") or {}
-                retryable = job["state"] == "incomplete" and issue.get("code") == "source_unavailable"
-                if job["state"] == "incomplete" and issue.get("code") == "unresolved_associations":
-                    issues = [a.get("issue", {}).get("code") for a in job["associations"].values() if a.get("state") != "complete"]
-                    retryable = bool(issues) and all(code in ("source_unavailable", "invalid_response") for code in issues)
-                if job["state"] != "waiting" and not retryable:
-                    return job
+            next_attempt = job.get("clock", {}).get("next_attempt_at")
+            if next_attempt:
                 remaining = self._wall_remaining(store, job)
                 if remaining <= 0:
                     return self._window_expired(store, job)
-                clock = job.setdefault("clock", {})
-                failures = clock.get("consecutive_failures", 0) + 1 if retryable else 0
-                clock["consecutive_failures"] = failures
-                poll = job["limits"]["poll_seconds"]
-                seconds = min(remaining, min(job["limits"]["backoff_max_seconds"], poll * 2 ** min(failures, 10)))
-                clock["next_attempt_at"] = datetime.fromtimestamp(time.time() + seconds, timezone.utc).isoformat()
+                wait = min(remaining, max(0, epoch(next_attempt) - time.time()))
+                if wait:
+                    if sleep is time.sleep:
+                        until = time.monotonic() + wait
+                        while time.monotonic() < until:
+                            self._check_control(force=True)
+                            sleep(min(CONTROL_POLL_SECONDS, max(0, until - time.monotonic())))
+                    else:
+                        # Deterministic test clocks retain one whole wait.
+                        self._check_control(force=True)
+                        sleep(wait)
+                self._check_control(force=True)
+                job["clock"].pop("next_attempt_at", None)
                 store.save(job)
-                self.event({"stage": "collection_wait", "state": job["state"], "seconds": seconds,
-                            "retry": retryable, "range": job["range"]})
+            job = self._run(store, identity, max_updates=max_updates, recheck=recheck)
+            issue = job.get("issue") or {}
+            retryable = job["state"] == "incomplete" and issue.get("code") == "source_unavailable"
+            if job["state"] == "incomplete" and issue.get("code") == "unresolved_associations":
+                issues = [a.get("issue", {}).get("code") for a in job["associations"].values() if a.get("state") != "complete"]
+                retryable = bool(issues) and all(code in ("source_unavailable", "invalid_response") for code in issues)
+            if job["state"] != "waiting" and not retryable:
+                return job
+            remaining = self._wall_remaining(store, job)
+            if remaining <= 0:
+                return self._window_expired(store, job)
+            clock = job.setdefault("clock", {})
+            failures = clock.get("consecutive_failures", 0) + 1 if retryable else 0
+            clock["consecutive_failures"] = failures
+            poll = job["limits"]["poll_seconds"]
+            seconds = min(remaining, min(job["limits"]["backoff_max_seconds"], poll * 2 ** min(failures, 10)))
+            clock["next_attempt_at"] = datetime.fromtimestamp(time.time() + seconds, timezone.utc).isoformat()
+            store.save(job)
+            self.event({"stage": "collection_wait", "state": job["state"], "seconds": seconds,
+                        "retry": retryable, "range": job["range"]})
 
 
 def main(argv=None):
@@ -369,6 +486,9 @@ def main(argv=None):
     run.add_argument("--max-updates", type=int)
     run.add_argument("--recheck", action="store_true")
     run.add_argument("--follow", action="store_true", help="Retry waiting-for-tip jobs inside their finite range and remaining allowance")
+    stop = sub.add_parser("stop", help="Request a durable terminal stop without contacting sources")
+    stop.add_argument("job")
+    stop.add_argument("--reason", default="Stopped by operator", help="Saved stop reason, up to 500 characters")
     sub.add_parser("status", help="Read collection status without contacting sources")
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parent.parent
@@ -381,12 +501,14 @@ def main(argv=None):
                                   backoff_max_seconds=args.backoff_max_seconds)
     elif args.command == "status":
         result = collection_status(args.state_dir)
+    elif args.command == "stop":
+        result = Collector(root, args.state_dir).stop(args.job, args.reason)
     else:
         collector = Collector(root, args.state_dir, event=lambda value: print(encode(value), flush=True))
         operation = collector.follow if args.follow else collector.run
         result = operation(args.job, max_updates=args.max_updates, recheck=args.recheck)
     print(json.dumps(result, indent=2))
-    return 0 if not result or result["state"] in ("complete", "queued", "waiting") else 2
+    return 0 if not result or result["state"] in ("complete", "queued", "waiting", "stopped", "stop_requested") else 2
 
 
 if __name__ == "__main__":

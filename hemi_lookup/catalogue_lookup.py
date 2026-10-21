@@ -6,7 +6,7 @@ remains the fallback; this module has no transport or accounting session.
 """
 
 import copy
-import json
+from itertools import chain
 from pathlib import Path
 
 from .bitcoin import display_hash, hex32, keystone_bytes, origin_from_input, sha256d
@@ -41,9 +41,10 @@ def covering_metadata(catalogue, packet):
     candidates = [proof["checkpoint"] for proof in packet["proofs"]]
     candidates.extend(source["observation"]["query"].get("covering_checkpoint")
                       for source in packet["coverage"]["historical_observations"])
-    for row in catalogue.db.execute("SELECT data FROM templates"):
-        candidates.append(json.loads(row[0])["checkpoint"])
-    for candidate in candidates:
+    retained = (catalogue.read_json(row[0])["checkpoint"] for row in catalogue.db.execute("SELECT data FROM templates"))
+    for candidate in chain(candidates, retained):
+        if catalogue.check:
+            catalogue.check()
         if not candidate:
             continue
         try:
@@ -54,14 +55,23 @@ def covering_metadata(catalogue, packet):
     return None
 
 
-def recorded_lookup(database, requested):
+def recorded_lookup(database, requested, *, check=None):
     if not Path(database).is_file():
         return None
     requested = block_input(requested)
-    with Catalogue(database, readonly=True) as catalogue:
+    with Catalogue(database, readonly=True, check=check) as catalogue:
         catalogue.db.execute("BEGIN")
+        # Misses stay cheap even when the surrounding corpus grows. This is a
+        # retained-header availability check, never a publication absence claim.
+        if isinstance(requested, int):
+            if not catalogue.db.execute("SELECT 1 FROM headers WHERE height=? LIMIT 1", (requested,)).fetchone():
+                return None
+        elif not catalogue.db.execute("SELECT 1 FROM headers WHERE hash=? LIMIT 1", (requested[2:],)).fetchone():
+            return None
         resolved = catalogue.resolve_number(requested) if isinstance(requested, int) else requested
         packet = catalogue.query(resolved)
+        if check and any(issue.get("code") == "conflicting_retained_headers" for issue in packet["issues"]):
+            raise DataError("conflicting_retained_headers", "The exact hash has conflicting retained metadata; no current-view resolution is asserted")
         # Do not let absence/ambiguity in a small corpus replace generic discovery.
         if not packet["proofs"] or any(proof["bitcoin_height"] is None for proof in packet["proofs"]):
             return None
@@ -94,5 +104,5 @@ def recorded_lookup(database, requested):
         packet["sources"]["hemi_rpc"] = next(iter(hemi_urls))
     packet["sources"]["bitcoin_apis"] = sorted({url for source in recorded_sources for url in source.get("bitcoin_apis", [])})
     packet["resources"].update(response_bytes_this_run=0, bitcoin_body_attempts=0, cache_body_reads=0, http_requests=0)
-    packet["offline_recomputation"] = verify_receipt(packet)
+    packet["offline_recomputation"] = verify_receipt(packet, check)
     return packet

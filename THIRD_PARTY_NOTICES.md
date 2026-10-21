@@ -1,5 +1,13 @@
 # Third-party notices
 
+## Optional production serving dependency
+
+The production adapter can install Waitress 3.0.2 from its checksum-pinned PyPI
+wheel. Waitress is licensed under ZPL 2.1 by the Zope Foundation and contributors;
+its installed wheel includes its license. It is not bundled into the frontend or
+required by the standard-library local demo. See [the upstream project](https://github.com/Pylons/waitress)
+and [the pinned runtime](deploy/requirements.txt).
+
 ## Hemi protocol and publication codec
 
 The reviewed Hemi v1 keystone and publication rules are referenced/ported from heminetwork at revision bf771ced8cfd2fb782c3b0d6d0bc8ea87b1e7cc1:

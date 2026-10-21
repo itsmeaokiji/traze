@@ -1,0 +1,37 @@
+[Unit]
+Description=Traze private bounded collector
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/traze/collection-enabled
+ConditionPathExists=!/var/lib/traze/restore-guard.json
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=traze-write
+Group=traze-state
+WorkingDirectory=/opt/traze/current
+EnvironmentFile=/etc/traze/collector.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/traze/venv/bin/python -B -m hemi_lookup.service --state-dir /var/lib/traze run ${TRAZE_SERVICE_ID}
+Restart=on-failure
+RestartPreventExitStatus=2
+RestartSec=15
+TimeoutStopSec=20
+UMask=0027
+StateDirectory=traze
+StateDirectoryMode=0750
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=1G
+TasksMax=32
+LimitNOFILE=256
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

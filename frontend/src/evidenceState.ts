@@ -39,7 +39,7 @@ export function resultState(receipt: Receipt, hasProof: boolean): { title: strin
   if (isRecorded(receipt) && hasProof) {
     const incomplete = Boolean(receipt.coverage?.gaps?.length || receipt.coverage?.unresolved_candidates?.length || receipt.coverage?.unsupported_payloads);
     return {
-      title: incomplete ? 'Recorded evidence · coverage incomplete' : 'Recorded publication evidence',
+      title: receipt.coverage?.gaps?.length ? 'Recorded evidence · scan gaps' : 'Recorded publication evidence',
       summary: 'Matching evidence from retained data. Current source views have not been rechecked; earlier publications may exist outside the compiled coverage.',
       tone: incomplete ? 'warning' : 'neutral',
     };

@@ -215,7 +215,7 @@ class HashWebTests(unittest.TestCase):
         samples = self.root / "demo_results"
         samples.mkdir()
         (samples / "mainnet_5243117.json").write_text(json.dumps(ORDINARY))
-        self.jobs = Jobs(self.root)
+        self.jobs = Jobs(self.root, mode="discovery")
         BlockCache(self.jobs.state_dir / "blocks").put(REFERENCE["proofs"][0]["bitcoin_block_hash"], BODY)
         self.server = LocalServer(0, self.jobs)
         self.thread = threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": .01}, daemon=True)

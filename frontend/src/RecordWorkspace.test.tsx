@@ -19,9 +19,13 @@ const select = (label: string) => fireEvent.click(screen.getByRole('button', { n
 const inspector = (name: string) => within(screen.getByRole('complementary', { name }));
 
 describe('Record inspector workflow', () => {
-  it('defaults to the publication and exposes exact identifiers and recorded reference links', () => {
+  it('opens the publication on demand with exact identifiers and recorded reference links', () => {
     const receipt = show(ordinaryData);
+    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Inspect Bitcoin publication' }).getAttribute('aria-pressed')).toBe('false');
+    select('Bitcoin publication');
     const panel = inspector('Bitcoin publication');
+    expect(document.activeElement).toBe(document.getElementById('record-inspector'));
     expect(screen.getByRole('button', { name: 'Inspect Bitcoin publication' }).getAttribute('aria-pressed')).toBe('true');
     expect(panel.getByText(receipt.proofs[0].txid)).toBeTruthy();
     expect(panel.getByText(receipt.proofs[0].bitcoin_block_hash)).toBeTruthy();
@@ -56,6 +60,7 @@ describe('Record inspector workflow', () => {
 
   it('defaults an unresolved search to the requested block and lets the unresolved publication explain its scope', () => {
     show(negativeData);
+    select('Requested Hemi block');
     expect(screen.getByRole('button', { name: 'Inspect Requested Hemi block' }).getAttribute('aria-pressed')).toBe('true');
     select('Bitcoin publication');
     const panel = inspector('Bitcoin publication');
@@ -94,6 +99,8 @@ describe('Record inspector workflow', () => {
     const view = render(<EvidenceView wrapper={wrap(ordinaryData, 'ordinary')} {...props} />);
     select('Covering keystone');
     view.rerender(<EvidenceView wrapper={wrap(marchData, 'march')} {...props} />);
+    expect(screen.queryByRole('complementary')).toBeNull();
+    select('Bitcoin publication');
     const panel = inspector('Bitcoin publication');
     expect(panel.getByText(marchData.proofs[0].txid)).toBeTruthy();
     expect(panel.queryByText(ordinaryData.proofs[0].txid)).toBeNull();

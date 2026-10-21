@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.request
 
-from .errors import DataError, DeadlineError
+from .errors import CollectionStopped, DataError, DeadlineError
 from .storage import HEADER_RESERVE
 
 CHUNK = 65_536
@@ -114,7 +114,9 @@ class ProcessHTTP:
         child.close()
         self.process, self.connection = process, parent
 
-    def read(self, url, body, headers, ceiling, deadline, on_count):
+    def read(self, url, body, headers, ceiling, deadline, on_count, check=None):
+        if check:
+            check()
         if time.monotonic() >= deadline:
             raise DeadlineError()
         self._start()
@@ -124,6 +126,8 @@ class ProcessHTTP:
                 raise DeadlineError()
             self.connection.send((url, body, headers, ceiling, deadline))
             while True:
+                if check:
+                    check()
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise DeadlineError()
@@ -150,7 +154,7 @@ class ProcessHTTP:
                     error = DataError(code, text)
                     error.received_unknown = uncertain
                     raise error
-        except DeadlineError:
+        except (DeadlineError, CollectionStopped, KeyboardInterrupt):
             self.close()  # Kill blocked reads before returning/releasing session.
             raise
         except (EOFError, OSError) as exc:

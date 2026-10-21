@@ -1,0 +1,34 @@
+[Unit]
+Description=Traze indexed read service
+After=network.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=traze-read
+Group=traze-state
+WorkingDirectory=/opt/traze/current
+EnvironmentFile=/etc/traze/host.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/traze/venv/bin/python -B -m hemi_lookup.public --state-dir /var/lib/traze --origin ${TRAZE_ORIGIN} --monitor-file /var/lib/traze-monitor/status.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0027
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/var/lib/traze
+PrivateTmp=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=1G
+TasksMax=32
+LimitNOFILE=256
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

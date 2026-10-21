@@ -1,0 +1,27 @@
+[Unit]
+Description=Traze local operational snapshot
+After=traze-reader.service
+
+[Service]
+Type=oneshot
+User=traze-write
+Group=traze-state
+WorkingDirectory=/opt/traze/current
+EnvironmentFile=/etc/traze/host.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/traze/venv/bin/python -B -m hemi_lookup.operations --state-dir /var/lib/traze --min-free-bytes ${TRAZE_MIN_FREE_BYTES} --observation-max-age-seconds ${TRAZE_OBSERVATION_MAX_AGE} --output /var/lib/traze-monitor/status.json
+UMask=0027
+StateDirectory=traze-monitor
+StateDirectoryMode=0750
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/var/lib/traze
+ReadWritePaths=-/var/lib/traze/collection.lock
+PrivateTmp=true
+PrivateNetwork=true
+TimeoutStartSec=15
+MemoryMax=256M
+TasksMax=8
+StandardOutput=journal
+StandardError=journal

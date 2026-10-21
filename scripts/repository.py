@@ -4,6 +4,8 @@ import fnmatch
 import hashlib
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,6 +51,20 @@ def selected(root):
     if missing:
         raise ValueError("Required files missing: " + ", ".join(missing))
     return sorted(files)
+
+
+def check_startup(root, files):
+    """Do not let an unselected workspace module mask a broken release."""
+    try:
+        child = subprocess.run([sys.executable, '-I', '-B', str(Path(__file__).with_name('check_startup.py')), str(root)],
+                               input=json.dumps(files), capture_output=True, text=True, timeout=20,
+                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        result = json.loads(child.stdout)
+        if result.get('status') == 'passed' and child.returncode == 0:
+            return result
+        return {**result, 'status': 'failed'}
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return {'status': 'failed', 'error': 'The isolated startup check could not finish.', 'network_requests': 0}
 
 
 def check(root):
@@ -114,10 +130,14 @@ def check(root):
             problems.append({"file": notice.relative_to(root).as_posix(), "kind": "missing_distribution_notice"})
     if (root / "web/THIRD_PARTY_LICENSES.txt").read_bytes() != distribution:
         problems.append({"file": "web/THIRD_PARTY_LICENSES.txt", "kind": "build_notice_mismatch"})
+    startup = check_startup(root, files)
+    if startup['status'] != 'passed':
+        problems.append({'file': 'repository-files.json', 'kind': 'runtime_dependency_missing',
+                         'detail': startup.get('error', 'Runtime import failed')})
     return {"status": "passed" if not problems else "failed", "selected_files": len(files),
             "selected_bytes": total, "local_links_checked": links,
             "fixture_bodies": len(corpus["bodies"]), "fixture_bytes": body_bytes,
-            "problems": problems, "chain_requests": 0}, files
+            "startup": startup, "problems": problems, "chain_requests": 0}, files
 
 
 def main(argv=None):

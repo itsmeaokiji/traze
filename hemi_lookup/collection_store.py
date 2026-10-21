@@ -1,6 +1,7 @@
 """Durable collection jobs and observations over the existing evidence catalogue."""
 
 import copy
+import errno
 import json
 import sqlite3
 import time
@@ -13,6 +14,7 @@ from .bitcoin import hex32
 from .catalogue import Catalogue, digest, encode, timestamp
 from .errors import DataError
 from .storage import SAFETY_MARGIN
+from .collection_control import runner_status, stop_request
 
 
 def epoch(stamp):
@@ -49,6 +51,29 @@ class RunnerLock:
     def close(self):
         self.handle.close()
 
+    @staticmethod
+    def held(state):
+        """Probe an existing lock without creating files or changing evidence."""
+        path = Path(state) / "collection.lock"
+        try:
+            handle = path.open("r+b")
+        except FileNotFoundError:
+            return False
+        except OSError:
+            return None
+        with handle:
+            try:
+                import os
+                if os.name == "nt":
+                    import msvcrt
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return False
+            except OSError as exc:
+                return True if exc.errno in (errno.EACCES, errno.EAGAIN, errno.EDEADLK) else None
+
     def __enter__(self):
         return self
 
@@ -65,6 +90,7 @@ class CollectionStore:
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS collection_jobs (id TEXT PRIMARY KEY, data TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS collection_services (id TEXT PRIMARY KEY, data TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS collection_metadata (
                 job_id TEXT NOT NULL, key TEXT NOT NULL, data TEXT NOT NULL,
                 PRIMARY KEY(job_id,key));
@@ -85,7 +111,7 @@ class CollectionStore:
 
     def create(self, start, end, *, batch_size=4, max_bytes=40_000_000, max_attempts=20,
                max_requests=600, max_seconds=600, cumulative_limit=100_000_000,
-               segment_seconds=60, wall_seconds=7200, poll_seconds=60, backoff_max_seconds=600):
+               segment_seconds=60, wall_seconds=7200, poll_seconds=60, backoff_max_seconds=600, service=None):
         values = (start, end, batch_size, max_bytes, max_attempts, max_requests, max_seconds,
                   cumulative_limit, segment_seconds, wall_seconds, poll_seconds, backoff_max_seconds)
         if any(isinstance(n, bool) or not isinstance(n, int) for n in values):
@@ -107,8 +133,98 @@ class CollectionStore:
                           "backoff_max_seconds": backoff_max_seconds},
                "items": {}, "associations": {}, "updates": [], "issue": None,
                "clock": {}, "tip_observations": []}
-        self.save(job)
+        if service is None:
+            self.save(job)
+        else:
+            # Bind the source-free child and its controller in one transaction.
+            # A crash cannot leave acquired work outside the saved service job.
+            job.update(operating_service=service["id"], operating_period=service["clock"]["period"])
+            inherited = self._successor_work(job, service)
+            service["current_job"] = job["id"]
+            service["updated_at"] = timestamp()
+            with self.db:
+                self.db.execute("INSERT INTO collection_jobs VALUES (?,?)", (job["id"], encode(job)))
+                self.db.executemany("INSERT INTO collection_metadata VALUES (?,?,?)",
+                                    [(job["id"], key, data) for key, data in inherited])
+                self.db.execute("UPDATE collection_services SET data=? WHERE id=?", (encode(service), service["id"]))
         return job
+
+    def _successor_work(self, job, service):
+        """Carry bounded unfinished work, never old scope, clocks or freshness.
+
+        Only the owning service's immediately retired child is eligible. The
+        new child still nominates each Bitcoin height and performs the normal
+        uncached Hemi/Bitcoin source rechecks before declaring an update ready.
+        Metadata rows retain their original source and observation timestamp.
+        """
+        previous_id = service.get("last_job")
+        if not previous_id or service["state"] in ("stopped", "blocked", "storage_limited"):
+            return []
+        previous = self.job(previous_id)
+        if (previous.get("operating_service") != service["id"]
+                or previous["state"] != "period_closed"
+                or stop_request(self.state, previous_id)):
+            return []
+        low = max(job["range"][0], previous["range"][0])
+        high = min(job["range"][1], previous["range"][1])
+        if low > high:
+            return []
+        allowed, associations, bitcoin_hashes = set(), {}, {}
+        for number in range(low, high + 1):
+            item = previous["items"].get(str(number), {})
+            if item.get("state") != "processed":
+                continue
+            bitcoin_hashes[str(number)] = item["hash"]
+            if item.get("first_observed_at"):
+                job["items"][str(number)] = {"first_observed_at": item["first_observed_at"]}
+            for row in self.db.execute("SELECT id,keystone_height FROM publications WHERE block_hash=? AND supported=1", (item["hash"],)):
+                height = row["keystone_height"]
+                for h in range(max(1, height - 25), height + 1):
+                    allowed.add(digest(["eth_getBlockByNumber", [hex(h), False]]))
+                allowed.add(digest(["eth_getTransactionByBlockNumberAndIndex", [hex(height), "0x0"]]))
+                progress = previous["associations"].get(row["id"], {})
+                if progress.get("keystone") != height:
+                    continue
+                if progress.get("state") == "commitment_checked" or (
+                        progress.get("state") == "complete"
+                        and progress.get("ancestry_range") == [max(1, height - 25), height]):
+                    associations[row["id"]] = copy.deepcopy(progress)
+        metadata = [(row["key"], row["data"]) for row in self.db.execute(
+            "SELECT key,data FROM collection_metadata WHERE job_id=? ORDER BY key", (previous_id,))
+            if row["key"] in allowed]
+        if metadata or associations:
+            job["associations"] = associations
+            job["work_reuse"] = {"from_job": previous_id, "overlap": [low, high],
+                                 "bitcoin_hashes": bitcoin_hashes,
+                                 "metadata_records": len(metadata),
+                                 "complete_associations": sum(a["state"] == "complete" for a in associations.values()),
+                                 "partial_associations": sum(a["state"] != "complete" for a in associations.values()),
+                                 "prepared_at": timestamp()}
+        return metadata
+
+    def service(self, identity):
+        row = self.db.execute("SELECT data FROM collection_services WHERE id=?", (identity,)).fetchone()
+        if not row:
+            raise DataError("unknown_collection_service", "Collection service was not found")
+        return json.loads(row[0])
+
+    def save_service(self, service):
+        service["updated_at"] = timestamp()
+        with self.db:
+            self.db.execute("INSERT OR REPLACE INTO collection_services VALUES (?,?)", (service["id"], encode(service)))
+
+    @staticmethod
+    def read_service(state, identity):
+        path = Path(state) / "service.sqlite3"
+        if not path.is_file():
+            raise DataError("unknown_collection_service", "Collection service was not found")
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
+            if not db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_services'").fetchone():
+                raise DataError("unknown_collection_service", "Collection service was not found")
+            row = db.execute("SELECT data FROM collection_services WHERE id=?", (identity,)).fetchone()
+            if not row:
+                raise DataError("unknown_collection_service", "Collection service was not found")
+            return json.loads(row[0])
 
     def start_clock(self, job, started_at=None):
         """Arm once. Waiting, downtime and resume all consume the same window."""
@@ -152,11 +268,37 @@ class CollectionStore:
         with self.db:
             self.db.execute("INSERT OR REPLACE INTO collection_jobs VALUES (?,?)", (job["id"], encode(job)))
 
+    def acknowledge_stop(self, identity):
+        """Only the runner-lock owner may acknowledge; retain all unfinished work."""
+        job = self.job(identity)
+        if job["state"] == "stopped":
+            return job
+        request = stop_request(self.state, identity)
+        if request:
+            job["stop"] = {**request, "acknowledged_at": timestamp(), "previous_state": job["state"],
+                           "previous_issue": copy.deepcopy(job.get("issue"))}
+            job.update(state="stopped", issue={"code": "collection_stopped", "message": request["reason"]})
+            job["usage"] = self.usage(job)
+            self.save(job)
+        return job
+
     def job(self, identity):
         row = self.db.execute("SELECT data FROM collection_jobs WHERE id=?", (identity,)).fetchone()
         if not row:
             raise DataError("unknown_collection", "Collection job was not found")
         return json.loads(row[0])
+
+    @staticmethod
+    def read_job(state, identity):
+        """Operator preflight must not wait for an evidence writer transaction."""
+        path = Path(state) / "service.sqlite3"
+        if not path.is_file():
+            raise DataError("unknown_collection", "Collection job was not found")
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
+            row = db.execute("SELECT data FROM collection_jobs WHERE id=?", (identity,)).fetchone()
+            if not row:
+                raise DataError("unknown_collection", "Collection job was not found")
+            return json.loads(row[0])
 
     def usage(self, job, update=None):
         path = self.state / "session.json"
@@ -264,18 +406,69 @@ def collection_status(state):
         db.execute("BEGIN")
         if not db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_jobs'").fetchone():
             return None
-        row = db.execute("SELECT data FROM collection_jobs ORDER BY json_extract(data,'$.created_at') DESC LIMIT 1").fetchone()
-        if not row:
+        row = db.execute("SELECT data FROM collection_jobs ORDER BY json_extract(data,'$.updated_at') DESC, rowid DESC LIMIT 1").fetchone()
+        job = json.loads(row[0]) if row else None
+        has_services = db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_services'").fetchone()
+        service_row = db.execute("SELECT data FROM collection_services ORDER BY json_extract(data,'$.updated_at') DESC, rowid DESC LIMIT 1").fetchone() if has_services else None
+        service = json.loads(service_row[0]) if service_row else None
+        held = RunnerLock.held(state)
+        # A queued record cannot hide the controller that actually owns work.
+        try:
+            runtime = json.loads((Path(state) / "collection-runner.json").read_text(encoding="utf-8"))
+            active_id = runtime["job_id"]
+            if runner_status(state, active_id, held)["state"] == "active":
+                active = db.execute("SELECT data FROM collection_services WHERE id=?", (active_id,)).fetchone() if has_services else None
+                if active:
+                    service = json.loads(active[0])
+                    job = None
+                else:
+                    active = db.execute("SELECT data FROM collection_jobs WHERE id=?", (active_id,)).fetchone()
+                    if active:
+                        job, service = json.loads(active[0]), None
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        if job and job.get("operating_service") and has_services:
+            parent = db.execute("SELECT data FROM collection_services WHERE id=?", (job["operating_service"],)).fetchone()
+            if parent:
+                parent = json.loads(parent[0])
+                if service is None or job["updated_at"] >= service["updated_at"]:
+                    service = parent
+                job = None
+        if service and (job is None or service["updated_at"] >= job["updated_at"]):
+            record = service
+            child_id = service["current_job"] or service["last_job"]
+            child = db.execute("SELECT data FROM collection_jobs WHERE id=?", (child_id,)).fetchone() if child_id else None
+            job = json.loads(child[0]) if child else None
+        else:
+            service, record = None, job
+        if record is None:
             return None
-        job = json.loads(row[0])
+        runner = runner_status(state, record["id"], held)
+        effective_state = record["state"]
+        active_states = ("running", "waiting", "limited", "incomplete") if service else ("running", "waiting")
+        if effective_state in active_states and runner["state"] != "active":
+            effective_state = "unavailable"
+        request = stop_request(state, record["id"])
+        if request and record["state"] != "stopped":
+            effective_state = "stopping" if runner["state"] == "active" else "stop_requested"
         supported = db.execute("SELECT COUNT(*) FROM publications WHERE supported=1").fetchone()[0]
         associated = db.execute("SELECT COUNT(DISTINCT publication_id) FROM associations").fetchone()[0]
         processed = db.execute("SELECT COUNT(*) FROM blocks WHERE status='complete'").fetchone()[0]
-        return {"id": job["id"], "state": job["state"], "range": job["range"],
+        result = {"id": record["id"], "kind": "service" if service else "job",
+                "state": effective_state, "recorded_state": record["state"],
+                "runner": runner, "range": job["range"] if job else None, "stop": record.get("stop"),
                 "processed_blocks": processed, "supported_publications": supported,
                 "associated_publications": associated, "unresolved_publications": supported - associated,
-                "processed_job_blocks": sum(item.get("state") == "processed" for item in job["items"].values()),
-                "requested_job_blocks": job["range"][1] - job["range"][0] + 1,
-                "updated_at": job["updated_at"], "issue": job["issue"],
-                "pending_ancestry": sum(a.get("state") != "complete" for a in job["associations"].values()),
+                "processed_job_blocks": sum(item.get("state") == "processed" for item in job["items"].values()) if job else 0,
+                "requested_job_blocks": job["range"][1] - job["range"][0] + 1 if job else 0,
+                "updated_at": record["updated_at"], "issue": record["issue"],
+                "pending_ancestry": sum(a.get("state") != "complete" for a in job["associations"].values()) if job else 0,
                 "source_conflicts": db.execute("SELECT COUNT(*) FROM collection_views v WHERE v.sequence=(SELECT MAX(sequence) FROM collection_views WHERE chain=v.chain AND height=v.height) AND json_extract(v.data,'$.status')!='observed'").fetchone()[0]}
+        if service:
+            result.update(next_height=service["next_height"], latest_tip=service["latest_tip"])
+            messages = {"operating_storage_limit": "Collection is paused for operator storage review. Retained evidence remains available.",
+                        "operating_limit": "Collection is waiting for its next configured operating period.",
+                        "operating_period_ended": "The operating period ended; collection progress is retained."}
+            if result["issue"] and result["issue"]["code"] in messages:
+                result["issue"] = {"code": result["issue"]["code"], "message": messages[result["issue"]["code"]]}
+        return result

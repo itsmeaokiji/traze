@@ -30,6 +30,7 @@ class Engine:
         self.max_ancestry, self.no_cache = max_ancestry, no_cache
         self.progress = progress or (lambda message: None)
         self.headers, self.checkpoints = {}, {}
+        self.rpc_blocks = {}
         self.requested = None
         self.receipt = None
         self.start = time.monotonic()
@@ -86,6 +87,7 @@ class Engine:
             result[key] = "0x" + hex32(result[key]).hex()
         if expected_hash is not None and hex32(result["hash"]) != hex32(expected_hash):
             raise DataError("inconsistent_data", "Hemi hash lookup returned a different block")
+        self.rpc_blocks[number] = data
         return result
 
     def identity_observation(self, expected, actual=None, error=None):
