@@ -58,9 +58,9 @@ class CollectionTests(unittest.TestCase):
         status = collection_status(self.state)
         self.assertEqual(status["processed_blocks"], 1)
         self.assertGreater(status["unresolved_publications"], 0)
-        with self.assertRaises(DataError) as missing:
-            recorded_lookup(self.state / "service.sqlite3", 5243119)
-        self.assertEqual(missing.exception.code, "unresolved_retained_height")
+        # No retained Hemi header is an indexed miss, never a usable proof or
+        # a publication-absence conclusion. Unresolved metadata stays visible.
+        self.assertIsNone(recorded_lookup(self.state / "service.sqlite3", 5243119))
         with patch.object(CollectionSources, "block_raw", side_effect=AssertionError("Metadata repair must not redownload")):
             repaired = self.run_job(identity)
         self.assertIsNotNone(recorded_lookup(self.state / "service.sqlite3", 5243119))

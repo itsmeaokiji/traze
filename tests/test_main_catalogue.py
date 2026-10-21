@@ -53,7 +53,9 @@ class MainCatalogueTests(unittest.TestCase):
         blocks.mkdir()
         block_hash = self.packet["proofs"][0]["bitcoin_block_hash"]
         shutil.copyfile(ROOT / "tests/fixtures/mainnet_965931.bin", blocks / (block_hash + ".bin"))
-        self.jobs = Jobs(self.root, mode="discovery")
+        # Recorded retrieval is source-free in indexed-only mode. Tests that
+        # exercise discovery or refresh enable that distinct mode explicitly.
+        self.jobs = Jobs(self.root, mode="indexed-only")
 
     def wait(self, identity):
         deadline = time.monotonic() + 4
@@ -103,6 +105,7 @@ class MainCatalogueTests(unittest.TestCase):
 
     def test_refresh_success_checks_derived_target_and_keeps_original(self):
         wrapper = self.lookup({"block": self.requested})
+        self.jobs.mode = "discovery"
         original = self.jobs.receipt_path(wrapper["id"])["path"].read_bytes()
         source = HashSources(self.fixture)
         with patch("hemi_lookup.web.PublicSources", return_value=source):
@@ -118,6 +121,7 @@ class MainCatalogueTests(unittest.TestCase):
 
     def test_refresh_conflict_retains_proofs_and_original_scope(self):
         wrapper = self.lookup({"block": NUMBER})
+        self.jobs.mode = "discovery"
         with patch("hemi_lookup.web.PublicSources", return_value=HashSources(self.fixture, "canonical_changed")):
             job = self.jobs.start("refresh", {"receipt_id": wrapper["id"]})
             result = self.jobs.receipt(self.wait(job["id"])["receipt_id"])["receipt"]
@@ -128,6 +132,7 @@ class MainCatalogueTests(unittest.TestCase):
 
     def test_refresh_timeout_retains_evidence(self):
         wrapper = self.lookup({"block": self.requested})
+        self.jobs.mode = "discovery"
         source = HashSources(self.fixture)
         source.rpc = lambda *args: (_ for _ in ()).throw(DeadlineError("Controlled recheck timeout"))
         with patch("hemi_lookup.web.PublicSources", return_value=source):
@@ -138,6 +143,7 @@ class MainCatalogueTests(unittest.TestCase):
         self.assertEqual(verify_receipt(result)["proofs_checked"], 4)
 
     def test_explicit_range_uses_actual_discovery_engine(self):
+        self.jobs.mode = "discovery"
         source = HashSources(self.fixture)
         with patch("hemi_lookup.web.PublicSources", return_value=source):
             wrapper = self.lookup({"block": NUMBER, "bitcoin_range": [965931, 965931]})
@@ -146,6 +152,7 @@ class MainCatalogueTests(unittest.TestCase):
         self.assertEqual(wrapper["verification"]["proofs_checked"], 4)
 
     def test_force_lookup_bypasses_catalogue(self):
+        self.jobs.mode = "discovery"
         fallback = copy.deepcopy(self.packet)
         fallback["mode"] = "live_lookup"
         with patch.object(self.jobs, "public_operation", return_value=fallback) as operation, \
@@ -156,6 +163,7 @@ class MainCatalogueTests(unittest.TestCase):
         self.assertEqual(wrapper["receipt"]["mode"], "live_lookup")
 
     def test_unknown_hash_reaches_normal_discovery(self):
+        self.jobs.mode = "discovery"
         unknown = "0x" + "44" * 32
         with patch("hemi_lookup.web.PublicSources", return_value=HashSources(self.fixture, "hash_unavailable")):
             wrapper = self.lookup({"block": unknown})
@@ -164,6 +172,7 @@ class MainCatalogueTests(unittest.TestCase):
         self.assertEqual(wrapper["origin"], "browser_lookup")
 
     def test_missing_or_corrupt_catalogue_falls_back(self):
+        self.jobs.mode = "discovery"
         for mode in ("missing", "corrupt"):
             if self.database.exists():
                 self.database.unlink()  # Owned test file inside the verified temporary directory.
@@ -177,6 +186,7 @@ class MainCatalogueTests(unittest.TestCase):
                 self.assertEqual(wrapper["receipt"]["mode"], "live_lookup")
 
     def test_ambiguous_retained_number_does_not_select_a_hash(self):
+        self.jobs.mode = "discovery"
         with Catalogue(self.database) as catalogue:
             header = copy.deepcopy(self.packet["query"]["header"])
             header["hash"] = "0x" + "55" * 32
@@ -198,6 +208,7 @@ class MainCatalogueTests(unittest.TestCase):
         self.assertFalse(valid_cover(checkpoint, checkpoint["header"], checkpoint["height"]))
 
     def test_invalid_force_choice_starts_no_job(self):
+        self.jobs.mode = "discovery"
         with self.assertRaises(WebError):
             self.jobs.start("lookup", {"block": NUMBER, "new_lookup": "yes"})
         self.assertEqual(self.jobs.jobs, {})

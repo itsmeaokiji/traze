@@ -233,6 +233,8 @@ class HashWebTests(unittest.TestCase):
             wrapper = self.jobs.receipt(job["receipt_id"])
             self.assertEqual(wrapper["receipt"]["status"], "found")
             self.assertEqual(wrapper["receipt"]["query"]["requested_block_hash"], digest)
+            self.assertEqual(wrapper["receipt"]["first_publication_attempt"]["code"], "history_source_unavailable")
+            self.assertFalse(wrapper["first_publication"]["packet_available"])
             status, headers, raw = self.request(f"/api/receipts/{job['receipt_id']}/download")
             self.assertEqual(status, 200)
             self.assertIn("hemi-hash-", headers["Content-Disposition"])

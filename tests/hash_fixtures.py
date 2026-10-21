@@ -54,6 +54,8 @@ class HashSources:
         self.calls.append((method, copy.deepcopy(params)))
         if method == "eth_chainId": return hex(743111 if self.mode == "wrong_network" else 43111)
         if method == "web3_clientVersion": return "controlled-retained-mainnet-view"
+        if method == "eth_getTransactionCount":
+            raise DataError("history_source_unavailable", "The ordinary-proof fixture has no historical nonce witness")
         if method == "eth_getBlockByHash":
             if self.mode == "hash_unavailable": return None
             header = next((h for h in self.headers.values() if h["hash"].lower() == params[0].lower()), None)
