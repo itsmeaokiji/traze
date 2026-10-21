@@ -125,7 +125,7 @@ class PublicApplication:
             path, query = environ.get("PATH_INFO", ""), environ.get("QUERY_STRING", "")
             if len(path.encode("utf-8")) + len(query.encode("utf-8")) + 1 > 2048:
                 raise ReadError("input_too_large", "Request URL exceeds 2 KB.", 414)
-            pairs = parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=8)
+            pairs = parse_qsl(query, keep_blank_values=True, strict_parsing=True, max_num_fields=8) if query else []
             if len({key for key, _ in pairs}) != len(pairs):
                 raise ReadError("invalid_filter", "Do not repeat query parameters.")
             if path.startswith("/api/") or path.startswith("/health/"):

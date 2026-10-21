@@ -387,7 +387,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/v1" or path.startswith("/api/v1/"):
                 try:
-                    pairs = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True, max_num_fields=8)
+                    pairs = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True, max_num_fields=8) if parsed.query else []
                 except ValueError:
                     raise ReadError("invalid_filter", "Use at most eight query parameters with explicit values.") from None
                 if len({key for key, _ in pairs}) != len(pairs):

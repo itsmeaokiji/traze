@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode
 from urllib.request import Request, urlopen
 
 from hemi_lookup.catalogue import Catalogue, build_catalogue
@@ -85,6 +85,18 @@ class ExplorerTests(unittest.TestCase):
         with response:
             raw = response.read()
             return response.status, response.headers, json.loads(raw) if raw and response.headers.get_content_type() == 'application/json' else raw
+
+    def test_empty_query_works_with_legacy_strict_parser(self):
+        def legacy(query, **options):
+            if query == '':
+                raise ValueError('Legacy strict parsing rejects an empty query')
+            return parse_qsl(query, **options)
+        with patch('hemi_lookup.web.parse_qsl', side_effect=legacy):
+            self.assertEqual(self.request('/api/v1/index')[0], 200)
+            self.assertEqual(self.request('/api/v1/publications?limit=1')[0], 200)
+            self.assertEqual(self.request('/api/v1/publications?limit')[0], 400)
+            self.assertEqual(self.request('/api/v1/publications?limit=1&limit=2')[0], 400)
+            self.assertEqual(self.request('/api/v1/publications?' + '&'.join(f'k{i}=1' for i in range(9)))[0], 400)
 
     def test_number_hash_and_publication_identity_survive_restart_without_writes(self):
         first = self.request('/api/v1/blocks/' + str(NUMBER))[2]

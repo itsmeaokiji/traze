@@ -8,6 +8,7 @@ import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import parse_qsl
 
 from hemi_lookup.catalogue import build_catalogue, timestamp
 from hemi_lookup.operations import inspect_state, public_snapshot, MONITOR_SCHEMA
@@ -47,6 +48,18 @@ class HostingTests(unittest.TestCase):
         raw = b"".join(self.app(env, start))
         value = json.loads(raw) if raw and found["headers"]["Content-Type"] == "application/json" else raw
         return found["status"], found["headers"], value
+
+    def test_empty_query_works_with_legacy_strict_parser(self):
+        def legacy(query, **options):
+            if query == '':
+                raise ValueError('Legacy strict parsing rejects an empty query')
+            return parse_qsl(query, **options)
+        with patch('hemi_lookup.public.parse_qsl', side_effect=legacy):
+            self.assertEqual(self.request('/api/v1/index')[0], 200)
+            self.assertEqual(self.request('/api/v1/publications?limit=1')[0], 200)
+            self.assertEqual(self.request('/api/v1/publications?limit')[0], 400)
+            self.assertEqual(self.request('/api/v1/publications?limit=1&limit=2')[0], 400)
+            self.assertEqual(self.request('/api/v1/publications?' + '&'.join(f'k{i}=1' for i in range(9)))[0], 400)
 
     def test_origin_and_loopback_server_configuration(self):
         for value in ("http://traze.example.com", "https://traze.example.com/", "https://user@traze.example.com", "https://traze.example.com?x=1"):
