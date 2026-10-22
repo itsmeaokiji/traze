@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, delay } from './api';
 import { receiptInput } from './format';
+import { browseReturn, withBrowseReturn } from './browseNavigation';
 import type { Job, ReceiptWrapper, WorkspaceState } from './types';
 
 export function useWorkspace() {
@@ -37,11 +38,12 @@ export function useWorkspace() {
     window.history.replaceState(null, '', '/');
   }
   async function loadIndexed(target: string | number, signal: AbortSignal, publication?: string | null) {
+    const returnTo = browseReturn();
     setInput(String(target));
     const suffix = publication ? `?publication=${encodeURIComponent(publication)}` : '';
     const next = await api<ReceiptWrapper>(`/api/v1/blocks/${encodeURIComponent(target)}${suffix}`, signal);
     if (signal.aborted) return;
-    if (next.record_url) window.history.replaceState(null, '', next.record_url);
+    if (next.record_url) window.history.replaceState(null, '', withBrowseReturn(next.record_url, returnTo));
     setResult(next); setFresh(true); setInput(receiptInput(next.receipt));
   }
   async function watchJob(initial: Job, signal: AbortSignal) {

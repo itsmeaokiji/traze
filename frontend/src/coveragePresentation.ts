@@ -12,8 +12,9 @@ export function coverageIssuesText(receipt: Receipt): string {
 
 export function searchCoverageText(receipt: Receipt): string {
   const coverage = receipt.coverage || {};
-  const checked = (coverage.fully_scanned_intervals || []).map(([a, b]) => a === b ? formatNumber(a) : `${formatNumber(a)}–${formatNumber(b)}`).join(', ');
-  let text = checked ? `Bitcoin blocks scanned: ${checked}.` : 'No complete Bitcoin block scan was recorded.';
+  const checked = [...new Set((coverage.fully_scanned_intervals || []).map(([a, b]) => a === b ? formatNumber(a) : `${formatNumber(a)}–${formatNumber(b)}`))].join(', ');
+  const label = receipt.mode === 'offline_catalogue' ? 'Retained Bitcoin coverage' : receipt.mode === 'live_metadata_refresh' ? 'Original search coverage' : 'Bitcoin blocks scanned';
+  let text = checked ? `${label}: ${checked}.` : 'No complete Bitcoin block scan was recorded.';
   if (receipt.mode === 'offline_catalogue') text += ' Compiled retained-data coverage; no new Bitcoin blocks were scanned for this request.';
   if (coverage.plan) text += ` ${coverage.plan.mode === 'explicit_range' ? 'Requested range' : 'Initial estimated range'}: ${formatNumber(coverage.plan.start)}–${formatNumber(coverage.plan.initial_end)}.`;
   if (receipt.mode === 'live_metadata_refresh') text += ' Coverage from the original search. This operation rechecked source views without scanning additional Bitcoin blocks.';

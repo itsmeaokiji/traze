@@ -5,6 +5,7 @@ import type { FirstPublicationAssessment, Receipt, ReceiptWrapper } from './type
 import { FirstPublication } from './FirstPublication';
 import { firstPublicationState, FIRST_HEIGHT_POLICY, SNAPSHOT_POLICY, SNAPSHOT_RESULT } from './firstPublicationState';
 import { evidenceSummary } from './evidenceSummary';
+import { ResultOverview } from './ResultOverview';
 
 function fixture(): ReceiptWrapper {
   const receipt = structuredClone(ordinary) as unknown as Receipt;
@@ -170,6 +171,22 @@ describe('First-publication website assessment', () => {
       if (field === 'schema') delete result.schema;
       if (field === 'certification') result.context_evidence!.historical_execution_certified = true;
       expect(firstPublicationState(wrapper, wrapper.receipt.proofs[0]).qualified, field).toBe(false);
+      const view = render(<ResultOverview wrapper={wrapper} proof={wrapper.receipt.proofs[0]} defaultSelection />);
+      expect(document.getElementById('result-assurance')!.textContent, field).not.toContain('Conditional');
+      view.unmount();
     }
+  });
+
+  it('summarizes the accepted snapshot assessment without transferring it to a different publication', () => {
+    const wrapper = snapshotFixture();
+    const proof = wrapper.receipt.proofs[0];
+    const view = render(<ResultOverview wrapper={wrapper} proof={proof} defaultSelection />);
+    expect(screen.getByRole('link', { name: 'Conditional — recorded Hemi snapshot' }).getAttribute('href')).toBe('#first-publication');
+    view.rerender(<ResultOverview wrapper={wrapper} proof={{ ...proof, vout_index: 99 }} defaultSelection={false} />);
+    expect(document.getElementById('result-assurance')!.textContent).toContain('Not available for this selection');
+    wrapper.receipt.context!.bitcoin_blocks = [{ height: proof.bitcoin_height, same: false }];
+    view.rerender(<ResultOverview wrapper={wrapper} proof={proof} defaultSelection />);
+    expect(document.getElementById('result-assurance')!.textContent).toContain('Suspended — source conflict');
+    expect(document.getElementById('result-assurance')!.textContent).not.toContain('Conditional');
   });
 });

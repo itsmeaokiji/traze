@@ -96,8 +96,21 @@ conclusion and keeps `globally_first_proven=false`.
 Packets are stored under the configured server-side state directory's
 `first-publication/`. Route identities and content-addressed snapshots preserve
 query/output bindings. A new generation never overwrites an older packet.
-Opening a result recomputes packet checks; stored success flags are not trusted.
+Opening a result checks its evidence and request bindings; stored receipt success
+flags are not trusted. Prepared version-3 reads may reuse a process-local checker
+result only for identical required bytes, verifier rules, requested Hemi identity
+and operator policy/context. Required bytes are read and hashed again; receipt,
+publication/header and source-conflict qualification still run for every read.
 Original packet observation times remain separate from retrieval time.
+
+The cache holds at most four entries / two MB of serialized results, no retained
+body bytes or persistent success records. A miss fully verifies a private capture;
+changed or missing evidence cannot inherit a result. Version-1/2 packets, disabled
+reuse, occupied capture capacity and unavailable temporary storage use the
+original bounded verifier. A detected rule change requires a service restart.
+The existing caller deadline and read/export limits remain in force. This
+optimization does not add source coverage, fresh chain observations or faster
+initial discovery, and does not strengthen the conditional assessment.
 
 Receipt and indexed-block responses add a `first_publication` assessment with
 query/publication identities, checker result, assumptions, issues, recorded

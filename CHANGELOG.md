@@ -1,5 +1,20 @@
 # Changelog
 
+## Publication investigation and repeated packet checks
+
+- Summarize the requested Hemi block, displayed Bitcoin publication and qualified
+  first-height assessment before the detailed records.
+- Link related publications by keystone height and preserve browse filters and
+  page position when returning from a record.
+- Distinguish indexed coverage, evidence coverage for the displayed result and
+  historical source observation times; retain unresolved-association warnings.
+- Reuse checked version-3 packet results in a bounded process-local cache only
+  for matching evidence bytes, verifier rules, request and operator policy/context.
+- Keep ordinary receipt/header/publication and source-conflict checks on every
+  read. Use the original bounded verifier for misses, older formats, occupied
+  capture capacity or unavailable temporary storage. Source observations and
+  conditional first-height guarantees keep their existing meanings.
+
 ## Snapshot-bound conditional assessment
 
 - Add a version-3 wrapper around unchanged history/interval evidence with exact

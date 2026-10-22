@@ -24,10 +24,12 @@ from traze_evidence import verify as interval_verifier
 from traze_evidence.verify import MAX_MANIFEST_BYTES, MAX_TOTAL_BODY_BYTES, MAX_BLOCK_BYTES
 
 from .errors import DataError, DeadlineError
+from .packet_cache import PacketResultCache
 from .storage import atomic_json, now
 
 HEX = re.compile(r'[0-9a-f]{64}\Z')
 EXPORT_SLOT = threading.BoundedSemaphore(1)
+PACKET_RESULTS = PacketResultCache()
 
 
 class EvidenceBusy(DataError):
@@ -217,8 +219,11 @@ class EvidenceStore:
             manifest, _ = interval_verifier.load_manifest(packet)
             snapshot = manifest.get('schema') == SNAPSHOT_SCHEMA
             policy = self.policy if (self.policy == SNAPSHOT_POLICY) == snapshot else None
-            checked = verify_bounded(packet, result['query']['number'], result['query']['hash'], policy, check=check,
-                accepted_context_sha256=self.accepted_context_sha256 if snapshot else None)
+            if snapshot:
+                checked = PACKET_RESULTS.verify(packet, result['query']['number'], result['query']['hash'], policy,
+                    verifier=verify_bounded, check=check, accepted_context_sha256=self.accepted_context_sha256)
+            else:
+                checked = verify_bounded(packet, result['query']['number'], result['query']['hash'], policy, check=check)
             result.update(status=checked['status'], result=checked, issues=checked.get('issues', []))
             if checked.get('policy'):
                 result.update(policy_id=checked['policy']['id'], assumptions=checked['policy']['assumptions'],
