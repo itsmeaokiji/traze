@@ -95,9 +95,12 @@ def encode_response(value):
 
 
 class Explorer:
-    def __init__(self, state_dir, *, assurance_policy=POLICY_ID, accepted_context_sha256=None):
+    def __init__(self, state_dir, *, assurance_policy=POLICY_ID, accepted_context_sha256=None,
+                 finality_source_policy=None, accepted_finality_source_context_sha256=None):
         self.state_dir = Path(state_dir)
-        self.evidence = EvidenceStore(self.state_dir, policy=assurance_policy, accepted_context_sha256=accepted_context_sha256)
+        self.evidence = EvidenceStore(self.state_dir, policy=assurance_policy, accepted_context_sha256=accepted_context_sha256,
+            finality_source_policy=finality_source_policy,
+            accepted_finality_source_context_sha256=accepted_finality_source_context_sha256)
         self.slots = threading.BoundedSemaphore(MAX_READERS)
 
     @contextmanager
@@ -205,12 +208,14 @@ class Explorer:
 
     @staticmethod
     def index(catalogue, kind):
+        from .collection_progress import public_collection_status
         counts = catalogue.summary()
         bounds = catalogue.db.execute("SELECT MIN(n.height),MAX(n.height) FROM nominations n JOIN blocks b ON b.hash=n.hash WHERE b.status='complete'").fetchone()
         return {"api_version": API_VERSION, "index_kind": kind, "retrieved_at": timestamp(), "counts": counts,
                 "bitcoin_height_bounds": list(bounds) if bounds[0] is not None else None,
                 "coverage_note": "Bounds are not contiguous coverage. Records retain source-reported heights; gaps and unassociated candidates may remain.",
                 "source_observations_current": False, "history_complete": False,
+                "collection": public_collection_status(catalogue.path.parent, catalogue.db) if kind == 'maintained' else None,
                 "last_import_stored_at": catalogue.db.execute("SELECT MAX(imported_at) FROM imports").fetchone()[0]}
 
     @staticmethod

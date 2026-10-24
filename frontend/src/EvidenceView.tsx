@@ -18,7 +18,8 @@ import { EvidenceDownload } from './EvidenceDownload';
 import { FirstPublication } from './FirstPublication';
 import { firstPublicationState } from './firstPublicationState';
 import { ResultOverview } from './ResultOverview';
-import { browseReturn } from './browseNavigation';
+import { ReferenceFinality } from './ReferenceFinality';
+import { browseReturn, browseReturnLabel } from './browseNavigation';
 export { receiptIssues } from './receiptIssues';
 
 function BitcoinLink({ type, hash, label }: { type: 'block' | 'tx'; hash?: string; label: ReactNode }) {
@@ -79,7 +80,7 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
   }
   function resetProof() { setViewChoice(null); choicesSummary.current?.focus(); }
   return <section id="result" className={`result result-${state.tone}`} aria-labelledby="result-heading">
-    {returnTo && <a className="text-link browse-return" href={returnTo}>← Back to filtered publications</a>}
+    {returnTo && <a className="text-link browse-return" href={returnTo}>{browseReturnLabel(returnTo)}</a>}
     <div className="result-heading-row">
       <div><p id="result-origin" className="eyebrow">{origin}{controlled ? ' · CONTROLLED TEST DATA' : ''}</p><div className="result-title"><StatusIcon tone={state.tone} /><h2 id="result-heading">{state.title}</h2></div><ResultOverview wrapper={wrapper} proof={proof} defaultSelection={!viewingAnother} /><p id="result-summary">{summary}</p></div>
       <div className="result-actions">{sourceOperationsEnabled && recorded && onNewLookup && <button id="new-lookup-button" className="secondary" disabled={busy} onClick={onNewLookup} title="Run the normal source search for this input, using any specified Bitcoin range.">Run new lookup</button>}{sourceOperationsEnabled && <button id="refresh-button" className="secondary" disabled={busy || !r.query.header || !r.query.covering_checkpoint} onClick={onRecheck} title="Checks source views again. Original scan coverage is preserved.">Recheck sources <span aria-hidden="true">↻</span></button>}{wrapper.record_url && <CopyAction id="copy-record-link" label="Copy record link" className="secondary" value={recordLink!.href} disabled={busy} />}<CopyAction id="copy-summary" label="Copy summary" className="secondary summary-copy" value={readableSummary} scope={copyScope} disabled={busy} onManualCopy={openManualSummary} /><EvidenceDownload wrapper={wrapper} /></div>
@@ -96,6 +97,7 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
     </RecordWorkspace>
     {relatedHeight !== undefined && <p className="related-publications"><a id="related-publications-link" className="text-link" href={`/browse?keystone_height=${relatedHeight}`}>Browse publications at keystone height {formatNumber(relatedHeight)} <span aria-hidden="true">→</span></a></p>}
     <FirstPublication wrapper={wrapper} proof={proof} />
+    <ReferenceFinality wrapper={wrapper} proof={proof} />
     <dl id="evidence-assessment" className="evidence-assessment" aria-label="Evidence status">
       <div><dt>Proof checks</dt><dd><StatusIcon tone={wrapper.verification.proofs_checked > 0 ? 'pass' : 'neutral'} /><span>{wrapper.verification.proofs_checked > 0 ? `${formatNumber(wrapper.verification.proofs_checked)} proof record${wrapper.verification.proofs_checked === 1 ? '' : 's'} checked` : 'No publication proof to check'}</span></dd></div>
       <div><dt>Source confirmation</dt><dd><StatusIcon tone={recorded ? 'neutral' : sourceConfirmed ? 'pass' : 'warning'} /><span>{recorded ? 'Current views not rechecked' : sourceConfirmed ? 'Confirmed at the last check' : sources === 'conflict' ? 'Conflict at the last check' : 'Incomplete at the last check'}</span></dd></div>
@@ -122,7 +124,7 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
           {(identity || r.query.input_type === 'hash') && <Check label="Requested Hemi block identity" value={identity ? identityLabels[identity.status] : 'Not recorded'} note={recorded ? 'Current identity was not compared with a live source for this retrieval' : 'Compared with the Hemi RPC view at the recorded check time'} status={recorded ? 'unknown' : identity?.status === 'matches_current_rpc_view' ? 'pass' : identity ? 'warning' : 'unknown'} />}
           <Check label="Source checks" value={recorded ? 'Not rechecked' : sourceConfirmed ? 'Confirmed at the last check' : sources === 'conflict' ? 'Conflict at the last check' : 'Incomplete at the last check'} note={recorded ? 'Historical observations retain their original target and scope' : 'Recorded checks of the Hemi RPC and Bitcoin API views; not full independent chain validation'} status={recorded ? 'unknown' : sourceConfirmed ? 'pass' : 'warning'} />
         </dl>
-        <details className="limits-details"><summary>About these checks</summary><p>Proof checks use the supplied Bitcoin headers and Hemi RPC data. Source checks describe the views returned at the recorded check time.</p><p>Traze does not validate the full Bitcoin header chain or independently execute Hemi blocks. It does not calculate Hemi Bitcoin-finality counters or PoP reward eligibility.</p></details>
+        <details className="limits-details"><summary>About these checks</summary><p>Proof checks use the supplied Bitcoin headers and Hemi RPC data. Source checks describe the views returned at the recorded check time.</p><p>Traze does not validate the full Bitcoin header chain or independently execute Hemi blocks. Named reference calculations are shown separately when supported; deployed Hemi finality equivalence and PoP reward eligibility are not established.</p></details>
         </details>
       </section>
       <section className="coverage-section" aria-labelledby="coverage-heading">

@@ -1,5 +1,27 @@
 # Changelog
 
+## Reference models, timeline and historical collection
+
+- Show separately named reference finality calculations, unavailable states and
+  optional calculation exports without changing ordinary receipt guarantees.
+- Add a paginated publication timeline with keystone identity highlighting and
+  retained browse filters/record navigation.
+- Add finite historical backfill and declared-range coverage accounting, including
+  unresolved Hemi associations and reused retained Bitcoin bodies.
+- Bind maintained collection to an existing original lifetime ledger, expose
+  scoped collection progress and preserve work, clocks and controls across restarts.
+
+## Paired state backup and guarded recovery
+
+- Add explicit backup, verification, restore and comparison commands for a
+  maintained index bound to a separate lifetime ledger.
+- Include required original accounting reports and durable controls; preserve
+  committed WAL content without checkpointing the source merely on backup close.
+- Migrate index/service paths in a fresh restored destination while retaining
+  evidence, ledger bytes, policies, clocks and terminal stops.
+- Keep restored acquisition blocked and require a fresh complete snapshot when
+  later authoritative state differs. Retain the legacy combined-state commands.
+
 ## Publication investigation and repeated packet checks
 
 - Summarize the requested Hemi block, displayed Bitcoin publication and qualified

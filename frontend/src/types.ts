@@ -96,6 +96,53 @@ export interface ReceiptWrapper {
   receipt: Receipt;
   verification: { proofs_checked: number; current_chain_membership_checked: boolean };
   first_publication?: FirstPublicationAssessment;
+  finality?: FinalityAssessment;
+}
+
+export interface FinalityPublication {
+  bitcoin_height: number; bitcoin_hash: string; keystone_number: number;
+  txid: string; tx_index: number; vout: number;
+}
+export interface FinalityValues {
+  raw_bitcoin_confirmations: number; effective_confirmations?: number; super_finality?: boolean;
+  signed_counter?: number; model_finality_reached?: boolean;
+}
+export interface FinalityProfile {
+  id: string; formula: string; threshold: number; revision?: string;
+  threshold_meaning: string; reference: string; deployed_equivalence_verified: boolean;
+}
+export interface FinalityAssessment {
+  schema: string; status: string; issues: Issue[]; recorded_context_only: boolean;
+  fresh_source_check_performed: false; network_requests: number;
+  operator_source_acceptance?: string;
+  source_conflict?: boolean;
+  input_binding?: {
+    kind: string; original_receipt_sha256: string; calculation_receipt_sha256: string;
+    receipt_overrides: Record<string, unknown>;
+    retained_tip_observation?: { observed_at: string; completed_at: string; qualification: string } | null;
+  };
+  calculation: {
+    schema: string; status: string; profile: FinalityProfile; query: { number: number; hash: string };
+    bitcoin_tip: { height: number; hash: string }; receipt_sha256: string;
+    ordinary_verification: { proofs_checked: number };
+    publication_calculations: { publication: FinalityPublication; values: FinalityValues; relationship: string }[];
+    source_context: {
+      status: string; sha256: string; accepted_by_caller: boolean; assumptions: string[]; issues: Issue[];
+      inputs: { observed_at?: string; tip_window: string };
+    };
+    first_height_evidence: {
+      status: string; issues: Issue[];
+      context?: { observed_from?: string; observed_through?: string; snapshot?: { number: number; hash: string } };
+    };
+    block_calculation: { status: string; reference_publication: FinalityPublication | null; values: FinalityValues | null; issues: Issue[] };
+    assurance: { deployed_finality_equivalence_verified: boolean; globally_first_proven: boolean; current_chain_membership_verified: boolean };
+    limits: string[];
+  } | null;
+  comparison: {
+    profile: FinalityProfile; same_checked_inputs: boolean;
+    publication_calculations: { publication: FinalityPublication; values: FinalityValues }[];
+    block_values: FinalityValues | null;
+  } | null;
 }
 
 export interface FirstPublicationAssessment {
@@ -142,6 +189,7 @@ export interface IndexSummary {
   source_observations_current: false;
   history_complete: false;
   last_import_stored_at: string | null;
+  collection?: CollectionStatus | null;
 }
 export interface PublicationSummary {
   id: string; record_url: string; bitcoin_block_hash: string; bitcoin_height: number | null;
@@ -213,4 +261,14 @@ export interface CollectionStatus {
   source_conflicts?: number;
   updated_at?: string;
   issue?: Issue | null;
+  progress?: {
+    scope: 'ongoing_service' | 'finite_job';
+    observed_bitcoin_tip: { height: number; hash: string; observed_at: string | null; age_seconds: number | null; clock_valid: boolean } | null;
+    service_start_height: number | null; checked_through_height: number | null;
+    next_height: number | null; remaining_to_observed_tip: number | null;
+    last_ready_at: string | null; controlled_replay: boolean; qualification: string;
+    current_job: { range: [number, number] | null; required_heights: number; processed_bodies: number;
+      unprocessed_body_heights: number[]; supported_publications: number; unsupported_publications: number;
+      pending_metadata: number; pending_ancestry: number; checked_update_heights: number };
+  };
 }

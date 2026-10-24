@@ -17,6 +17,12 @@ The example reads index metadata, one publication page and, optionally, one bloc
 record. It prints a compact result; it does not save or acquire evidence. Prepare
 the supplied catalogue first as described in [the quickstart](QUICKSTART.md).
 
+The browser's [Timeline view](TIMELINE.md) at `/browse?view=timeline` groups one
+20-record `/api/v1/publications` page by exact Bitcoin block hash and highlights
+exact keystone identities. It reuses the existing filters and cursors; `view` is
+a browser parameter, not an API filter. Page groups are not complete block or
+keystone histories. No acquisition or source refresh is triggered by browsing.
+
 ## Contract
 
 The base path is `/api/v1`; JSON responses contain `api_version: "v1"`.
@@ -45,6 +51,19 @@ Returns:
   qualification. No request establishes current canonical chain membership.
 - `last_import_stored_at`: the latest stored import time, or `null`. This is not
   a live chain observation, collector heartbeat or guarantee of freshness.
+- Optional `collection`: read-only current collection state and `progress` for a
+  maintained index, otherwise `null`. It shares the index-count SQLite snapshot.
+  `scope` distinguishes `ongoing_service` from `finite_job`. An ongoing service
+  supplies `service_start_height`, `checked_through_height`, `next_height` and
+  `remaining_to_observed_tip`; missing checked coverage or usable observation
+  times produce `null`, not an invented zero. `observed_bitcoin_tip` contains a
+  recorded height/hash/time, response-time `age_seconds` and `clock_valid`.
+  `current_job` accounts for its finite range, processed/checked bodies, pending
+  metadata/ancestry and unsupported payloads; it is not whole-history accounting.
+  The public form omits operator IDs, paths, policies and full per-height details.
+  Zero remaining heights applies only to that recorded tip and declared service
+  cursor. `controlled_replay` explicitly qualifies synthetic integration data.
+  See [operating reports](OPERATING.md#freshness-and-coverage-reports).
 
 ### GET /api/v1/publications
 
@@ -91,6 +110,10 @@ is its own read snapshot; collection can add records between requests. Restart
 from the first page to include new records sorted before a continuation. A cursor
 is not a globally frozen multi-page export.
 
+The browser's **Refresh index** action retains its applied filters/view and
+requests a new first page plus index summary. It does not call acquisition
+endpoints or promise a frozen snapshot across those separate HTTP responses.
+
 ### GET /api/v1/keystones
 
 Uses the same filters/pagination and returns supported payloads grouped by
@@ -114,6 +137,24 @@ The response contains:
   flag is trusted; a failed proof produces an error rather than a success packet.
 - `id`: this generated view's identity, not a permanent job or receipt-file ID.
 - `filename`: suggested name for an optional client-side receipt export.
+- `finality`: an additive `traze-web-finality-assessment-v1` object. Supported
+  named reference arithmetic uses a recorded Bitcoin tip, never the request time.
+  `calculation` is the checked BFG reference result or `null`; `comparison` keeps
+  AMA-model values separately named. The block calculation can remain `null`
+  while publication-only arithmetic is available. `input_binding` supplies exact
+  receipt checksums and any explicit derived-input overrides. See the
+  [calculation contract](FINALITY.md) for statuses, assumptions and reproduction.
+
+The `finality` field does not change `verification`, the original `receipt` or
+the meaning of `publication={id}`. Inspector selection never chooses the block
+reference. Missing/invalid inputs, worker capacity or calculation time limits
+can produce an unavailable assessment within an otherwise usable block response.
+The request's overall read budget still applies. Source and first-height
+acceptance require separately configured operator contexts; URL parameters cannot
+choose policies, tips or acceptance. A generated indexed input with a retained
+tip is publication-only and does not promote historical source observations to
+confirmation for a new Hemi target. No result claims deployed Hemi equivalence or
+current-chain finality.
 
 Optional `publication={id}` requests a publication-focused view without dropping
 other proofs from the receipt. `selected_publication_available` reports whether

@@ -25,6 +25,7 @@ from traze_evidence.verify import MAX_MANIFEST_BYTES, MAX_TOTAL_BODY_BYTES, MAX_
 
 from .errors import DataError, DeadlineError
 from .packet_cache import PacketResultCache
+from .finality_service import FinalityService
 from .storage import atomic_json, now
 
 HEX = re.compile(r'[0-9a-f]{64}\Z')
@@ -133,7 +134,8 @@ def verify_bounded(packet, number, hemi_hash, policy, *, check=None, accepted_co
 
 
 class EvidenceStore:
-    def __init__(self, state_dir, *, policy=POLICY_ID, accepted_context_sha256=None):
+    def __init__(self, state_dir, *, policy=POLICY_ID, accepted_context_sha256=None,
+                 finality_source_policy=None, accepted_finality_source_context_sha256=None):
         if policy not in (None, POLICY_ID, SNAPSHOT_POLICY):
             raise ValueError('Unsupported first-publication policy')
         if accepted_context_sha256 is not None and (policy != SNAPSHOT_POLICY or
@@ -142,6 +144,8 @@ class EvidenceStore:
         self.root = Path(state_dir).resolve() / 'first-publication'
         self.policy = policy
         self.accepted_context_sha256 = accepted_context_sha256
+        self.finality = FinalityService(source_policy=finality_source_policy,
+            accepted_source_context_sha256=accepted_finality_source_context_sha256)
 
     def route(self, receipt, proof=None):
         proof = proof or selected_proof(receipt)
@@ -254,13 +258,27 @@ class EvidenceStore:
                                    'message': str(exc) if isinstance(exc, (VerificationError, DataError)) else 'The retained evidence package could not be checked.'}])
         return result
 
-    def attach(self, wrapper, *, check=None):
+    def attach(self, wrapper, *, check=None, include_finality=True):
         wrapper['first_publication'] = self.assess(wrapper['receipt'], check=check)
         assessment = wrapper['first_publication']
         if assessment['packet_available']:
             base = ('/api/v1/blocks/' + assessment['query']['hash'] if wrapper.get('record_url')
                     else '/api/receipts/' + wrapper['id'])
             assessment['download_url'] = base + '/first-publication/' + assessment['packet_digest'] + '/download'
+        if not include_finality:
+            return wrapper
+        # Packet flags never authorize this separate calculation. The isolated
+        # worker rechecks receipt/packet bytes and exact operator contexts.
+        packet = None
+        if assessment.get('packet_available'):
+            try:
+                packet = self.packet(wrapper['receipt'])
+            except (DataError, OSError, ValueError):
+                pass
+        wrapper['finality'] = self.finality.assess(wrapper['receipt'], packet=packet,
+            first_policy=self.policy, first_context=self.accepted_context_sha256,
+            expected_packet_digest=assessment.get('packet_digest') if packet else None,
+            source_conflict=conflict(wrapper['receipt']), check=check)
         return wrapper
 
     def export(self, receipt, expected_digest, *, check=None):

@@ -35,6 +35,21 @@ before provisioning, DNS changes, certificate issuance or service activation.
 | `/var/backups/traze` | Restricted local backups, copied to a separately reviewed off-host destination |
 | `/etc/traze` | Root-owned hostname, thresholds and explicitly enabled collector configuration |
 
+These templates and backup commands assume combined state. A locally prepared
+index may instead pin an external original accounting directory, as described in
+[ongoing collection](OPERATING.md#reuse-a-retained-index-and-its-original-accounting).
+The writer and private operator monitor must retain access to that ledger and
+its original validation baseline. The read API does not expose the binding.
+Do not treat copying just that index directory as migration of its accounting.
+The combined-directory backup command still refuses this layout with
+`external_accounting_backup_requires_review`. Use the explicit
+[paired backup and recovery workflow](PAIRED_RECOVERY.md) for a consistent
+external-ledger snapshot, guarded path migration and comparison with later
+authoritative accounting, clocks and stops. This workflow is locally validated;
+real-host recovery, permissions and off-host retention still require deployment
+validation. No automatic hosted migration or collector activation follows from
+`init` or a restore.
+
 Create distinct `traze-read` and `traze-write` users with a shared `traze-state`
 group. The reader needs group read/traverse access, never state-directory write
 permission. Use the writer's `0027` umask for database sidecars and JSON files.

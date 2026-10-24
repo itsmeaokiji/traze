@@ -1,0 +1,484 @@
+{
+  "accounted_packet_input_bytes": 16239675,
+  "calculation": {
+    "assurance": {
+      "current_chain_membership_verified": false,
+      "deployed_finality_equivalence_verified": false,
+      "fresh_source_check_performed": false,
+      "full_consensus_or_execution_verified": false,
+      "globally_first_proven": false,
+      "miner_reward_eligibility_verified": false,
+      "profile_arithmetic_recomputed": true,
+      "whole_bfg_handler_reproduced": false
+    },
+    "bitcoin_tip": {
+      "hash": "0000000000000000000177971cad696408cb11dfe1a2cb4833d6f0f177a5c6ac",
+      "height": 972289
+    },
+    "block_calculation": {
+      "issues": [],
+      "reference_publication": {
+        "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+        "bitcoin_height": 965045,
+        "keystone_number": 5200225,
+        "tx_index": 2506,
+        "txid": "00331c9acca31ab4533d9b2f10f3e9926e0279af3203c90245049de3387d1900",
+        "vout": 1
+      },
+      "scope": "recorded_Hemi_snapshot_and_recorded_Bitcoin_view",
+      "status": "calculated_under_accepted_recorded_assumptions",
+      "values": {
+        "effective_confirmations": 7244,
+        "raw_bitcoin_confirmations": 7245,
+        "super_finality": true
+      }
+    },
+    "display_selection": {
+      "publication": {
+        "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+        "bitcoin_height": 965045,
+        "keystone_number": 5200225,
+        "tx_index": 2506,
+        "txid": "00331c9acca31ab4533d9b2f10f3e9926e0279af3203c90245049de3387d1900",
+        "vout": 1
+      },
+      "relationship": "later_keystone_support",
+      "values": {
+        "effective_confirmations": 7244,
+        "raw_bitcoin_confirmations": 7245,
+        "super_finality": true
+      }
+    },
+    "display_selection_changes_block_reference": false,
+    "first_height_evidence": {
+      "assessment": {
+        "bitcoin_height": 965045,
+        "context_sha256": "840184d1dab42688a714b71deba8938cb97958d48191bda32619586df4b03b34",
+        "covering_keystone": 5200125,
+        "label": "First applicable publication under snapshot assumptions",
+        "policy_id": "hemi-snapshot-first-height-assumptions-v1",
+        "qualification": "Conditional on the caller-accepted validating-source, historical-profile and concrete security premises within the recorded height/hash domain",
+        "status": "conditional"
+      },
+      "context": {
+        "branch_validity_basis": "externally_accepted_validating_rpc_coherence",
+        "current_bitcoin_membership_verified": false,
+        "domain": {
+          "first_hemi_keystone": 5200125,
+          "includes_eligible_keystones_after_publisher": true,
+          "last_hemi_block": 5558131,
+          "tip_hash": "0xa2eb63c48178ad1f75ddc54bb4aff69ecc1c768c8a2f5e43fc8188b9d482ab8f"
+        },
+        "historical_execution_certified": false,
+        "observed_from": "2026-10-21T06:31:03.079203+00:00",
+        "observed_through": "2026-10-21T06:31:06.134556+00:00",
+        "post_p_ancestry_independently_verified": false,
+        "profile_basis": {
+          "applicability_basis": "externally_accepted_operator_premise",
+          "applicability_scope": "all_eligible_same_branch_Q_from_cover_through_snapshot",
+          "configuration_revision": "dfd866b7e7bd21839a8140b87a89699ddde7f0c3",
+          "derivation_revision": "7c70d2ddd3f3d1ca4710da2e5988fa81bc2304b2",
+          "execution_revision": "539f4e33c02028c8a4207621cd04fa8102e372a0",
+          "history_address": "0x0000f90827f1c53a10cb7a02335b175320002935",
+          "history_code_hash": "0x6e49e66782037c0555897870e29fa5e552daf4719552131a0abce779daec0a5d",
+          "id": "hemi-mainnet-protected-history-reference-v1",
+          "security_premise": "typed-sha-keccak-extractor-cycle-hardness-including-zero-output-v1"
+        },
+        "reported_timestamp_is_wall_clock_cutoff": false,
+        "sha256": "840184d1dab42688a714b71deba8938cb97958d48191bda32619586df4b03b34",
+        "snapshot": {
+          "hash": "0xa2eb63c48178ad1f75ddc54bb4aff69ecc1c768c8a2f5e43fc8188b9d482ab8f",
+          "number": 5558131,
+          "parent_hash": "0xf031c5331d3c89fc8746b41f0edfa542e70d3bf4d56cc218fe0e9846f9a584f0",
+          "state_root": "0xfeb3b71e581394e4f2194e2c7d0e334b1245643ee15a340219312c24c483ef85",
+          "timestamp": 1792564283
+        },
+        "source": "https://rpc.hemi.network/rpc",
+        "source_authenticity_verified": false,
+        "status": "verified_context_binding"
+      },
+      "issues": [],
+      "manifest_sha256": "ee5852fa2eb7dfa74b45a6a35fad69e113ceb51cf0822744e4b4296e8616b8c7",
+      "network_requests": 0,
+      "policy": {
+        "accepted_by_caller": true,
+        "accepted_from_packet": false,
+        "assumptions": [
+          {
+            "description": "The selected validating RPC supplies a coherent valid Hemi mainnet branch containing the recorded requested block, publisher and snapshot. Intervening ancestry and consensus are externally trusted.",
+            "id": "validating_source_branch"
+          },
+          {
+            "description": "The reviewed execution, rollup derivation, deposit-origin and upgrade regime preserves the fresh-parent history invariant for every eligible same-branch keystone through the snapshot, including those after the found publisher. Historical deployment and execution are not independently certified.",
+            "id": "historical_profile_applicability"
+          },
+          {
+            "description": "The retained Bitcoin branch is valid. Its recorded observations are not refreshed by the Hemi snapshot or offline verification.",
+            "id": "recorded_bitcoin_branch"
+          },
+          {
+            "description": "The declared publication predicate and later-keystone support apply within this snapshot domain. Future snapshots, arbitrary forks and unreviewed upgrades are excluded.",
+            "id": "supported_publication_rules"
+          },
+          {
+            "description": "Constructing the reviewed typed SHA/Keccak extractor commitment cycle, including zero-output self-loops, is computationally infeasible. The finite classical model supplies no measured historical work envelope or numerical confidence.",
+            "id": "generalized_extractor_cycle_hardness"
+          }
+        ],
+        "claimed_system_security_bits": null,
+        "context_accepted_by_caller": true,
+        "context_sha256_selected_by_caller": "840184d1dab42688a714b71deba8938cb97958d48191bda32619586df4b03b34",
+        "id": "hemi-snapshot-first-height-assumptions-v1",
+        "numerical_confidence": null,
+        "useful_historical_work_envelope_measured": false
+      },
+      "publication": {
+        "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+        "bitcoin_height": 965045,
+        "keystone_number": 5200225,
+        "tx_index": 2506,
+        "txid": "00331c9acca31ab4533d9b2f10f3e9926e0279af3203c90245049de3387d1900",
+        "vout": 1
+      },
+      "status": "conditional_reference_verified"
+    },
+    "limits": [
+      "Bitcoin heights and tip membership are source-reported; offline inclusion does not establish global chain position.",
+      "All calculations concern recorded inputs; neither the clock nor opening a result advances them.",
+      "The BFG arithmetic profile does not reproduce its complete RPC handler, descendant batching or early stopping.",
+      "A conditional block model retains every accepted first-height and source-view premise; it is not deployed Hemi protocol equivalence."
+    ],
+    "network_requests": 0,
+    "ordinary_verification": {
+      "checks": [
+        {
+          "ancestry_links_checked": 233,
+          "bitcoin_height": 965045,
+          "payload_and_inclusion_checks": "passed",
+          "publishing_checkpoint": 5200350,
+          "txid": "92dca639857761538b5d27eba37f1a74a59c418ad39bf5aa7d5486a845157f5c"
+        },
+        {
+          "ancestry_links_checked": 208,
+          "bitcoin_height": 965045,
+          "payload_and_inclusion_checks": "passed",
+          "publishing_checkpoint": 5200325,
+          "txid": "e123ebb6970506279bf91cb27415eebb4a958eb687c6a1842a7b59dc1395cb7c"
+        },
+        {
+          "ancestry_links_checked": 183,
+          "bitcoin_height": 965045,
+          "payload_and_inclusion_checks": "passed",
+          "publishing_checkpoint": 5200300,
+          "txid": "a9a3095e4abedf6b00e6045094aad1c21273b90df0c0fe56fa009139488c4ce1"
+        },
+        {
+          "ancestry_links_checked": 158,
+          "bitcoin_height": 965045,
+          "payload_and_inclusion_checks": "passed",
+          "publishing_checkpoint": 5200275,
+          "txid": "471cb64bc781d75f19e393a72d386a47e45bf83d1a0638f94f00155cfb325eee"
+        },
+        {
+          "ancestry_links_checked": 133,
+          "bitcoin_height": 965045,
+          "payload_and_inclusion_checks": "passed",
+          "publishing_checkpoint": 5200250,
+          "txid": "407fac38929a46522ecbc2fa8cab9b92b3f02cc33511ba039f3b548959bb7530"
+        },
+        {
+          "ancestry_links_checked": 108,
+          "bitcoin_height": 965045,
+          "payload_and_inclusion_checks": "passed",
+          "publishing_checkpoint": 5200225,
+          "txid": "00331c9acca31ab4533d9b2f10f3e9926e0279af3203c90245049de3387d1900"
+        }
+      ],
+      "current_chain_membership_checked": false,
+      "limits": [
+        "Hemi header RLP/execution and Bitcoin header-chain consensus are not independently verified",
+        "Bitcoin height is source-reported; offline inclusion verifies the supplied header, not its global chain position",
+        "Negative coverage is a scan record, not a cryptographic non-inclusion proof",
+        "Receipt current-confidence fields are historical observations, not fresh verification"
+      ],
+      "network_requests": 0,
+      "proofs_checked": 6,
+      "status": "verified_against_provided_headers"
+    },
+    "profile": {
+      "constant_reference": "https://github.com/hemilabs/heminetwork/blob/464bcdf0af87fdcfd0544532f92ca4e094384574/api/bfgapi/bfgapi.go",
+      "deployed_equivalence_verified": false,
+      "formula": "effective_confirmations = T - H",
+      "id": "bfg-v2-464bcdf0-reference",
+      "kind": "pinned_public_source_arithmetic",
+      "reference": "https://github.com/hemilabs/heminetwork/blob/464bcdf0af87fdcfd0544532f92ca4e094384574/service/bfg/bfg.go",
+      "revision": "464bcdf0af87fdcfd0544532f92ca4e094384574",
+      "threshold": 10,
+      "threshold_meaning": "super_finality when T - H >= 10",
+      "whole_bfg_handler_reproduced": false
+    },
+    "publication_calculations": [
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200225,
+          "tx_index": 2506,
+          "txid": "00331c9acca31ab4533d9b2f10f3e9926e0279af3203c90245049de3387d1900",
+          "vout": 1
+        },
+        "relationship": "later_keystone_support",
+        "values": {
+          "effective_confirmations": 7244,
+          "raw_bitcoin_confirmations": 7245,
+          "super_finality": true
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200250,
+          "tx_index": 2505,
+          "txid": "407fac38929a46522ecbc2fa8cab9b92b3f02cc33511ba039f3b548959bb7530",
+          "vout": 1
+        },
+        "relationship": "later_keystone_support",
+        "values": {
+          "effective_confirmations": 7244,
+          "raw_bitcoin_confirmations": 7245,
+          "super_finality": true
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200275,
+          "tx_index": 2504,
+          "txid": "471cb64bc781d75f19e393a72d386a47e45bf83d1a0638f94f00155cfb325eee",
+          "vout": 1
+        },
+        "relationship": "later_keystone_support",
+        "values": {
+          "effective_confirmations": 7244,
+          "raw_bitcoin_confirmations": 7245,
+          "super_finality": true
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200300,
+          "tx_index": 2503,
+          "txid": "a9a3095e4abedf6b00e6045094aad1c21273b90df0c0fe56fa009139488c4ce1",
+          "vout": 1
+        },
+        "relationship": "later_keystone_support",
+        "values": {
+          "effective_confirmations": 7244,
+          "raw_bitcoin_confirmations": 7245,
+          "super_finality": true
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200325,
+          "tx_index": 2502,
+          "txid": "e123ebb6970506279bf91cb27415eebb4a958eb687c6a1842a7b59dc1395cb7c",
+          "vout": 1
+        },
+        "relationship": "later_keystone_support",
+        "values": {
+          "effective_confirmations": 7244,
+          "raw_bitcoin_confirmations": 7245,
+          "super_finality": true
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200350,
+          "tx_index": 2501,
+          "txid": "92dca639857761538b5d27eba37f1a74a59c418ad39bf5aa7d5486a845157f5c",
+          "vout": 1
+        },
+        "relationship": "later_keystone_support",
+        "values": {
+          "effective_confirmations": 7244,
+          "raw_bitcoin_confirmations": 7245,
+          "super_finality": true
+        }
+      }
+    ],
+    "query": {
+      "hash": "0x2e9a22f7e0f7fa385b80c767ba5ab0e1939b140ea6a00780440933baeb6b48bd",
+      "number": 5200117
+    },
+    "receipt_sha256": "fe7f346655717679cb1ed9fc7792b1d8bbacd2bef2ba0c5332091b7124c8bf33",
+    "schema": "traze-offline-finality-calculation-v1",
+    "source_context": {
+      "accepted_by_caller": true,
+      "accepted_from_receipt": false,
+      "assumptions": [
+        "Recorded Bitcoin heights, publication hashes and both tip observations refer to one valid Bitcoin branch, including any forward tip advancement; positions, tip ancestry and chainwork are not independently established.",
+        "Recorded Hemi identities and any accepted first-height snapshot describe a coherent valid Hemi branch within the declared domain.",
+        "Unsigned source observations are externally trusted historical assertions, not fresh or independently authenticated chain observations."
+      ],
+      "inputs": {
+        "bitcoin_tip": {
+          "hash": "0000000000000000000177971cad696408cb11dfe1a2cb4833d6f0f177a5c6ac",
+          "height": 972289
+        },
+        "initial_bitcoin_tip": {
+          "hash": "00000000000000000000f904edc0127912055c0940acb0fa7accf69262cda36c",
+          "height": 972287
+        },
+        "observed_at": "2026-10-20T07:55:17.657799+00:00",
+        "query": {
+          "hash": "0x2e9a22f7e0f7fa385b80c767ba5ab0e1939b140ea6a00780440933baeb6b48bd",
+          "number": 5200117
+        },
+        "receipt_sha256": "fe7f346655717679cb1ed9fc7792b1d8bbacd2bef2ba0c5332091b7124c8bf33",
+        "recorded_consistency": "recorded_consistent",
+        "schema": "traze-finality-recorded-inputs-v1",
+        "tip_window": "advanced_forward"
+      },
+      "issues": [],
+      "policy_id": "hemi-finality-recorded-view-assumptions-v1",
+      "sha256": "ed69ab5f419d09cc8e7db6c60dbe1cdfea866d7cf3952ecccc1c9973e952bd6c",
+      "status": "recorded_consistent"
+    },
+    "status": "conditional_block_calculation"
+  },
+  "comparison": {
+    "block_values": {
+      "model_finality_reached": true,
+      "raw_bitcoin_confirmations": 7245,
+      "signed_counter": 7235
+    },
+    "profile": {
+      "deployed_equivalence_verified": false,
+      "formula": "signed_counter = T - H - 9",
+      "id": "ama-signed-nine-block-model",
+      "kind": "transcript_described_model",
+      "reference": "Hemi PoP Q&A transcript, section 2.5",
+      "threshold": 9,
+      "threshold_meaning": "model_finality_reached when signed_counter >= 0",
+      "whole_bfg_handler_reproduced": false
+    },
+    "publication_calculations": [
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200225,
+          "tx_index": 2506,
+          "txid": "00331c9acca31ab4533d9b2f10f3e9926e0279af3203c90245049de3387d1900",
+          "vout": 1
+        },
+        "values": {
+          "model_finality_reached": true,
+          "raw_bitcoin_confirmations": 7245,
+          "signed_counter": 7235
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200250,
+          "tx_index": 2505,
+          "txid": "407fac38929a46522ecbc2fa8cab9b92b3f02cc33511ba039f3b548959bb7530",
+          "vout": 1
+        },
+        "values": {
+          "model_finality_reached": true,
+          "raw_bitcoin_confirmations": 7245,
+          "signed_counter": 7235
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200275,
+          "tx_index": 2504,
+          "txid": "471cb64bc781d75f19e393a72d386a47e45bf83d1a0638f94f00155cfb325eee",
+          "vout": 1
+        },
+        "values": {
+          "model_finality_reached": true,
+          "raw_bitcoin_confirmations": 7245,
+          "signed_counter": 7235
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200300,
+          "tx_index": 2503,
+          "txid": "a9a3095e4abedf6b00e6045094aad1c21273b90df0c0fe56fa009139488c4ce1",
+          "vout": 1
+        },
+        "values": {
+          "model_finality_reached": true,
+          "raw_bitcoin_confirmations": 7245,
+          "signed_counter": 7235
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200325,
+          "tx_index": 2502,
+          "txid": "e123ebb6970506279bf91cb27415eebb4a958eb687c6a1842a7b59dc1395cb7c",
+          "vout": 1
+        },
+        "values": {
+          "model_finality_reached": true,
+          "raw_bitcoin_confirmations": 7245,
+          "signed_counter": 7235
+        }
+      },
+      {
+        "publication": {
+          "bitcoin_hash": "00000000000000000000838f3734b1bc3bb7fa36b6435abc74ce7279bdbc2c79",
+          "bitcoin_height": 965045,
+          "keystone_number": 5200350,
+          "tx_index": 2501,
+          "txid": "92dca639857761538b5d27eba37f1a74a59c418ad39bf5aa7d5486a845157f5c",
+          "vout": 1
+        },
+        "values": {
+          "model_finality_reached": true,
+          "raw_bitcoin_confirmations": 7245,
+          "signed_counter": 7235
+        }
+      }
+    ],
+    "same_checked_inputs": true
+  },
+  "denied_network_attempts": 0,
+  "fresh_source_check_performed": false,
+  "input_binding": {
+    "calculation_receipt_sha256": "fe7f346655717679cb1ed9fc7792b1d8bbacd2bef2ba0c5332091b7124c8bf33",
+    "kind": "original_receipt",
+    "original_receipt_sha256": "fe7f346655717679cb1ed9fc7792b1d8bbacd2bef2ba0c5332091b7124c8bf33",
+    "receipt_overrides": {},
+    "retained_tip_observation": null
+  },
+  "issues": [],
+  "network_requests": 0,
+  "operator_source_acceptance": "exact_context_selected",
+  "recorded_context_only": true,
+  "schema": "traze-web-finality-assessment-v1",
+  "source_conflict": false,
+  "status": "conditional_block_calculation"
+}

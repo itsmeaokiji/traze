@@ -6,6 +6,7 @@ import { receiptIssues } from './receiptIssues';
 import type { ReceiptWrapper } from './types';
 import { historicalSourceTimes, isRecorded } from './recordedEvidence';
 import { firstPublicationState } from './firstPublicationState';
+import { finalitySummary } from './finalityPresentation';
 
 export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number | undefined, fresh: boolean): string {
   const r = wrapper.receipt;
@@ -85,7 +86,8 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
       'Unconditional global proof: Not established.',
     ] : ['Globally earliest publication: Not established. Publications may exist outside the checked coverage.',
       `First-publication assessment: ${firstHeight.title}.`]),
-    'Checks use supplied Bitcoin headers and Hemi RPC data. Full Bitcoin header-chain validation, independent Hemi execution, Hemi Bitcoin-finality counters, and PoP reward eligibility are outside these checks.',
+    ...finalitySummary(wrapper, proof),
+    'Proof checks use supplied Bitcoin headers and Hemi RPC data. Full Bitcoin header-chain validation, independent Hemi execution, deployed Hemi finality equivalence, and PoP reward eligibility are outside these proof checks.',
     'This summary reflects recorded evidence. Copying or opening it does not recheck sources. Provider backend independence is not established.',
     `JSON evidence: ${wrapper.filename} (original receipt; download separately for offline verification).`,
   );

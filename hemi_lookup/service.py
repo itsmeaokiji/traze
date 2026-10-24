@@ -2,19 +2,66 @@
 
 import argparse
 import copy
+import hashlib
 import json
+import sqlite3
 import time
 import uuid
+from contextlib import closing
 from pathlib import Path
 
 from .bitcoin import hex32
-from .catalogue import timestamp
+from .catalogue import Catalogue, encode, timestamp
+from .accounting import KEY, accounting_directory, accounting_state, bind_accounting, validate_service_accounting
 from .collection_control import CONTROL_POLL_SECONDS, RunnerRecord, request_stop, stop_request
 from .collection_store import CollectionStore, RunnerLock
 from .collector import Collector
 from .errors import CollectionStopped, DataError
 from .operating import OperatingBudget, OperatingLimit, check_checkpoint, checkpoint, fingerprint, ledger_state, policy_settings
 from .network import PublicSources
+
+
+def initialize_index(root, state, seed, ledger_directory):
+    """Prepare a new index snapshot and ledger binding without arming a policy."""
+    root, state, seed, ledger_directory = (Path(p).resolve() for p in (root, state, seed, ledger_directory))
+    if state.exists() or seed.is_relative_to(state) or ledger_directory.is_relative_to(state):
+        raise DataError('invalid_index_setup', 'Use a new index directory separate from its seed and original ledger')
+    if not (ledger_directory / 'session.json').is_file():
+        raise DataError('missing_accounting', 'Preserve and select an existing lifetime ledger')
+    if RunnerLock.held(seed.parent) is not False or (seed.parent / 'restore-guard.json').exists():
+        raise DataError('invalid_index_setup', 'Stop and reconcile the source index before preparing a new snapshot')
+    seed_sha = hashlib.sha256(seed.read_bytes()).hexdigest()
+    with Catalogue(seed, readonly=True) as source:
+        source.db.execute('BEGIN')
+        if source.db.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
+            raise DataError('invalid_index_setup', 'The seed index failed its integrity check')
+        prior_binding = source.db.execute('SELECT value FROM meta WHERE key=?', (KEY,)).fetchone()
+        if prior_binding:
+            if accounting_directory(seed.parent, db=source.db) != ledger_directory:
+                raise DataError('accounting_binding_changed', 'A seeded index must retain its original accounting directory')
+            accounting_state(seed.parent, db=source.db, prior_root=root)
+        elif (seed.parent / 'session.json').is_file():
+            # A legacy snapshot may carry an older ledger copy. Its complete
+            # prefix must exist in the explicitly chosen authoritative ledger.
+            check_checkpoint(ledger_state(ledger_directory, root), checkpoint(ledger_state(seed.parent, root)))
+        source_summary = source.summary()
+        state.mkdir(parents=True)
+        with closing(sqlite3.connect(state / 'service.sqlite3')) as target:
+            source.db.backup(target)
+    if hashlib.sha256(seed.read_bytes()).hexdigest() != seed_sha:
+        raise DataError('seed_changed', 'The source index changed during setup; review the snapshot')
+    with RunnerLock(state), CollectionStore(state) as store:
+        # A copied binding belongs to the source directory. Rebind only this new
+        # snapshot, preserving historical source/service records as observations.
+        with store.db:
+            store.db.execute('DELETE FROM meta WHERE key=?', (KEY,))
+        binding = bind_accounting(store, ledger_directory, root)
+        provenance = {'prepared_at': timestamp(), 'source_index': str(seed),
+                      'source_sha256': seed_sha, 'retained_counts': source_summary,
+                      'network_requests': 0, 'service_started': False}
+        with store.db:
+            store.db.execute('INSERT OR REPLACE INTO meta VALUES (?,?)', ('collection_index_origin', encode(provenance)))
+    return {'state': 'index_prepared', 'index_directory': str(state), 'binding': binding, 'origin': provenance}
 
 
 class AnchoredSources:
@@ -39,12 +86,13 @@ class AnchoredSources:
 
 
 class CollectionService(Collector):
-    def __init__(self, root, state=None, *, sources_factory=PublicSources, event=None):
+    def __init__(self, root, state=None, *, sources_factory=PublicSources, event=None, ledger_directory=None):
         super().__init__(root, state, sources_factory=sources_factory, event=event)
         self.base_sources_factory = sources_factory
         self.service_store = None
         self.active_child = None
         self.sources_factory = self._sources
+        self.requested_ledger = Path(ledger_directory).resolve() if ledger_directory is not None else None
 
     def _sources(self, session):
         return AnchoredSources(self.base_sources_factory(session), copy.deepcopy(self.previous_block), self.service_store)
@@ -64,13 +112,19 @@ class CollectionService(Collector):
             raise DataError("invalid_collection", "Use a nonnegative initial Bitcoin height")
         policy = policy_settings(policy)
         with RunnerLock(self.state), CollectionStore(self.state) as store:
-            if (self.state / "session.lock").exists():
+            if self.requested_ledger is not None:
+                bind_accounting(store, self.requested_ledger, self.root)
+            directory = store.ledger_directory
+            if (directory / "session.lock").exists():
                 raise DataError("session_locked", "Wait for the existing source operation before binding a policy")
-            original = ledger_state(self.state, self.root)
+            if directory != self.state and not (directory / 'session.json').is_file():
+                raise DataError('missing_accounting', 'The bound lifetime ledger must not be recreated')
+            original = accounting_state(self.state, db=store.db, prior_root=self.root)
             service = {"id": uuid.uuid4().hex, "created_at": timestamp(), "state": "queued",
                        "start_height": start, "next_height": start, "anchor": None,
                        "policy": policy, "policy_digest": fingerprint(policy),
                        "ledger_checkpoint": checkpoint(original), "clock": {},
+                       "ledger_directory": str(directory), "index_directory": str(self.state),
                        "current_job": None, "last_job": None, "latest_tip": None,
                        "next_attempt_at": None, "consecutive_failures": 0, "issue": None}
             store.save_service(service)
@@ -91,8 +145,9 @@ class CollectionService(Collector):
         return period
 
     def _storage(self):
-        names = ("service.sqlite3", "service.sqlite3-wal", "service.sqlite3-shm", "session.json")
-        return sum((self.state / n).stat().st_size for n in names if (self.state / n).is_file())
+        files = {self.state / n for n in ('service.sqlite3', 'service.sqlite3-wal', 'service.sqlite3-shm')}
+        files.add(accounting_directory(self.state) / 'session.json')
+        return sum(p.stat().st_size for p in files if p.is_file())
 
     def _advance(self, service, job):
         next_height = service["next_height"]
@@ -139,9 +194,10 @@ class CollectionService(Collector):
             return {"id": identity, "state": "stop_requested", "stop": request}
 
     def _cycle(self, store, service):
+        directory = validate_service_accounting(store, service, self.requested_ledger)
         period = self._period(service)
         budget = OperatingBudget(service, period)
-        check_checkpoint(ledger_state(self.state, self.root), service["ledger_checkpoint"])
+        check_checkpoint(ledger_state(directory, self.root), service["ledger_checkpoint"])
         job = store.job(service["current_job"]) if service["current_job"] else None
         if job:
             if job["state"] == "stopped" or stop_request(self.state, job["id"]):
@@ -232,6 +288,7 @@ class CollectionService(Collector):
             raise DataError("invalid_collection", "The service cycle limit must be a positive integer")
         with RunnerLock(self.state), CollectionStore(self.state) as store:
             service = store.service(identity)
+            validate_service_accounting(store, service, self.requested_ledger)
             if service["state"] in ("stopped", "blocked", "storage_limited"):
                 return service
             if stop_request(self.state, identity):
@@ -293,7 +350,10 @@ class CollectionService(Collector):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Opt-in ongoing collector; creating a policy does not start acquisition")
     parser.add_argument("--state-dir", type=Path, default=Path(__file__).resolve().parent.parent / ".hemi_lookup_data")
+    parser.add_argument('--ledger-dir', type=Path, help='Explicit original accounting directory; saved binding is reused on later runs')
     sub = parser.add_subparsers(dest="command", required=True)
+    setup = sub.add_parser('init', help='Seed a new index and bind an existing ledger offline; starts no service')
+    setup.add_argument('--seed', type=Path, required=True)
     create = sub.add_parser("create", help="Save an explicit renewable policy without source calls")
     create.add_argument("--start", type=int, required=True)
     create.add_argument("--policy", type=Path, required=True)
@@ -305,11 +365,20 @@ def main(argv=None):
     stop.add_argument("--reason", default="Stopped by operator")
     status = sub.add_parser("status", help="Read a saved service without source calls")
     status.add_argument("service")
+    sub.add_parser('report', help='Read current collection coverage/freshness without contacting sources')
     args = parser.parse_args(argv)
     service = CollectionService(Path(__file__).resolve().parent.parent, args.state_dir,
+                                ledger_directory=args.ledger_dir,
                                 event=lambda value: print(json.dumps(value), flush=True))
     try:
-        if args.command == "create":
+        if args.command == 'init':
+            if args.ledger_dir is None:
+                raise DataError('missing_accounting', 'Index setup requires --ledger-dir')
+            result = initialize_index(service.root, args.state_dir, args.seed, args.ledger_dir)
+        elif args.command == 'report':
+            from .collection_store import collection_status
+            result = collection_status(args.state_dir) or {'state': 'not_configured'}
+        elif args.command == "create":
             result = service.create(args.start, json.loads(args.policy.read_text(encoding="utf-8")))
         elif args.command == "run":
             result = service.run(args.service, max_cycles=args.max_cycles)

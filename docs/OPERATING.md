@@ -13,6 +13,46 @@ See the [hosting and recovery runbook](HOSTING.md) for separate supervision
 templates, monitoring and consistent backups. Restored snapshots carry an
 acquisition interlock until accounting, later stops and policy clocks are reconciled.
 
+## Reuse a retained index and its original accounting
+
+An index can live separately from the authoritative lifetime ledger. Prepare a
+new working directory from an existing, stopped index without starting sources:
+
+```shell
+python -B -m hemi_lookup.service --state-dir /path/to/new-index --ledger-dir /path/to/original-accounting init --seed /path/to/retained-index/service.sqlite3
+python -B -m hemi_lookup.service --state-dir /path/to/new-index report
+```
+
+Replace the paths. The ledger directory must already contain `session.json`.
+`init` uses SQLite's backup API, records seed provenance and a pinned ledger
+prefix, and does not overwrite its source, open an acquisition Session, create a
+service policy or arm an operating clock. The destination must be new. An active
+source writer or source restore interlock prevents setup. A previously bound
+seed must retain the same authoritative ledger. For an unbound legacy snapshot
+carrying an older ledger copy, that entire prefix must exist unchanged in the
+selected authoritative ledger.
+
+The persistent binding lives in the index's `meta` table. Subsequent `create`,
+`run`, operator monitoring, usage and owned-session recovery use that ledger;
+they do not create or trust a second `session.json` beside the index. An explicit
+`--ledger-dir` can also bind an existing unbound working index during `create`.
+Later commands may omit the flag. A conflicting flag, missing/reset ledger,
+changed prefix, copied binding at another index path or mismatched service
+identity prevents source work. An existing global source lock is respected;
+recovery cannot clear another index's Session. Legacy combined state remains
+supported. These are local consistency checks, not a tamper-proof audit log.
+
+Index setup is not backup/restore, a new operating allowance or permission to
+resume an earlier stopped service. Preserve the original ledger, index, policies,
+clocks, controls and required validation baselines. The current single-directory
+backup command deliberately refuses an externally bound index rather than
+producing a misleading complete backup. The explicit
+[paired recovery commands](PAIRED_RECOVERY.md) snapshot the bound pair and original
+baselines, migrate paths into a new destination and leave acquisition blocked.
+Compare with fresh authoritative accounting, clocks and stops before a separate
+operating decision. Local recovery checks do not replace actual-host validation;
+see [hosting](HOSTING.md).
+
 ## Configure an explicit policy
 
 Supply a JSON object containing every required field. There is no built-in
@@ -130,6 +170,41 @@ that exited after `--max-cycles` is not shown as running. Coverage, last source
 observation and activity timestamps retain their separate meanings. Status
 polling never creates jobs or source sessions.
 
+### Freshness and coverage reports
+
+`service report` reads the current saved collection without a source request.
+The website's indexed coverage and Browse views show the same progress. Browse's
+**Refresh index** action reloads stored records, retains applied filters/view and
+returns to the first page. It does not collect or recheck sources. Observation
+age on Browse is the age at its last index response; use refresh for a new read.
+
+For an ongoing service, `progress` separates:
+
+- The latest recorded Bitcoin tip, its observation time and age. During an active
+  update, a newer child observation is visible before the controller finishes.
+- Service start, contiguous checked-through height and next cursor. There is no
+  checked range before the first completed update. This cursor covers only this
+  service's supported parser/source checks, not all historical index bounds.
+- Remaining heights from that cursor through the **last observed** tip. Zero
+  describes that observation; it does not establish current synchronization or
+  canonical membership. Missing, future or invalid observation times leave the
+  gap unavailable rather than zero.
+- Current finite child's required/processed/checked heights, unprocessed heights,
+  supported/unsupported payloads, pending Hemi metadata and pending ancestry work.
+  Operator `report` additionally includes per-height details. These are current
+  child counts, not an aggregate of every historical job or operating period.
+
+A finite collection is labelled `finite_job`; its completed range does not
+become an ongoing cursor-to-tip claim. Index counts can increase while a child
+still lacks metadata or checked ancestry. Available keystone metadata does not
+guarantee a complete path to every requested Hemi target. Public index responses
+omit operator IDs, binding paths, policy details and raw per-publication issues.
+
+An unavailable runner, terminal stop, blocked source view and a wait for future
+heights remain distinct. A controlled replay is explicitly identified and must
+not be presented as a new live observation. Freshness reports do not extend
+first-publication, finality, full protocol-format or independent consensus claims.
+
 ## Cache and storage
 
 Disposable raw bodies live in `state/service-blocks/SERVICE_ID/`. Cache eviction
@@ -138,8 +213,8 @@ header and Merkle-proof material stays in `service.sqlite3`; evidence exports do
 not require the raw body to remain cached. Original fixture/receipt directories
 and legacy caches are not pruned.
 
-The controller checks `service.sqlite3`, its WAL/shared-memory files and
-`session.json` before and after each bounded update. If their measured sum exceeds
+The controller checks `service.sqlite3`, its WAL/shared-memory files and the
+bound original `session.json` before and after each bounded update. If their measured sum exceeds
 `state_bytes`, no further update starts. The preceding update, SQLite overhead
 and accounting writes can exceed this high-water value; it is an admission
 threshold, not a hard filesystem quota. Raw cache is bounded separately. It does

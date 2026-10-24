@@ -15,6 +15,7 @@ from .catalogue import Catalogue, digest, encode, timestamp
 from .errors import DataError
 from .storage import SAFETY_MARGIN
 from .collection_control import runner_status, stop_request
+from .accounting import accounting_directory
 
 
 def epoch(stamp):
@@ -102,6 +103,10 @@ class CollectionStore:
 
     def close(self):
         self.catalogue.close()
+
+    @property
+    def ledger_directory(self):
+        return accounting_directory(self.state, db=self.db)
 
     def __enter__(self):
         return self
@@ -301,7 +306,7 @@ class CollectionStore:
             return json.loads(row[0])
 
     def usage(self, job, update=None):
-        path = self.state / "session.json"
+        path = self.ledger_directory / "session.json"
         state = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"runs": []}
         runs = [r for r in state["runs"] if r.get("context", {}).get("collection_job") == job["id"]]
         times = [r for r in runs if update is None or r["context"]["update"] == update]
@@ -313,7 +318,7 @@ class CollectionStore:
 
     def recover_session(self, job):
         """Call only while owning RunnerLock; release only this job's stale lock."""
-        lock, ledger = self.state / "session.lock", self.state / "session.json"
+        lock, ledger = self.ledger_directory / "session.lock", self.ledger_directory / "session.json"
         if not lock.exists():
             return
         if not ledger.exists():
@@ -323,6 +328,8 @@ class CollectionStore:
         owned = [r for r in runs if r.get("id") == token[:12] and r.get("context", {}).get("collection_job") == job["id"]]
         if len(owned) != 1 or "closed_at" in owned[0]:
             raise DataError("session_locked", "A different source operation owns the session lock")
+        if owned[0].get('context', {}).get('collection_index', str(self.state)) != str(self.state):
+            raise DataError('session_locked', 'A different index owns this accounting segment')
         lock.unlink()
 
     def metadata(self, job, method, params):
@@ -397,78 +404,89 @@ class CollectionStore:
         self.catalogue._associate()
 
 
-def collection_status(state):
-    """Read-only UI summary; polling never starts collection or source requests."""
+def collection_status(state, *, db=None):
+    """Read-only status; an existing read snapshot can be shared with the API."""
+    if db is not None:
+        return _collection_status(state, db)
     path = Path(state) / "service.sqlite3"
     if not path.is_file():
         return None
-    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
-        db.execute("BEGIN")
-        if not db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_jobs'").fetchone():
-            return None
-        row = db.execute("SELECT data FROM collection_jobs ORDER BY json_extract(data,'$.updated_at') DESC, rowid DESC LIMIT 1").fetchone()
-        job = json.loads(row[0]) if row else None
-        has_services = db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_services'").fetchone()
-        service_row = db.execute("SELECT data FROM collection_services ORDER BY json_extract(data,'$.updated_at') DESC, rowid DESC LIMIT 1").fetchone() if has_services else None
-        service = json.loads(service_row[0]) if service_row else None
-        held = RunnerLock.held(state)
-        # A queued record cannot hide the controller that actually owns work.
-        try:
-            runtime = json.loads((Path(state) / "collection-runner.json").read_text(encoding="utf-8"))
-            active_id = runtime["job_id"]
-            if runner_status(state, active_id, held)["state"] == "active":
-                active = db.execute("SELECT data FROM collection_services WHERE id=?", (active_id,)).fetchone() if has_services else None
-                if active:
-                    service = json.loads(active[0])
-                    job = None
-                else:
-                    active = db.execute("SELECT data FROM collection_jobs WHERE id=?", (active_id,)).fetchone()
-                    if active:
-                        job, service = json.loads(active[0]), None
-        except (OSError, ValueError, KeyError, TypeError):
-            pass
-        if job and job.get("operating_service") and has_services:
-            parent = db.execute("SELECT data FROM collection_services WHERE id=?", (job["operating_service"],)).fetchone()
-            if parent:
-                parent = json.loads(parent[0])
-                if service is None or job["updated_at"] >= service["updated_at"]:
-                    service = parent
+    with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=1)) as connection:
+        connection.execute("BEGIN")
+        return _collection_status(state, connection)
+
+
+def _collection_status(state, db):
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_jobs'").fetchone():
+        return None
+    row = db.execute("SELECT data FROM collection_jobs ORDER BY json_extract(data,'$.updated_at') DESC, rowid DESC LIMIT 1").fetchone()
+    job = json.loads(row[0]) if row else None
+    has_services = db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_services'").fetchone()
+    service_row = db.execute("SELECT data FROM collection_services ORDER BY json_extract(data,'$.updated_at') DESC, rowid DESC LIMIT 1").fetchone() if has_services else None
+    service = json.loads(service_row[0]) if service_row else None
+    held = RunnerLock.held(state)
+    # A queued record cannot hide the controller that actually owns work.
+    try:
+        runtime = json.loads((Path(state) / "collection-runner.json").read_text(encoding="utf-8"))
+        active_id = runtime["job_id"]
+        if runner_status(state, active_id, held)["state"] == "active":
+            active = db.execute("SELECT data FROM collection_services WHERE id=?", (active_id,)).fetchone() if has_services else None
+            if active:
+                service = json.loads(active[0])
                 job = None
-        if service and (job is None or service["updated_at"] >= job["updated_at"]):
-            record = service
-            child_id = service["current_job"] or service["last_job"]
-            child = db.execute("SELECT data FROM collection_jobs WHERE id=?", (child_id,)).fetchone() if child_id else None
-            job = json.loads(child[0]) if child else None
-        else:
-            service, record = None, job
-        if record is None:
-            return None
-        runner = runner_status(state, record["id"], held)
-        effective_state = record["state"]
-        active_states = ("running", "waiting", "limited", "incomplete") if service else ("running", "waiting")
-        if effective_state in active_states and runner["state"] != "active":
-            effective_state = "unavailable"
-        request = stop_request(state, record["id"])
-        if request and record["state"] != "stopped":
-            effective_state = "stopping" if runner["state"] == "active" else "stop_requested"
-        supported = db.execute("SELECT COUNT(*) FROM publications WHERE supported=1").fetchone()[0]
-        associated = db.execute("SELECT COUNT(DISTINCT publication_id) FROM associations").fetchone()[0]
-        processed = db.execute("SELECT COUNT(*) FROM blocks WHERE status='complete'").fetchone()[0]
-        result = {"id": record["id"], "kind": "service" if service else "job",
-                "state": effective_state, "recorded_state": record["state"],
-                "runner": runner, "range": job["range"] if job else None, "stop": record.get("stop"),
-                "processed_blocks": processed, "supported_publications": supported,
-                "associated_publications": associated, "unresolved_publications": supported - associated,
-                "processed_job_blocks": sum(item.get("state") == "processed" for item in job["items"].values()) if job else 0,
-                "requested_job_blocks": job["range"][1] - job["range"][0] + 1 if job else 0,
-                "updated_at": record["updated_at"], "issue": record["issue"],
-                "pending_ancestry": sum(a.get("state") != "complete" for a in job["associations"].values()) if job else 0,
-                "source_conflicts": db.execute("SELECT COUNT(*) FROM collection_views v WHERE v.sequence=(SELECT MAX(sequence) FROM collection_views WHERE chain=v.chain AND height=v.height) AND json_extract(v.data,'$.status')!='observed'").fetchone()[0]}
-        if service:
-            result.update(next_height=service["next_height"], latest_tip=service["latest_tip"])
-            messages = {"operating_storage_limit": "Collection is paused for operator storage review. Retained evidence remains available.",
-                        "operating_limit": "Collection is waiting for its next configured operating period.",
-                        "operating_period_ended": "The operating period ended; collection progress is retained."}
-            if result["issue"] and result["issue"]["code"] in messages:
-                result["issue"] = {"code": result["issue"]["code"], "message": messages[result["issue"]["code"]]}
-        return result
+            else:
+                active = db.execute("SELECT data FROM collection_jobs WHERE id=?", (active_id,)).fetchone()
+                if active:
+                    job, service = json.loads(active[0]), None
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    if job and job.get("operating_service") and has_services:
+        parent = db.execute("SELECT data FROM collection_services WHERE id=?", (job["operating_service"],)).fetchone()
+        if parent:
+            parent = json.loads(parent[0])
+            if service is None or job["updated_at"] >= service["updated_at"]:
+                service = parent
+            job = None
+    if service and (job is None or service["updated_at"] >= job["updated_at"]):
+        record = service
+        child_id = service["current_job"] or service["last_job"]
+        child = db.execute("SELECT data FROM collection_jobs WHERE id=?", (child_id,)).fetchone() if child_id else None
+        job = json.loads(child[0]) if child else None
+    else:
+        service, record = None, job
+    if record is None:
+        return None
+    runner = runner_status(state, record["id"], held)
+    effective_state = record["state"]
+    if (service and runner['state'] == 'active' and job and job['state'] in ('running', 'waiting')
+            and effective_state not in ('stopped', 'blocked', 'storage_limited')):
+        effective_state = job['state']
+    active_states = ("running", "waiting", "limited", "incomplete") if service else ("running", "waiting")
+    if effective_state in active_states and runner["state"] != "active":
+        effective_state = "unavailable"
+    request = stop_request(state, record["id"])
+    if request and record["state"] != "stopped":
+        effective_state = "stopping" if runner["state"] == "active" else "stop_requested"
+    supported = db.execute("SELECT COUNT(*) FROM publications WHERE supported=1").fetchone()[0]
+    associated = db.execute("SELECT COUNT(DISTINCT publication_id) FROM associations").fetchone()[0]
+    processed = db.execute("SELECT COUNT(*) FROM blocks WHERE status='complete'").fetchone()[0]
+    result = {"id": record["id"], "kind": "service" if service else "job",
+            "state": effective_state, "recorded_state": record["state"],
+            "runner": runner, "range": job["range"] if job else None, "stop": record.get("stop"),
+            "processed_blocks": processed, "supported_publications": supported,
+            "associated_publications": associated, "unresolved_publications": supported - associated,
+            "processed_job_blocks": sum(item.get("state") == "processed" for item in job["items"].values()) if job else 0,
+            "requested_job_blocks": job["range"][1] - job["range"][0] + 1 if job else 0,
+            "updated_at": record["updated_at"], "issue": record["issue"],
+            "pending_ancestry": sum(a.get("state") != "complete" for a in job["associations"].values()) if job else 0,
+            "source_conflicts": db.execute("SELECT COUNT(*) FROM collection_views v WHERE v.sequence=(SELECT MAX(sequence) FROM collection_views WHERE chain=v.chain AND height=v.height) AND json_extract(v.data,'$.status')!='observed'").fetchone()[0]}
+    if service:
+        result.update(next_height=service["next_height"], latest_tip=service["latest_tip"])
+        messages = {"operating_storage_limit": "Collection is paused for operator storage review. Retained evidence remains available.",
+                    "operating_limit": "Collection is waiting for its next configured operating period.",
+                    "operating_period_ended": "The operating period ended; collection progress is retained."}
+        if result["issue"] and result["issue"]["code"] in messages:
+            result["issue"] = {"code": result["issue"]["code"], "message": messages[result["issue"]["code"]]}
+    from .collection_progress import progress_view
+    result['progress'] = progress_view(db, service, job)
+    return result

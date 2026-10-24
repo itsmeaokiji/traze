@@ -16,6 +16,7 @@ from .errors import BudgetError, CollectionStopped, DataError, DeadlineError
 from .network import PublicSources
 from .proof import same_header
 from .storage import BlockCache, SAFETY_MARGIN, Session, SESSION_LIMIT
+from .accounting import accounting_state
 
 
 class MetadataSources:
@@ -47,7 +48,8 @@ class MetadataSources:
 
 class Collector:
     def __init__(self, root, state=None, *, sources_factory=PublicSources, event=None,
-                 operating_budget=None, cache_directory=None, cache_bytes=40_000_000, previous_block=None):
+                 operating_budget=None, cache_directory=None, cache_bytes=40_000_000, previous_block=None,
+                 raise_source_conflicts=False):
         self.root = Path(root).resolve()
         self.state = Path(state or self.root / ".hemi_lookup_data").resolve()
         self.sources_factory = sources_factory
@@ -60,6 +62,7 @@ class Collector:
         self.cache_directory = Path(cache_directory) if cache_directory else self.state / "collection_blocks"
         self.cache_bytes = cache_bytes
         self.previous_block = previous_block
+        self.raise_source_conflicts = raise_source_conflicts
 
     def _check_control(self, force=False):
         if self.runner is None:
@@ -76,6 +79,8 @@ class Collector:
             self.runner.touch()
 
     def _operate(self, identity, operation):
+        if (self.state / 'restore-guard.json').exists():
+            raise DataError('restored_state_requires_review', 'Reconcile restored index state before source acquisition')
         with RunnerLock(self.state), CollectionStore(self.state) as store:
             job = store.job(identity)
             if job.get("operating_service"):
@@ -262,6 +267,9 @@ class Collector:
                         "processing_seconds": time.monotonic() - started,
                         "issue": {"code": getattr(exc, "code", "invalid_metadata"), "message": str(exc)}}
                     store.save(job)
+                    if self.raise_source_conflicts and getattr(exc, 'code', '') in (
+                            'source_conflict', 'inconsistent_data', 'backfill_scope_changed'):
+                        raise
 
     def _recheck(self, store, job, low, high, sources, session):
         # Inherited association markers are not current-view confirmation.
@@ -348,7 +356,13 @@ class Collector:
                         context.update(collection_service=self.operating_budget.identity,
                                        operating_period=self.operating_budget.period,
                                        operating_policy=self.operating_budget.digest)
-                    with Session(self.state, self.root, max_bytes=remaining["bytes"] + SAFETY_MARGIN,
+                    ledger_directory = store.ledger_directory
+                    accounting_state(self.state, db=store.db, prior_root=self.root)
+                    if ledger_directory != self.state:
+                        context['collection_index'] = str(self.state)
+                        if not (ledger_directory / 'session.json').is_file():
+                            raise DataError('missing_accounting', 'The bound lifetime ledger must not be recreated')
+                    with Session(ledger_directory, self.root, max_bytes=remaining["bytes"] + SAFETY_MARGIN,
                                  max_blocks=max(0, remaining["attempts"]), max_requests=remaining["requests"],
                                  max_seconds=min(limits["segment_seconds"], remaining["seconds"], wall_remaining, period_remaining),
                                  session_limit=limits["cumulative_response_bytes"],

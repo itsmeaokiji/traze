@@ -16,6 +16,7 @@ from contextlib import ExitStack, closing, contextmanager
 from pathlib import Path, PurePosixPath
 
 from .catalogue import timestamp
+from .accounting import accounting_directory
 from .collection_store import RunnerLock
 from .errors import DataError
 
@@ -114,6 +115,9 @@ def backup(state, destination, *, max_bytes):
         raise ValueError("Use an existing state directory and positive backup size limit")
     if destination.exists() or destination.is_symlink() or destination.resolve().is_relative_to(state):
         raise ValueError("Choose a new backup directory outside the state directory")
+    if accounting_directory(state) != state:
+        raise DataError('external_accounting_backup_requires_review',
+                        'This backup tool covers combined state only; preserve the external ledger and index together under a reviewed paired backup procedure')
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = destination.with_name(destination.name + ".partial-" + secrets.token_hex(4))
     staging.mkdir(mode=0o700)
@@ -246,9 +250,40 @@ def main(argv=None):
         item.add_argument("--max-bytes", type=int, required=True)
         if command != "verify":
             item.add_argument("--destination", type=Path, required=True)
+    for command in ("backup-pair", "verify-pair", "restore-pair", "compare-pair"):
+        item = sub.add_parser(command)
+        item.add_argument("--source", type=Path, required=True)
+        item.add_argument("--max-bytes", type=int, required=True)
+        if command in ("backup-pair", "restore-pair"):
+            item.add_argument("--destination", type=Path, required=True)
+        if command == "backup-pair":
+            item.add_argument("--ledger-dir", type=Path, required=True)
+            item.add_argument("--application-root", type=Path, required=True)
+        else:
+            item.add_argument("--expected-manifest-sha256", required=True)
+        if command == "compare-pair":
+            item.add_argument("--authoritative", type=Path, required=True)
+            item.add_argument("--authoritative-manifest-sha256", required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command == "verify":
+        if args.command.endswith("-pair"):
+            from .paired_recovery import backup_pair, verify_pair, restore_pair, compare_pairs
+            if args.command == "backup-pair":
+                result = backup_pair(args.source, args.destination, ledger_directory=args.ledger_dir,
+                                     prior_root=args.application_root, max_bytes=args.max_bytes)
+            else:
+                options = {"expected_manifest_sha256": args.expected_manifest_sha256,
+                           "max_bytes": args.max_bytes}
+                if args.command == "verify-pair":
+                    manifest = verify_pair(args.source, **options)
+                    result = {"status": "paired_backup_verified", "files": len(manifest["files"]),
+                              "bytes": manifest["total_bytes"], "network_requests": 0}
+                elif args.command == "restore-pair":
+                    result = restore_pair(args.source, args.destination, **options)
+                else:
+                    result = compare_pairs(args.source, args.authoritative,
+                        authoritative_manifest_sha256=args.authoritative_manifest_sha256, **options)
+        elif args.command == "verify":
             result = verify_backup(args.source, max_bytes=args.max_bytes)
         else:
             result = (backup if args.command == "backup" else restore)(args.source, args.destination, max_bytes=args.max_bytes)

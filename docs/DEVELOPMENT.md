@@ -21,6 +21,17 @@ controlled RPC responses; see [the collection workflow](COLLECTION.md).
 
 Some transport tests use loopback servers or subprocesses. Public Hemi/Bitcoin requests are not needed. Controlled source changes are not evidence of a naturally observed reorg.
 
+Paired recovery checks cover committed WAL snapshots without source checkpoints,
+external-ledger identity, original baselines, path migration, altered/missing
+members, later usage/stops/clocks and restored acquisition interlocks:
+
+```shell
+python -B -m unittest discover -s tests -p test_paired_recovery.py -v
+```
+
+These tests use isolated fixtures and forbid public source reads. See the
+[paired recovery runbook](PAIRED_RECOVERY.md) for operator commands and limits.
+
 ## Frontend checks and build
 
 From `frontend/`:

@@ -32,6 +32,11 @@ The body-directory option is explicit. Without it, the catalogue command retains
 
 ## Start the app and search your own block
 
+A clean setup uses the supplied historical fixture corpus. It does not include
+an operator's private maintained index, lifetime ledger or later pilot data.
+Searches first reuse available evidence and, in discovery mode, attempt bounded
+public-data discovery when required.
+
 ```shell
 python -B hemi_lookup_web.py --mode discovery
 ```
@@ -53,6 +58,16 @@ evidence preparation share the same resource limits; they do not get separate
 allowances. Use indexed-only mode below for source-free inspection.
 
 Select nodes to inspect records. Expand the matching-publication list to choose a later-keystone proof. Use Copy summary or Download JSON to share evidence. Recorded source times remain historical; opening or selecting a record is not a fresh source check.
+
+An explicit lookup in discovery mode can also attempt additional first-publication
+checks using public sources, even when ordinary publication evidence is retained.
+Use indexed-only mode below when you want inspection without source requests.
+
+Browse offers table and timeline views of collected records. **Metadata pending**
+means a publication has been decoded but its checked Hemi association is not yet
+available. Opening the timeline does not start background acquisition. Configured
+operator collection/backfill must complete that work before it can become usable
+associated evidence; failed or unresolved work remains visible.
 
 You do not need to download or manage evidence files to use the app. Completed
 discovery results and reusable evidence are stored by the local server.
@@ -146,7 +161,13 @@ The catalogue, session ledger, cached bodies and developer-discovery receipts li
 
 Live lookup/refresh retain the prototype's response, request, body-attempt, ancestry and overall-time controls. Resource limits are operator safeguards, not protocol rules or personal daily quotas. Live source operations stop with qualified incomplete results when limits or unavailable data prevent completion.
 
-This local server binds to loopback. [Optional finite collection](COLLECTION.md) can populate a separate managed index; it does not start automatically. Public hosting and supported service operation remain [planned work](ROADMAP.md).
+This local server binds to loopback. [Optional finite collection](COLLECTION.md),
+[historical backfill](HISTORICAL_BACKFILL.md) and an explicit
+[ongoing operating policy](OPERATING.md) can populate a managed index; none starts
+automatically. Operators moving an index and its original ledger should use the
+[paired recovery workflow](PAIRED_RECOVERY.md). Ordinary visitors do not manage
+these state directories. Public hosting and supported operation still require
+the validation described in the [roadmap](ROADMAP.md).
 
 ## Common setup issues
 

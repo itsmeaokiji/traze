@@ -15,6 +15,7 @@ from urllib.parse import parse_qsl, urlsplit
 from .explorer import Explorer, ReadError, encode_response
 from .operations import public_snapshot
 from .assurance import POLICY_ID, SNAPSHOT_POLICY
+from .finality import SOURCE_POLICY as FINALITY_SOURCE_POLICY
 
 ROOT = Path(__file__).resolve().parent.parent
 CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
@@ -33,10 +34,13 @@ def origin_setting(value, local_review=False):
 
 class PublicApplication:
     def __init__(self, state_dir, origin, *, static_dir=None, monitor_file=None, local_review=False, log=None,
-                 assurance_policy=POLICY_ID, accepted_context_sha256=None):
+                 assurance_policy=POLICY_ID, accepted_context_sha256=None,
+                 finality_source_policy=None, accepted_finality_source_context_sha256=None):
         self.origin = origin_setting(origin, local_review)
         self.host = urlsplit(self.origin).netloc
-        self.explorer = Explorer(Path(state_dir).resolve(), assurance_policy=assurance_policy, accepted_context_sha256=accepted_context_sha256)
+        self.explorer = Explorer(Path(state_dir).resolve(), assurance_policy=assurance_policy, accepted_context_sha256=accepted_context_sha256,
+            finality_source_policy=finality_source_policy,
+            accepted_finality_source_context_sha256=accepted_finality_source_context_sha256)
         self.static = Path(static_dir or ROOT / "web").resolve(strict=True)
         self.monitor_file = Path(monitor_file) if monitor_file else None
         self.log = log or (lambda value: print(json.dumps(value, separators=(",", ":")), flush=True))
@@ -175,12 +179,16 @@ def main(argv=None):
     parser.add_argument("--local-review", action="store_true")
     parser.add_argument("--first-height-policy", choices=(POLICY_ID, SNAPSHOT_POLICY, 'evidence-only'), default=POLICY_ID)
     parser.add_argument('--accept-context', help='Operator-selected canonical snapshot context checksum')
+    parser.add_argument('--finality-source-policy', choices=('evidence-only', FINALITY_SOURCE_POLICY), default='evidence-only')
+    parser.add_argument('--accept-finality-source-context', help='Operator-selected exact finality source-context checksum')
     args = parser.parse_args(argv)
     if not 1 <= args.port <= 65535:
         parser.error("Use a valid TCP port")
     app = PublicApplication(args.state_dir, args.origin, monitor_file=args.monitor_file, local_review=args.local_review,
                             assurance_policy=None if args.first_height_policy == 'evidence-only' else args.first_height_policy,
-                            accepted_context_sha256=args.accept_context)
+                            accepted_context_sha256=args.accept_context,
+                            finality_source_policy=None if args.finality_source_policy == 'evidence-only' else args.finality_source_policy,
+                            accepted_finality_source_context_sha256=args.accept_finality_source_context)
     try:
         from waitress import serve
     except ImportError:

@@ -17,6 +17,11 @@ export function browseReturn(): string | undefined {
   return browseLocation(new URLSearchParams(window.location.search).get('return'));
 }
 
+export function browseReturnLabel(location: string): string {
+  return new URL(location, window.location.origin).searchParams.get('view') === 'timeline'
+    ? '← Back to timeline' : '← Back to filtered publications';
+}
+
 export function withBrowseReturn(record: string, from?: string): string {
   const location = browseLocation(from);
   if (!location) return record;

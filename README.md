@@ -6,7 +6,7 @@ Inspect keystone connections and Bitcoin transactions, with clear sources and ch
 
 Traze is a Hemi–Bitcoin publication explorer that connects Hemi blocks and keystones to applicable Bitcoin publication transactions, with inspectable evidence, recorded source observations, and clear search coverage.
 
-**Status:** Local developer explorer with bounded public-data discovery, reusable indexed evidence, an opt-in collector and durable operator stops. Sustained service operation and supported public hosting remain planned work.
+**Status:** Local developer explorer with bounded public-data discovery, a publication timeline, reusable indexed evidence, named reference finality models and opt-in collection. Sustained service operation and supported public hosting remain open validation work.
 
 A separate [hosting preparation candidate](docs/HOSTING.md) supplies a bounded
 production WSGI read adapter, proxy/process templates, operational checks and
@@ -24,10 +24,20 @@ verified backup/restore tools. It has not been released as a hosted public beta.
 - See proof checks, recorded source observations, coverage and missing work separately.
 - Select matching proof records and copy identifiers or a plain-text evidence summary.
 - Browse paginated publication/keystone summaries and open exact-identity record links.
+- Explore an [indexed publication timeline](docs/TIMELINE.md), highlight an exact
+  keystone's displayed publications and inspect their containing Bitcoin blocks.
 - Integrate indexed records through a documented, source-free [read API](docs/READ_API.md).
 - Export JSON evidence and recompute its checks offline.
 - Inspect a separate conditional first-publication assessment when its full
   evidence is available, and optionally export the matching verification package.
+- Inspect named [reference finality calculations](docs/FINALITY.md) from checked
+  publication evidence and recorded Bitcoin tips, with separate model meanings,
+  historical timestamps, unavailable states and an optional calculation export.
+
+Operators can also backfill declared historical ranges, inspect unresolved
+associations and run an explicitly configured ongoing collector. These are
+separate from ordinary visitor searches; starting the website does not start
+collection or make missing metadata available automatically.
 
 The intended first workflow is developer investigation: start with a Hemi block from logs or an explorer, identify an applicable supporting Bitcoin transaction, explain the relationship and share checkable evidence.
 
@@ -89,6 +99,14 @@ The fixture corpus contains 17 historical Bitcoin bodies totaling 25,845,550 byt
 
 An optional finite collector can acquire additional Bitcoin blocks ahead of user searches, check Hemi associations and update a managed evidence index. It retains job progress and resource accounting on resume. Indexed searches remain available during collection. Starting the website does not start collection; see [collection and recovery](docs/COLLECTION.md).
 
+For explicit historical intervals, [finite backfill and coverage accounting](docs/HISTORICAL_BACKFILL.md) can seed a separate working index, repair retained associations and report each required height under one original shared allowance.
+
+An index can retain its original lifetime ledger in a separate operator state
+directory. [Paired backup and recovery](docs/PAIRED_RECOVERY.md) preserves that
+binding, required reports and stop controls, restores to a new location and keeps
+acquisition blocked until later authoritative state is reconciled. Private state
+and local pilot results are not included in this source distribution.
+
 An opt-in ongoing controller can continue bounded jobs from a saved cursor under an explicit renewable operating policy. Period quotas span jobs and restarts; compiled evidence survives disposable-cache eviction. It requires a reviewed policy and an explicit run command. See [ongoing collection and operating limits](docs/OPERATING.md).
 
 ## Evidence boundaries
@@ -113,6 +131,11 @@ source is not global publication absence.
 
 Traze does not independently execute Hemi, validate full Bitcoin consensus/chainwork/UTXO state, calculate authoritative Hemi finality counters or verify PoP reward eligibility. Raw Bitcoin depth and provided-data proof validity have narrower meanings.
 
+The reference calculator recomputes pinned BFG arithmetic and a separately named
+AMA model. A conditional recorded Hemi-block calculation needs matching stronger
+evidence and separately accepted operator contexts. These model results are not
+verified equivalents of a deployed Hemi endpoint or current-chain finality.
+
 Runtime cache, session accounting and generated receipts stay local in `.hemi_lookup_data/`. Preserve existing accounting and evidence when resuming. Live lookup/recheck remains bounded; see [the quickstart](docs/QUICKSTART.md#local-state-and-live-requests).
 
 ## Development
@@ -135,7 +158,10 @@ Follow [development instructions](docs/DEVELOPMENT.md) and [contribution guidanc
 
 ## Roadmap
 
-The reusable evidence foundation, local demonstration and initial finite collector are implemented. Initial acquisition and recovery controls support further maintained-service validation; sustained source capacity and public-service readiness remain open. A supported public beta and selected expansions follow the pilot.
+The local evidence workflow, selected timeline/reference-model expansions,
+historical backfill and collection/recovery controls are implemented. Short local
+operating samples support continued validation; sustained source capacity,
+actual-host recovery and independent-user public-service readiness remain open.
 
 See [the roadmap](docs/ROADMAP.md), [repository contents](docs/REPOSITORY.md) and [change notes](CHANGELOG.md). Current automated results are available in [Repository checks](https://github.com/itsmeaokiji/traze/actions/workflows/checks.yml).
 

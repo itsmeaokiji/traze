@@ -75,6 +75,7 @@ class OperatingLimit(BudgetError):
 class OperatingBudget:
     def __init__(self, service, period):
         self.identity = service["id"]
+        self.ledger_directory = service.get('ledger_directory')
         self.policy = policy_settings(service["policy"])
         self.digest = fingerprint(self.policy)
         if self.digest != service["policy_digest"]:
@@ -100,6 +101,8 @@ class OperatingBudget:
 
     def prepare(self, session):
         self.check_clock()
+        if self.ledger_directory and str(session.directory) != self.ledger_directory:
+            raise DataError('accounting_binding_changed', 'Operating Session uses a different lifetime ledger')
         check_checkpoint(session.state, self.checkpoint)
         expected = {"collection_service": self.identity, "operating_period": self.period,
                     "operating_policy": self.digest}

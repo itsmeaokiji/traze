@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .catalogue import timestamp
-from .collection_control import runner_status, stop_request
-from .collection_store import RunnerLock
+from .accounting import accounting_directory, accounting_state
+from .errors import DataError
+from .collection_store import collection_status
 from .explorer import Explorer, ReadBudget
 from .storage import atomic_json
 
@@ -80,10 +81,10 @@ def inspect_state(state, *, min_free_bytes, observation_max_age_seconds=1800):
     result["checks"]["disk_space"] = disk.free >= min_free_bytes
     result["checks"]["restore_review_clear"] = not (state / "restore-guard.json").exists()
     try:
-        ledger_path = state / "session.json"
+        ledger_path = accounting_directory(state) / 'session.json'
         if ledger_path.stat().st_size > 16_000_000:
             raise ValueError("Accounting needs a larger monitoring workflow")
-        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        ledger = accounting_state(state)
         if (ledger["schema"] != 1 or type(ledger["downloaded_bytes"]) is not int or ledger["downloaded_bytes"] < 0
                 or not isinstance(ledger["runs"], list) or not isinstance(ledger["prior_validation_bytes"], dict)
                 or any(type(v) is not int or v < 0 for v in ledger["prior_validation_bytes"].values())):
@@ -91,7 +92,7 @@ def inspect_state(state, *, min_free_bytes, observation_max_age_seconds=1800):
         result["accounting"] = {"counted_response_bytes": ledger["downloaded_bytes"] + sum(ledger["prior_validation_bytes"].values()),
                                 "recorded_runs": len(ledger["runs"])}
         result["checks"]["accounting_readable"] = True
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, DataError):
         result["checks"]["accounting_readable"] = False
     explorer, budget = Explorer(state), ReadBudget()
     try:
@@ -104,25 +105,13 @@ def inspect_state(state, *, min_free_bytes, observation_max_age_seconds=1800):
                 record = json.loads(row[0]) if row else {}
                 result["observations"][chain] = {"observed_at": record.get("observed_at"),
                     "status": record.get("status"), "age_seconds": age(record.get("observed_at"), current)}
-            table = "collection_services" if "collection_services" in tables else "collection_jobs" if "collection_jobs" in tables else None
-            row = catalogue.db.execute("SELECT data FROM " + table + " ORDER BY rowid DESC LIMIT 1").fetchone() if table else None
-            if row:
-                budget(len(row[0]))
-                record = json.loads(row[0])
-                runner = runner_status(state, record["id"], RunnerLock.held(state))
-                effective = record["state"]
-                if effective in ("running", "waiting", "limited", "incomplete") and runner["state"] != "active":
-                    effective = "unavailable"
-                if stop_request(state, record["id"]) and record["state"] != "stopped":
-                    effective = "stop_requested"
-                counts = result["index"]["counts"]
-                result["collection"] = {"state": effective, "updated_at": record["updated_at"],
-                    "processed_blocks": counts["processed_bodies"],
-                    "supported_publications": counts["supported_publications"],
-                    "associated_publications": counts["associated_publications"],
-                    "unresolved_publications": counts["supported_publications"] - counts["associated_publications"]}
-                result["runner"] = runner
-                result["checks"]["collector_not_blocked"] = effective not in ("blocked", "storage_limited", "unavailable", "stop_requested")
+            recorded = collection_status(state, db=catalogue.db)
+            if recorded:
+                result['collection'] = {key: recorded[key] for key in PUBLIC_FIELDS if key in recorded}
+                result['collection_progress'] = recorded['progress']
+                result['runner'] = recorded['runner']
+                result['checks']['collector_not_blocked'] = recorded['state'] not in (
+                    'blocked', 'storage_limited', 'unavailable', 'stop_requested', 'stopping')
         budget()
         result["checks"]["index_readable"] = True
         result["checks"]["source_views_observed"] = all(result["observations"][c].get("status") == "observed" for c in ("bitcoin", "hemi"))

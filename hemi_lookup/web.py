@@ -21,16 +21,18 @@ from .proof import verify_receipt
 from .storage import BlockCache, Session, SESSION_LIMIT, PRIOR_REPORTS, now
 from .inputs import block_input
 from .catalogue_lookup import recorded_lookup
+from .accounting import accounting_directory, accounting_state
 from .collection_store import collection_status
 from .explorer import Explorer, ReadError, ReadBudget, encode_response
 from .assurance import EvidenceStore, POLICY_ID, SNAPSHOT_POLICY
 from .evidence_builder import EvidenceBuilder
+from .finality import SOURCE_POLICY as FINALITY_SOURCE_POLICY
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "web"
 EXAMPLES = (
     ("example-ordinary", "Ordinary block", "mainnet_5243117.json"),
-    ("example-checkpoint", "Checkpoint block", "mainnet_5243125.json"),
+    ("example-checkpoint", "Keystone block", "mainnet_5243125.json"),
     ("example-no-match", "Scoped no-match", "scoped_no_match.json"),
 )
 SAFE_ID = re.compile(r"(?:example-[a-z-]+|[0-9a-f]{32})\Z")
@@ -45,13 +47,16 @@ class WebError(DataError):
 class Jobs:
     """One live job at a time; immutable receipts persist across browser restarts."""
 
-    def __init__(self, root=ROOT, state_dir=None, *, mode="indexed-only", assurance_policy=POLICY_ID, accepted_context_sha256=None):
+    def __init__(self, root=ROOT, state_dir=None, *, mode="indexed-only", assurance_policy=POLICY_ID, accepted_context_sha256=None,
+                 finality_source_policy=None, accepted_finality_source_context_sha256=None):
         if mode not in ("indexed-only", "discovery"):
             raise ValueError("Use indexed-only or discovery serving mode")
         self.mode = mode
         self.root = Path(root).resolve()
         self.state_dir = Path(state_dir or self.root / ".hemi_lookup_data").resolve()
-        self.evidence = EvidenceStore(self.state_dir, policy=assurance_policy, accepted_context_sha256=accepted_context_sha256)
+        self.evidence = EvidenceStore(self.state_dir, policy=assurance_policy, accepted_context_sha256=accepted_context_sha256,
+            finality_source_policy=finality_source_policy,
+            accepted_finality_source_context_sha256=accepted_finality_source_context_sha256)
         self.receipts = {}
         self.jobs = {}
         self.active = None
@@ -77,25 +82,20 @@ class Jobs:
             raise WebError("unknown_receipt", "The saved receipt was not found.", 404)
         return item
 
-    def receipt(self, identity):
+    def receipt(self, identity, *, include_finality=True):
         item = self.receipt_path(identity)
         receipt = load_receipt(item["path"])
         verified = verify_receipt(receipt)  # Recompute; never trust stored success flags.
         return self.evidence.attach({"id": identity, "label": item["label"], "origin": item["origin"],
-                "filename": item["path"].name, "receipt": receipt, "verification": verified}, check=ReadBudget())
+                "filename": item["path"].name, "receipt": receipt, "verification": verified}, check=ReadBudget(), include_finality=include_finality)
 
     def resources(self):
-        path = self.state_dir / "session.json"
         try:
-            if path.exists():
-                state = json.loads(path.read_text(encoding="utf-8"))
-                total = sum(state["prior_validation_bytes"].values()) + state["downloaded_bytes"]
-            else:
-                total = sum(json.loads((self.root / name).read_text(encoding="utf-8"))["http_response_bytes"]
-                            for name in PRIOR_REPORTS if (self.root / name).exists())
+            state = accounting_state(self.state_dir, prior_root=self.root)
+            total = sum(state['prior_validation_bytes'].values()) + state['downloaded_bytes']
             return {"total_response_bytes": total, "session_limit_bytes": SESSION_LIMIT,
                     "remaining_bytes": max(0, SESSION_LIMIT - total), "available": True}
-        except (OSError, ValueError, KeyError, TypeError):
+        except (DataError, OSError, ValueError, KeyError, TypeError):
             return {"available": False, "session_limit_bytes": SESSION_LIMIT}
 
     def state(self):
@@ -167,7 +167,7 @@ class Jobs:
             raise WebError("unknown_operation", "Unknown operation.", 404)
         with self.guard:
             recorded_allowed = operation == "lookup" and scope is None and not force_discovery
-            if self.active is not None or (self.mode == "discovery" and (self.state_dir / "session.lock").exists()
+            if self.active is not None or (self.mode == "discovery" and (accounting_directory(self.state_dir) / "session.lock").exists()
                     and (not recorded_allowed or self.recorded(target) is None)):
                 raise WebError("busy", "A public-source operation is active. Indexed searches and saved results remain available.", 409)
             # Bound in-memory jobs. Receipts remain on disk and downloadable.
@@ -281,10 +281,13 @@ class Jobs:
     def public_operation(self, identity, operation, value, retained=None):
         if self.mode != "discovery":
             raise WebError("source_operations_disabled", "Live source operations are disabled in indexed-only mode.", 403)
-        if (self.state_dir / "session.lock").exists():
+        ledger_directory = accounting_directory(self.state_dir)
+        if (ledger_directory / "session.lock").exists():
             raise WebError("busy", "Public-source collection is active and this input has no usable indexed evidence. Open a saved result or retry after collection finishes.", 409)
         self.event(identity, "Reading public sources…" if operation == "lookup" else "Refreshing source views; proof data is preserved…")
-        with Session(self.state_dir, self.root) as session:
+        if ledger_directory != self.state_dir and not (ledger_directory / 'session.json').is_file():
+            raise DataError('missing_accounting', 'The bound lifetime ledger must not be recreated')
+        with Session(ledger_directory, self.root) as session:
             engine = Engine(PublicSources(session), session, BlockCache(self.state_dir / "blocks"),
                             progress=lambda message: self.event(identity, message, session))
             receipt = engine.refresh(retained) if retained is not None else engine.lookup(*value) if operation == "lookup" else engine.refresh(value)
@@ -305,7 +308,9 @@ class LocalServer(ThreadingHTTPServer):
     def __init__(self, port=8765, jobs=None):
         self.jobs = jobs or Jobs()
         self.explorer = Explorer(self.jobs.state_dir, assurance_policy=self.jobs.evidence.policy,
-                                 accepted_context_sha256=self.jobs.evidence.accepted_context_sha256)
+            accepted_context_sha256=self.jobs.evidence.accepted_context_sha256,
+            finality_source_policy=self.jobs.evidence.finality.source_policy,
+            accepted_finality_source_context_sha256=self.jobs.evidence.finality.accepted_source_context_sha256)
         self.connections = threading.BoundedSemaphore(16)
         self.token = secrets.token_urlsafe(32)
         super().__init__(("127.0.0.1", port), Handler)
@@ -426,7 +431,7 @@ class Handler(BaseHTTPRequestHandler):
             match = re.fullmatch(r"/api/receipts/([a-z0-9-]+)(/download)?", path)
             if match:
                 identity, download = match.groups()
-                wrapper = self.server.jobs.receipt(identity)
+                wrapper = self.server.jobs.receipt(identity, include_finality=not download)
                 if download:
                     query = wrapper["receipt"]["query"]
                     target = f"hash-{query['requested_block_hash'][2:]}" if query.get("input_type") == "hash" else f"block-{query['block_number']}"
@@ -478,13 +483,18 @@ def main(argv=None):
     parser.add_argument("--first-height-policy", choices=(POLICY_ID, SNAPSHOT_POLICY, 'evidence-only'), default=POLICY_ID,
                         help="Operator-selected conditional policy, or evidence-only without accepting external assumptions")
     parser.add_argument('--accept-context', help='Operator-selected canonical snapshot context checksum; only with the snapshot policy')
+    parser.add_argument('--finality-source-policy', choices=('evidence-only', FINALITY_SOURCE_POLICY), default='evidence-only',
+                        help='Separate recorded-source assumptions for conditional finality calculations')
+    parser.add_argument('--accept-finality-source-context', help='Operator-selected exact finality source-context checksum')
     args = parser.parse_args(argv)
     if not 1024 <= args.port <= 65535:
         parser.error("Use a local port between 1024 and 65535.")
     try:
         server = LocalServer(args.port, Jobs(state_dir=args.state_dir, mode=args.mode,
                             assurance_policy=None if args.first_height_policy == 'evidence-only' else args.first_height_policy,
-                            accepted_context_sha256=args.accept_context))
+                            accepted_context_sha256=args.accept_context,
+                            finality_source_policy=None if args.finality_source_policy == 'evidence-only' else args.finality_source_policy,
+                            accepted_finality_source_context_sha256=args.accept_finality_source_context))
         print(f"Local browser prototype: http://127.0.0.1:{server.server_port}", flush=True)
         print("Indexed-only mode: visitor operations never acquire public-source data." if args.mode == "indexed-only"
               else "Discovery mode: explicit developer lookups/rechecks use the shared source allowance.", flush=True)

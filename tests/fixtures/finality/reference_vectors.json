@@ -1,0 +1,141 @@
+{
+  "schema": "traze-finality-reference-vectors-v1",
+  "reference_revision": "464bcdf0af87fdcfd0544532f92ca4e094384574",
+  "comparison_basis": "code_traced_expected_values_not_executed_Go_or_deployed_responses",
+  "bfg_source_sha256": {
+    "heminetwork__service__bfg__bfg.go.txt": "7cc29e332b65a0516ff05c52b5bc5967554a775ddcaac58c19a68781b341a080",
+    "heminetwork__api__bfgapi__bfgapi.go.txt": "100f6000d745271ab043827b3681852fd721d556d1d8615b5a71a7785cdf751d"
+  },
+  "cases": [
+    {
+      "publication_height": 100,
+      "tip_height": 100,
+      "raw_bitcoin_confirmations": 1,
+      "bfg_v2": {
+        "effective_confirmations": 0,
+        "super_finality": false
+      },
+      "ama_model": {
+        "signed_counter": -9,
+        "model_finality_reached": false
+      }
+    },
+    {
+      "publication_height": 100,
+      "tip_height": 101,
+      "raw_bitcoin_confirmations": 2,
+      "bfg_v2": {
+        "effective_confirmations": 1,
+        "super_finality": false
+      },
+      "ama_model": {
+        "signed_counter": -8,
+        "model_finality_reached": false
+      }
+    },
+    {
+      "publication_height": 100,
+      "tip_height": 108,
+      "raw_bitcoin_confirmations": 9,
+      "bfg_v2": {
+        "effective_confirmations": 8,
+        "super_finality": false
+      },
+      "ama_model": {
+        "signed_counter": -1,
+        "model_finality_reached": false
+      }
+    },
+    {
+      "publication_height": 100,
+      "tip_height": 109,
+      "raw_bitcoin_confirmations": 10,
+      "bfg_v2": {
+        "effective_confirmations": 9,
+        "super_finality": false
+      },
+      "ama_model": {
+        "signed_counter": 0,
+        "model_finality_reached": true
+      }
+    },
+    {
+      "publication_height": 100,
+      "tip_height": 110,
+      "raw_bitcoin_confirmations": 11,
+      "bfg_v2": {
+        "effective_confirmations": 10,
+        "super_finality": true
+      },
+      "ama_model": {
+        "signed_counter": 1,
+        "model_finality_reached": true
+      }
+    },
+    {
+      "publication_height": 100,
+      "tip_height": 111,
+      "raw_bitcoin_confirmations": 12,
+      "bfg_v2": {
+        "effective_confirmations": 11,
+        "super_finality": true
+      },
+      "ama_model": {
+        "signed_counter": 2,
+        "model_finality_reached": true
+      }
+    },
+    {
+      "publication_height": 100,
+      "tip_height": 120,
+      "raw_bitcoin_confirmations": 21,
+      "bfg_v2": {
+        "effective_confirmations": 20,
+        "super_finality": true
+      },
+      "ama_model": {
+        "signed_counter": 11,
+        "model_finality_reached": true
+      }
+    },
+    {
+      "publication_height": 0,
+      "tip_height": 0,
+      "raw_bitcoin_confirmations": 1,
+      "bfg_v2": {
+        "effective_confirmations": 0,
+        "super_finality": false
+      },
+      "ama_model": {
+        "signed_counter": -9,
+        "model_finality_reached": false
+      }
+    },
+    {
+      "publication_height": 4294967285,
+      "tip_height": 4294967295,
+      "raw_bitcoin_confirmations": 11,
+      "bfg_v2": {
+        "effective_confirmations": 10,
+        "super_finality": true
+      },
+      "ama_model": {
+        "signed_counter": 1,
+        "model_finality_reached": true
+      }
+    },
+    {
+      "publication_height": 965045,
+      "tip_height": 972289,
+      "raw_bitcoin_confirmations": 7245,
+      "bfg_v2": {
+        "effective_confirmations": 7244,
+        "super_finality": true
+      },
+      "ama_model": {
+        "signed_counter": 7235,
+        "model_finality_reached": true
+      }
+    }
+  ]
+}
