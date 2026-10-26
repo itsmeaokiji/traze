@@ -15,10 +15,12 @@ from urllib.parse import parse_qsl, urlsplit
 
 from .cli import load_receipt, write_receipt
 from .engine import Engine, covering
-from .errors import DataError
+from .errors import BudgetError, DataError
 from .network import PublicSources
 from .proof import verify_receipt
-from .storage import BlockCache, Session, SESSION_LIMIT, PRIOR_REPORTS, now
+from .storage import BlockCache, Session, SESSION_LIMIT, PRIOR_REPORTS, SAFETY_MARGIN, HEADER_RESERVE, now
+from .bitcoin import MAX_RAW_BLOCK
+from .discovery import DiscoveryCursors
 from .inputs import block_input
 from .catalogue_lookup import recorded_lookup
 from .accounting import accounting_directory, accounting_state
@@ -27,6 +29,9 @@ from .explorer import Explorer, ReadError, ReadBudget, encode_response
 from .assurance import EvidenceStore, POLICY_ID, SNAPSHOT_POLICY
 from .evidence_builder import EvidenceBuilder
 from .finality import SOURCE_POLICY as FINALITY_SOURCE_POLICY
+from .saved_history import history_page, retained_receipts, summary as saved_summary
+from .discovery_allowance import megabytes, validate_ceiling
+from .index_handoff import IndexHandoff
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "web"
@@ -48,10 +53,14 @@ class Jobs:
     """One live job at a time; immutable receipts persist across browser restarts."""
 
     def __init__(self, root=ROOT, state_dir=None, *, mode="indexed-only", assurance_policy=POLICY_ID, accepted_context_sha256=None,
-                 finality_source_policy=None, accepted_finality_source_context_sha256=None):
+                 finality_source_policy=None, accepted_finality_source_context_sha256=None,
+                 discovery_limit_bytes=SESSION_LIMIT):
         if mode not in ("indexed-only", "discovery"):
             raise ValueError("Use indexed-only or discovery serving mode")
         self.mode = mode
+        self.discovery_limit_bytes = validate_ceiling(discovery_limit_bytes)
+        if mode != 'discovery' and discovery_limit_bytes != SESSION_LIMIT:
+            raise DataError('invalid_discovery_limit', 'A custom discovery ceiling requires discovery mode.')
         self.root = Path(root).resolve()
         self.state_dir = Path(state_dir or self.root / ".hemi_lookup_data").resolve()
         self.evidence = EvidenceStore(self.state_dir, policy=assurance_policy, accepted_context_sha256=accepted_context_sha256,
@@ -61,65 +70,98 @@ class Jobs:
         self.jobs = {}
         self.active = None
         self.guard = threading.Lock()
+        self.cursors = DiscoveryCursors(self.state_dir)
+        self.index_updates = IndexHandoff(self.state_dir)
+        self.index_handoff_enabled = False  # Enabled by the owning local discovery server.
         for identity, label, filename in EXAMPLES:
             path = self.root / "demo_results" / filename
             if path.is_file():
                 self.receipts[identity] = {"path": path, "label": label, "origin": "saved_example"}
-        directory = self.state_dir / "receipts"
-        if directory.is_dir():
-            paths = sorted(directory.glob("web-*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:20]
-            for path in paths:
-                identity = path.stem.removeprefix("web-")
-                if re.fullmatch(r"[0-9a-f]{32}", identity) and path.resolve().is_relative_to(directory.resolve()):
-                    self.receipts[identity] = {"path": path, "label": "Browser result", "origin": "browser_saved"}
 
     def receipt_path(self, identity):
         if not isinstance(identity, str) or not SAFE_ID.fullmatch(identity):
             raise WebError("unknown_receipt", "Choose a saved receipt from this session.", 404)
         with self.guard:
             item = self.receipts.get(identity)
+        if item is None and re.fullmatch(r'[0-9a-f]{32}', identity):
+            # Receipt-bound continuation links must survive the recent-list
+            # window and process restarts. No arbitrary file path.
+            path = self.state_dir / 'receipts' / f'web-{identity}.json'
+            if path.is_file() and path.resolve().is_relative_to((self.state_dir / 'receipts').resolve()):
+                item = {'path': path, 'label': 'Browser result', 'origin': 'browser_saved'}
         if item is None:
             raise WebError("unknown_receipt", "The saved receipt was not found.", 404)
         return item
 
     def receipt(self, identity, *, include_finality=True):
         item = self.receipt_path(identity)
-        receipt = load_receipt(item["path"])
+        try:
+            receipt = load_receipt(item["path"])
+        except (DataError, OSError, ValueError):
+            raise WebError('saved_receipt_unavailable', 'This saved file is unavailable or unreadable. Choose another saved result.', 422) from None
         verified = verify_receipt(receipt)  # Recompute; never trust stored success flags.
-        return self.evidence.attach({"id": identity, "label": item["label"], "origin": item["origin"],
+        wrapper = self.evidence.attach({"id": identity, "label": item["label"], "origin": item["origin"],
                 "filename": item["path"].name, "receipt": receipt, "verification": verified}, check=ReadBudget(), include_finality=include_finality)
+        if self.index_handoff_enabled and re.fullmatch(r'[0-9a-f]{32}', identity):
+            wrapper['index_update'] = self.index_status(identity)
+        if self.mode == 'discovery':
+            continuation = self.cursors.preview(identity, receipt)
+            allowance = self.resources()
+            if continuation['available'] and not allowance.get('source_operations_available'):
+                continuation.update({'available': False, 'reason': allowance.get('blocked_reason', 'allowance_unavailable')})
+            wrapper['continuation'] = continuation
+        return wrapper
+
+    def index_status(self, identity):
+        try:
+            return self.index_updates.status(identity)
+        except (DataError, OSError, ValueError, KeyError, TypeError):
+            return {'state': 'pending', 'reason': 'index_unavailable', 'can_retry': True, 'source_requests': 0, 'automatic_retry_pending': False}
 
     def resources(self):
         try:
             state = accounting_state(self.state_dir, prior_root=self.root)
             total = sum(state['prior_validation_bytes'].values()) + state['downloaded_bytes']
-            return {"total_response_bytes": total, "session_limit_bytes": SESSION_LIMIT,
-                    "remaining_bytes": max(0, SESSION_LIMIT - total), "available": True}
+            remaining = max(0, self.discovery_limit_bytes - total)
+            usable = max(0, remaining - SAFETY_MARGIN)
+            ledger = accounting_directory(self.state_dir)
+            reason = ('restored_state_requires_review' if (ledger / 'restore-guard.json').exists() else
+                      'source_operation_active' if (ledger / 'session.lock').exists() else
+                      'cumulative_response_bytes' if usable < MAX_RAW_BLOCK + HEADER_RESERVE else None)
+            return {"total_response_bytes": total, "session_limit_bytes": self.discovery_limit_bytes,
+                    "remaining_bytes": remaining, "usable_response_bytes": usable,
+                    "minimum_body_reservation_bytes": MAX_RAW_BLOCK + HEADER_RESERVE,
+                    "source_operations_available": reason is None, "blocked_reason": reason, "available": True}
         except (DataError, OSError, ValueError, KeyError, TypeError):
-            return {"available": False, "session_limit_bytes": SESSION_LIMIT}
+            return {"available": False, "session_limit_bytes": self.discovery_limit_bytes,
+                    "source_operations_available": False, "blocked_reason": "allowance_unavailable"}
 
     def state(self):
         with self.guard:
-            items = list(self.receipts.items())
+            items = [(identity, item) for identity, item in self.receipts.items() if item['origin'] == 'saved_example']
             active = copy.deepcopy(self.jobs.get(self.active))
         summaries = []
         for identity, item in items:
             try:
                 r = load_receipt(item["path"])
-                summaries.append({"id": identity, "label": item["label"], "origin": item["origin"],
-                                  "block_number": r["query"]["block_number"], "status": r["status"],
-                                  "requested_block_hash": r["query"].get("requested_block_hash"),
-                                  "completed_at": r.get("completed_at"), "mode": r.get("mode")})
-            except (OSError, ValueError, KeyError, TypeError):
+                summaries.append(saved_summary(identity, r, label=item['label'], origin=item['origin']))
+            except (DataError, OSError, ValueError, KeyError, TypeError, AttributeError):
                 continue
+        history_available = True
+        try:
+            summaries.extend(item for item in history_page(self.state_dir)['items'] if item['available'])
+        except (ReadError, OSError):
+            history_available = False
         try:
             collection = collection_status(self.state_dir)
         except (DataError, OSError, ValueError, sqlite3.Error):
             collection = {"state": "unavailable"}
-        return {"receipts": summaries[-24:], "active_job": active, "resources": self.resources(), "collection": collection,
+        return {"receipts": summaries, "saved_history_available": history_available,
+                "active_job": active, "resources": self.resources(), "collection": collection,
                 "serving_mode": self.mode,
                 "limits": {"response_mb_per_lookup": 40, "bitcoin_body_attempts": 20,
-                           "ancestry_links": 256, "session_response_mb": 100}}
+                           "ancestry_links": 256, "session_response_mb": self.discovery_limit_bytes / 1_000_000,
+                           "http_requests": 600, "overall_seconds": 600}}
 
     def job(self, identity):
         with self.guard:
@@ -131,7 +173,11 @@ class Jobs:
     def start(self, operation, payload):
         if not isinstance(payload, dict):
             raise WebError("invalid_input", "Enter a Hemi block number or full block hash.")
-        if self.mode == "indexed-only" and (operation == "refresh" or payload.get("new_lookup")
+        fields = {'lookup': {'block', 'block_number', 'bitcoin_range', 'new_lookup'},
+                  'refresh': {'receipt_id'}, 'continue': {'receipt_id', 'receipt_sha256', 'bitcoin_range'}}
+        if operation in fields and payload.keys() - fields[operation]:
+            raise WebError('invalid_input', 'Unexpected operation fields. Operator settings cannot be changed through visitor operations.')
+        if self.mode == "indexed-only" and (operation in ("refresh", "continue") or payload.get("new_lookup")
                                            or payload.get("bitcoin_range") is not None):
             raise WebError("source_operations_disabled", "This website serves indexed evidence. Live discovery and source rechecks are disabled.", 403)
         if operation == "lookup":
@@ -156,6 +202,23 @@ class Jobs:
                     raise WebError("invalid_range", "Use a Bitcoin range of at most 200 heights, in ascending order.")
                 scope = tuple(scope)
             value = (target, scope)
+        elif operation == 'continue':
+            force_discovery = False
+            if set(payload) != {'receipt_id', 'receipt_sha256', 'bitcoin_range'}:
+                raise WebError('invalid_continuation', 'Use the bounded continuation offered by this saved result')
+            old = load_receipt(self.receipt_path(payload['receipt_id'])['path'])
+            verify_receipt(old)
+            preview = self.cursors.preview(payload['receipt_id'], old)
+            if not preview['available']:
+                raise WebError('continuation_unavailable', f"Continuation is unavailable: {preview['reason']}", 409)
+            if payload['receipt_sha256'] != preview['receipt_sha256'] or payload['bitcoin_range'] != preview['bitcoin_range']:
+                raise WebError('continuation_changed', 'The result or offered continuation changed; reload the saved result', 409)
+            parent = self.cursors.checkpoint(payload['receipt_id'], old)
+            value = (old, parent, tuple(preview['bitcoin_range']))
+            number = old['query']['block_number']
+            target = parent['target_hash']
+            if not self.resources().get('source_operations_available'):
+                raise WebError('continuation_allowance', 'No usable discovery allowance is available. Saved evidence is preserved.', 409)
         elif operation == "refresh":
             force_discovery = False
             value = self.receipt(payload.get("receipt_id"))["receipt"]
@@ -177,7 +240,7 @@ class Jobs:
             self.jobs[identity] = {"id": identity, "operation": operation, "block_number": number,
                                    "block_input": target,
                                    "force_discovery": force_discovery,
-                                   "phase": "source_refresh" if operation == "refresh" else "public_discovery" if force_discovery or scope is not None else "recorded_lookup",
+                                   "phase": "source_refresh" if operation == "refresh" else "public_discovery" if operation == 'continue' or force_discovery or scope is not None else "recorded_lookup",
                                    "state": "running", "started_at": now(), "events": [],
                                    "receipt_id": None, "error": None}
             self.active = identity
@@ -207,18 +270,39 @@ class Jobs:
         # it into SQLite. Number resolution must remain unambiguous and old
         # observation times must never become a new live-source confirmation.
         matches = []
-        for item in list(self.receipts.values()):
+        check = ReadBudget()
+        def read_candidates():
+            seen = set()
+            for path, receipt in retained_receipts(self.state_dir, check=check):
+                seen.add(path.resolve())
+                yield receipt
+            for item in list(self.receipts.values()):
+                path = item['path']
+                if path.resolve() in seen:
+                    continue
+                try:
+                    check(path.stat().st_size)
+                    yield load_receipt(path)
+                except ReadError:
+                    raise
+                except (DataError, OSError, ValueError):
+                    continue
+        try:
+            candidates = list(read_candidates())
+        except (ReadError, OSError):
+            raise ReadError('retained_read_capacity', 'Saved evidence could not be fully read within the local bounds. No source search was started.', 503) from None
+        for receipt in candidates:
             try:
-                receipt = load_receipt(item['path'])
+                check()
                 query = receipt['query']
                 if not receipt.get('proofs') or (query.get('block_number') != target if isinstance(target, int)
                                                else query.get('block_hash') != target):
                     continue
-                if not self.evidence.has_packet(receipt):
-                    continue
-                verify_receipt(receipt)
+                verify_receipt(receipt, check=check)
                 matches.append(receipt)
-            except (DataError, OSError, ValueError, KeyError, TypeError):
+            except ReadError:
+                raise ReadError('retained_read_capacity', 'Saved evidence checks exceeded the local read bounds. No source search was started.', 503) from None
+            except (DataError, OSError, ValueError, KeyError, TypeError, AttributeError):
                 continue
         if matches and len({r['query']['block_hash'] for r in matches}) == 1:
             receipt = copy.deepcopy(matches[0])
@@ -229,12 +313,18 @@ class Jobs:
             if isinstance(target, str):
                 query['requested_block_hash'] = target
             checked_at = receipt.get('context', {}).get('checked_at')
-            receipt['catalogue'] = {'historical_source_times': [checked_at] if checked_at else [],
-                                    'number_resolved_from_retained_view': isinstance(target, int)}
+            catalogue = receipt.get('catalogue') or {}
+            historical = catalogue.get('historical_source_times') or []
+            receipt['catalogue'] = {**catalogue,
+                'historical_source_times': list(dict.fromkeys(value for value in [*historical, checked_at] if isinstance(value, str))),
+                'number_resolved_from_retained_view': isinstance(target, int)}
             receipt['context'] = {**receipt.get('context', {}), 'current_view_confirmed': False, 'requested_block_identity': {
                 'status': 'not_rechecked', 'current_hash': None}}
             receipt['resources'] = {**receipt.get('resources', {}), 'response_bytes_this_run': 0,
-                                    'bitcoin_body_attempts': 0, 'cache_body_reads': 0, 'http_requests': 0}
+                                    'bitcoin_body_attempts': 0, 'cache_body_reads': 0, 'http_requests': 0,
+                                    'elapsed_seconds': 0, 'deadline_expired': False}
+            for proof in receipt['proofs']:
+                proof['current_bitcoin_depth_in_provider_view'] = None
             return receipt
         return None
 
@@ -245,6 +335,8 @@ class Jobs:
                 self.event(identity, "Checking recorded publication evidence…")
                 try:
                     receipt = self.recorded(value[0])
+                except ReadError:
+                    raise  # An unfinished retained-data read is not a proven miss.
                 except (DataError, OSError, ValueError, KeyError, TypeError, sqlite3.Error):
                     self.event(identity, "Recorded evidence is unavailable or inconsistent; starting normal discovery…")
             if receipt is None:
@@ -253,17 +345,25 @@ class Jobs:
                 with self.guard:
                     self.jobs[identity]["phase"] = "source_refresh" if operation == "refresh" else "public_discovery"
                 receipt = self.public_operation(identity, operation, value)
-            elif self.mode == "discovery" and operation == "lookup":
-                assessment = self.evidence.assess(receipt, check=ReadBudget())
-                if assessment['status'] not in ('verified_conditional_first_height', 'verified_history_evidence', 'verified_snapshot_evidence', 'invalid', 'source_conflict'):
-                    receipt = self.public_operation(identity, operation, value, retained=receipt)
             verify_receipt(receipt)
             path = self.state_dir / "receipts" / f"web-{identity}.json"
             write_receipt(path, receipt)
+            if self.index_handoff_enabled:
+                try:
+                    self.index_updates.enqueue(identity)
+                except (DataError, OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+                    self.event(identity, 'Evidence saved; the index update needs a retry. The saved result remains available.')
+            if operation in ('lookup', 'continue'):
+                try:
+                    self.cursors.save(identity, receipt, parent=value[1] if operation == 'continue' else None)
+                except (DataError, OSError, ValueError, KeyError, TypeError):
+                    # The receipt is already durable. An unavailable progress
+                    # checkpoint must not hide evidence or imply a failed scan.
+                    self.event(identity, 'Evidence saved; the continuation cursor could not be saved. Review this saved result before further discovery.')
             archived = receipt.get("mode") == "offline_catalogue"
             with self.guard:
-                self.receipts[identity] = {"path": path, "label": "Recorded evidence" if archived else "Live lookup" if operation == "lookup" else "Source refresh",
-                                          "origin": "catalogue_lookup" if archived else "browser_lookup" if operation == "lookup" else "browser_refresh"}
+                self.receipts[identity] = {"path": path, "label": "Recorded evidence" if archived else "Search continuation" if operation == 'continue' else "Live lookup" if operation == "lookup" else "Source refresh",
+                                          "origin": "catalogue_lookup" if archived else "browser_lookup" if operation in ("lookup", 'continue') else "browser_refresh"}
                 self.jobs[identity].update({"state": "complete", "receipt_id": identity, "completed_at": now(),
                                            "block_number": receipt["query"]["block_number"],
                                            "resources": receipt["resources"]})
@@ -272,7 +372,8 @@ class Jobs:
             message = str(exc) if isinstance(exc, (DataError, OSError, ValueError)) else "The local operation could not finish. See the terminal for details."
             print(f"Browser job {identity}: {type(exc).__name__}: {exc}", flush=True)
             with self.guard:
-                self.jobs[identity].update({"state": "error", "error": {"code": code, "message": message}, "completed_at": now()})
+                self.jobs[identity].update({"state": "error", "error": {"code": code, "message": message,
+                    **({'limit': exc.limit} if getattr(exc, 'limit', None) else {})}, "completed_at": now()})
         finally:
             with self.guard:
                 if self.active == identity:
@@ -284,12 +385,37 @@ class Jobs:
         ledger_directory = accounting_directory(self.state_dir)
         if (ledger_directory / "session.lock").exists():
             raise WebError("busy", "Public-source collection is active and this input has no usable indexed evidence. Open a saved result or retry after collection finishes.", 409)
-        self.event(identity, "Reading public sources…" if operation == "lookup" else "Refreshing source views; proof data is preserved…")
+        self.event(identity, "Reading public sources…" if operation in ("lookup", "continue") else "Refreshing source views; proof data is preserved…")
         if ledger_directory != self.state_dir and not (ledger_directory / 'session.json').is_file():
             raise DataError('missing_accounting', 'The bound lifetime ledger must not be recreated')
-        with Session(ledger_directory, self.root) as session:
+        allowance = self.resources()
+        if not allowance['available']:
+            raise WebError('allowance_unavailable', 'The discovery allowance could not be verified; preserve existing accounting.', 409)
+        if allowance.get('blocked_reason') == 'restored_state_requires_review':
+            raise WebError('restored_state_requires_review', 'Restored accounting needs operator reconciliation before source requests.', 409)
+        if allowance['usable_response_bytes'] <= 0:
+            raise BudgetError('The configured cumulative discovery allowance is exhausted.', limit='cumulative_response_bytes')
+        context = ({'operation': 'browser_search_continuation', 'parent_receipt_id': value[1]['receipt_id'],
+                    'parent_receipt_sha256': value[1]['receipt_sha256'], 'bitcoin_range': list(value[2])}
+                   if operation == 'continue' else None)
+        context = {**(context or {'operation': 'browser_source_recheck' if operation == 'refresh' else 'browser_lookup'}),
+                   'discovery_ceiling_bytes': self.discovery_limit_bytes}
+        with Session(ledger_directory, self.root, context=context, session_limit=self.discovery_limit_bytes) as session:
             engine = Engine(PublicSources(session), session, BlockCache(self.state_dir / "blocks"),
                             progress=lambda message: self.event(identity, message, session))
+            if operation == 'continue':
+                _, parent, scope = value
+                self.event(identity, f'Continuing Bitcoin {scope[0]}-{scope[1]}; earlier coverage remains historical')
+                receipt = engine.lookup(parent['target_hash'], scope)
+                receipt['mode'] = 'live_search_continuation'
+                receipt['discovery'] = {'parent_receipt_id': parent['receipt_id'],
+                    'parent_receipt_sha256': parent['receipt_sha256'], 'root_receipt_id': parent['root_id'],
+                    'original_extent': parent['scope'], 'segment': parent['segment'] + 1,
+                    'historical_completed_heights': parent['completed_heights'],
+                    'earlier_coverage_is_historical': True}
+                if parent.get('estimated_window'):
+                    receipt['discovery']['estimated_window'] = list(parent['estimated_window'])
+                return receipt
             receipt = engine.refresh(retained) if retained is not None else engine.lookup(*value) if operation == "lookup" else engine.refresh(value)
             if retained is not None:
                 receipt['mode'] = 'live_evidence_extension'
@@ -315,6 +441,16 @@ class LocalServer(ThreadingHTTPServer):
         self.token = secrets.token_urlsafe(32)
         super().__init__(("127.0.0.1", port), Handler)
         self.allowed_hosts = {f"127.0.0.1:{self.server_port}", f"localhost:{self.server_port}"}
+        self.index_updates = self.jobs.index_updates if self.jobs.mode == 'discovery' else None
+        if self.index_updates:
+            self.jobs.index_handoff_enabled = True
+            self.index_updates.start()
+
+    def server_close(self):
+        updates = getattr(self, 'index_updates', None)
+        if updates:
+            updates.close()
+        super().server_close()
 
     def process_request(self, request, client_address):
         if not self.connections.acquire(blocking=False):
@@ -421,6 +557,24 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/state":
                 self.json(200, {**self.server.jobs.state(), "csrf_token": self.server.token})
                 return
+            index_update = re.fullmatch(r'/api/index-updates/([0-9a-f]{32})', path)
+            if index_update:
+                if parsed.query:
+                    raise WebError('invalid_input', 'Index status takes no query parameters.')
+                self.server.jobs.receipt_path(index_update[1])
+                with self.server.explorer.admit():
+                    self.send(200, encode_response(self.server.jobs.index_status(index_update[1])))
+                return
+            if path == '/api/saved-history':
+                try:
+                    pairs = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True, max_num_fields=1) if parsed.query else []
+                except ValueError:
+                    raise ReadError('invalid_history_cursor', 'Reopen saved history to start again.') from None
+                if pairs and pairs[0][0] != 'cursor':
+                    raise ReadError('invalid_history_cursor', 'Reopen saved history to start again.')
+                with self.server.explorer.admit():
+                    self.send(200, encode_response(history_page(self.server.jobs.state_dir, dict(pairs).get('cursor'))))
+                return
             packet_download = re.fullmatch(r"/api/receipts/([a-z0-9-]+)/first-publication/([0-9a-f]{64})/download", path)
             if packet_download:
                 identity, digest = packet_download.groups()
@@ -463,10 +617,17 @@ class Handler(BaseHTTPRequestHandler):
             self.connection.settimeout(5)
             payload = json.loads(self.rfile.read(int(length)))
             path = urlsplit(self.path).path
-            if path not in ("/api/lookup", "/api/refresh"):
+            if path == '/api/index-retry':
+                if self.server.jobs.mode != 'discovery':
+                    raise WebError('index_update_disabled', 'Local index updates require discovery mode.', 403)
+                if not isinstance(payload, dict) or set(payload) != {'receipt_id'}:
+                    raise WebError('invalid_input', 'Choose one saved browser receipt for the offline index update.')
+                self.send(200, encode_response(self.server.jobs.index_updates.retry(payload['receipt_id'])))
+                return
+            if path not in ("/api/lookup", "/api/refresh", "/api/continue"):
                 raise WebError("not_found", "Unknown local operation.", 404)
             if self.server.jobs.mode == "indexed-only":
-                if path == "/api/refresh" or isinstance(payload, dict) and (payload.get("new_lookup") or payload.get("bitcoin_range") is not None):
+                if path in ("/api/refresh", "/api/continue") or isinstance(payload, dict) and (payload.get("new_lookup") or payload.get("bitcoin_range") is not None):
                     raise WebError("source_operations_disabled", "This website serves indexed evidence. Live discovery and source rechecks are disabled.", 403)
                 raise WebError("read_api_required", "Use the versioned read API for indexed searches. No browser job or receipt file was created.", 410)
             self.json(202, self.server.jobs.start(path.rsplit("/", 1)[1], payload))
@@ -480,6 +641,8 @@ def main(argv=None):
     parser.add_argument("--mode", choices=("indexed-only", "discovery"), default="indexed-only",
                         help="Serve recorded evidence only (default), or explicitly allow bounded developer source operations")
     parser.add_argument("--state-dir", type=Path, help="Server-side evidence and accounting directory")
+    parser.add_argument('--discovery-limit-mb', type=megabytes, default=SESSION_LIMIT, dest='discovery_limit_bytes',
+                        help='Operator-selected total counted response-data ceiling in whole decimal MB; default 100. Existing usage is retained; requires --mode discovery.')
     parser.add_argument("--first-height-policy", choices=(POLICY_ID, SNAPSHOT_POLICY, 'evidence-only'), default=POLICY_ID,
                         help="Operator-selected conditional policy, or evidence-only without accepting external assumptions")
     parser.add_argument('--accept-context', help='Operator-selected canonical snapshot context checksum; only with the snapshot policy')
@@ -489,12 +652,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not 1024 <= args.port <= 65535:
         parser.error("Use a local port between 1024 and 65535.")
+    if args.mode != 'discovery' and args.discovery_limit_bytes != SESSION_LIMIT:
+        parser.error('A custom --discovery-limit-mb requires --mode discovery.')
     try:
         server = LocalServer(args.port, Jobs(state_dir=args.state_dir, mode=args.mode,
                             assurance_policy=None if args.first_height_policy == 'evidence-only' else args.first_height_policy,
                             accepted_context_sha256=args.accept_context,
                             finality_source_policy=None if args.finality_source_policy == 'evidence-only' else args.finality_source_policy,
-                            accepted_finality_source_context_sha256=args.accept_finality_source_context))
+                            accepted_finality_source_context_sha256=args.accept_finality_source_context,
+                            discovery_limit_bytes=args.discovery_limit_bytes))
         print(f"Local browser prototype: http://127.0.0.1:{server.server_port}", flush=True)
         print("Indexed-only mode: visitor operations never acquire public-source data." if args.mode == "indexed-only"
               else "Discovery mode: explicit developer lookups/rechecks use the shared source allowance.", flush=True)

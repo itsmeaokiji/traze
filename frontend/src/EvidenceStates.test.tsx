@@ -33,7 +33,7 @@ describe('Evidence state qualifications', () => {
     render(<EvidenceView wrapper={wrapper} {...props} />);
     expect(document.getElementById('result')!.classList.contains('result-pass')).toBe(true);
     expect(proofChecks().getAllByText('Passed')).toHaveLength(4);
-    expect(sourceChecks().getByText('Confirmed at the last check')).toBeTruthy();
+    expect(sourceChecks().getByText('Source views matched at the recorded check')).toBeTruthy();
     expect(document.getElementById('evidence-assessment')!.textContent).toContain('4 proof records checked');
     expect(document.getElementById('evidence-assessment')!.textContent).toContain('7 Bitcoin blocks scanned');
     expect(document.getElementById('result-origin')!.textContent).toBe('SAVED RESULT · CONTROLLED TEST DATA');
@@ -56,7 +56,7 @@ describe('Evidence state qualifications', () => {
     render(<EvidenceView wrapper={wrapper} {...props} />);
     expect(screen.getByRole('heading', { name: 'Search incomplete' })).toBeTruthy();
     expect(document.getElementById('result-summary')!.textContent).toContain('does not establish that a publication is absent');
-    expect(sourceChecks().getByText('Incomplete at the last check')).toBeTruthy();
+    expect(sourceChecks().getByText('Incomplete at the recorded check')).toBeTruthy();
     expect(document.querySelector('[data-route-role="publication"]')!.classList.contains('is-unresolved')).toBe(true);
     expect(document.getElementById('transaction-link')).toBeNull();
   });
@@ -116,7 +116,7 @@ describe('Evidence state qualifications', () => {
     render(<EvidenceView wrapper={wrapper} {...props} />);
     expect(screen.getByRole('heading', { name: 'Evidence retained · source conflict' })).toBeTruthy();
     expect(proofChecks().getAllByText('Passed')).toHaveLength(4);
-    expect(sourceChecks().getByText('Conflict at the last check')).toBeTruthy();
+    expect(sourceChecks().getByText('Source views conflicted at the recorded check')).toBeTruthy();
     expect(document.getElementById('result-summary')!.textContent).toContain('does not establish a chain reorganization');
     expect(document.getElementById('issues-section')!.closest('details')).toBeNull();
   });

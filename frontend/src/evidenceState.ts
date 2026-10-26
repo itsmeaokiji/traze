@@ -12,6 +12,15 @@ export function sourceState(receipt: Receipt): 'confirmed' | 'conflict' | 'incom
   return context?.current_view_confirmed === true ? 'confirmed' : 'incomplete';
 }
 
+export function sourceAgreementText(receipt: Receipt): string {
+  const state = sourceState(receipt);
+  if (isRecorded(receipt)) return state === 'conflict'
+    ? 'Recorded source views conflicted; current views not rechecked' : 'Current source views not rechecked';
+  return state === 'confirmed' ? 'Source views matched at the recorded check'
+    : state === 'conflict' ? 'Source views conflicted at the recorded check'
+      : 'Incomplete at the recorded check';
+}
+
 export function operationTimedOut(receipt: Receipt): boolean {
   return receipt.resources?.deadline_expired === true
     || receipt.termination?.reason === 'time_budget_exhausted'

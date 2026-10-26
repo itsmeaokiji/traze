@@ -115,8 +115,13 @@ class PublicSources:
         self.timestamp_recovery = None
         self.timestamp_events = []
         self.timestamp_failed = False
+        self.timestamp_seeds = {}
         self.bitcoin_conflict = None
         self.last_evidence_rpc = None
+        self.progress = lambda message: None
+
+    def set_progress(self, callback):
+        self.progress = callback
 
     def _rpc_at(self, endpoint, method, params):
         try:
@@ -201,6 +206,10 @@ class PublicSources:
                 canonical = self.btc("/block-height/" + str(value["height"]), False)
                 if meta["id"] != value["hash"] or meta["height"] != value["height"] or canonical != value["hash"]:
                     self.conflict("Timestamp hint disagrees with Bitcoin height/hash metadata")
+                previous = self.timestamp_seeds.get(value["height"])
+                if previous is not None and previous != value["hash"]:
+                    self.conflict("Timestamp hints disagree at the same Bitcoin height")
+                self.timestamp_seeds[value["height"]] = value["hash"]
                 self.timestamp_events.append({"at": now(), "kind": "primary_timestamp_hint", "source": BTC_APIS[1], "target_timestamp": stamp})
                 return {"lookup": value, "block": meta, "source": BTC_APIS[1], "global_timestamp_floor_proven": False}
             except BudgetError:
@@ -210,10 +219,14 @@ class PublicSources:
                     raise
                 self.timestamp_failed = True
                 self.timestamp_events.append({"at": now(), "kind": "timestamp_primary_unavailable", "source": BTC_APIS[1], "reason": str(exc)})
-        if self.timestamp_recovery is None:
-            from .timestamps import TimestampRecovery
-            self.timestamp_recovery = TimestampRecovery(self.pinned_bitcoin, self.http.session.check_deadline)
+                self.progress("Using the fallback timestamp source")
         try:
+            if self.timestamp_recovery is None:
+                from .timestamps import TimestampRecovery
+                self.timestamp_recovery = TimestampRecovery(self.pinned_bitcoin, self.http.session.check_deadline)
+                for height, digest in self.timestamp_seeds.items():
+                    self.timestamp_recovery.seed(height, digest)
+            self.progress("Estimating the Bitcoin search range using fallback metadata")
             hint = self.timestamp_recovery.hint(stamp)
         except DataError as exc:
             if exc.code == "source_conflict": self.bitcoin_conflict = {"code": exc.code, "message": str(exc)}

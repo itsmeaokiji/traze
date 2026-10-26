@@ -13,6 +13,7 @@ class TimestampRecovery:
     def __init__(self, fetch, check):
         self.fetch, self.check = fetch, check
         self.cache, self.controls = {}, {}
+        self.headers, self.rows = {}, {}
         self.tip = None
 
     def validate(self, value, height, digest):
@@ -29,19 +30,34 @@ class TimestampRecovery:
             raise DataError("invalid_response", "Blockstream metadata lacks valid height/hash/time fields") from exc
         return value
 
+    def remember(self, value, height, digest):
+        value = self.validate(value, height, digest)
+        if height in self.cache and (self.cache[height]["id"] != digest
+                or any(self.cache[height][k] != value[k] for k in ("timestamp", "mediantime"))):
+            raise DataError("source_conflict", "Bitcoin height/hash/time changed during timestamp recovery")
+        row = self.rows.get(height)
+        if row and (row["hash"] != digest or row["timestamp"] != value["timestamp"]):
+            raise DataError("source_conflict", "Bitcoin timestamp neighborhood changed during recovery")
+        self.cache[height] = dict(value)
+        ordered = sorted(self.cache)
+        if any(self.cache[a]["mediantime"] > self.cache[b]["mediantime"] for a, b in zip(ordered, ordered[1:])):
+            raise DataError("source_conflict", "Sampled Bitcoin median times are inconsistent across heights")
+        return self.cache[height]
+
     def block(self, height, fresh=False):
         self.check()
         if not fresh and height in self.cache: return self.cache[height]
         digest = self.fetch("/block-height/" + str(height), False)
-        value = self.validate(self.fetch("/block/" + digest), height, digest)
-        if height in self.cache and (self.cache[height]["id"] != digest
-                or any(self.cache[height][k] != value[k] for k in ("timestamp", "mediantime"))):
-            raise DataError("source_conflict", "Bitcoin height/hash/time changed during timestamp recovery")
-        self.cache[height] = value
-        ordered = sorted(self.cache)
-        if any(self.cache[a]["mediantime"] > self.cache[b]["mediantime"] for a, b in zip(ordered, ordered[1:])):
-            raise DataError("source_conflict", "Sampled Bitcoin median times are inconsistent across heights")
-        return value
+        return self.remember(self.fetch("/block/" + digest), height, digest)
+
+    def seed(self, height, digest):
+        """Revalidate a prior primary hint on the pinned fallback source."""
+        self.check()
+        hex32(digest)
+        if type(height) is not int or not 0 <= height <= self.anchor()["height"]:
+            raise DataError("source_conflict", "Prior timestamp hint is outside the fallback tip view")
+        if self.block(height, fresh=True)["id"] != digest:
+            raise DataError("source_conflict", "Primary timestamp hint differs from the fallback height view")
 
     def anchor(self):
         if self.tip is None:
@@ -64,47 +80,80 @@ class TimestampRecovery:
             raise DataError("source_conflict", "Observed Bitcoin tip anchor changed during timestamp recovery")
 
     def neighborhood(self, start, end):
-        rows = {}
         for batch_end in range(end, start - 1, -10):
             self.check()
+            needed = range(max(start, batch_end - 9), batch_end + 1)
+            if all(height in self.rows for height in needed):
+                continue
             batch = self.fetch("/blocks/" + str(batch_end))
             if not isinstance(batch, list) or not 1 <= len(batch) <= 10:
                 raise DataError("invalid_response", "Expected a bounded Bitcoin block metadata list")
+            seen = set()
             for value in batch:
                 try:
                     height, stamp, digest = value["height"], value["timestamp"], value["id"]
-                    if isinstance(height, bool) or not isinstance(height, int) or isinstance(stamp, bool) or not isinstance(stamp, int) or stamp < 0:
+                    if (type(height) is not int or not max(0, batch_end - 9) <= height <= batch_end
+                            or height in seen or isinstance(stamp, bool) or not isinstance(stamp, int) or stamp < 0):
                         raise ValueError()
                     hex32(digest)
                 except (ValueError, KeyError, TypeError, DataError) as exc:
                     raise DataError("invalid_response", "Malformed Bitcoin timestamp neighborhood") from exc
-                if start <= height <= end:
-                    row = {"height": height, "hash": digest, "timestamp": stamp}
-                    if height in rows and rows[height] != row:
-                        raise DataError("source_conflict", "Conflicting Bitcoin neighborhood records at one height")
-                    rows[height] = row
-        if sorted(rows) != list(range(start, end + 1)):
+                row = {"height": height, "hash": digest, "timestamp": stamp}
+                seen.add(height)
+                if height in self.rows and self.rows[height] != row:
+                    raise DataError("source_conflict", "Conflicting Bitcoin neighborhood records at one height")
+                if height in self.cache and (self.cache[height]["id"] != digest
+                        or self.cache[height]["timestamp"] != stamp):
+                    raise DataError("source_conflict", "Bitcoin neighborhood differs from checked metadata")
+                self.rows[height] = row
+                # Esplora lists normally include median time. Older retained
+                # lists without it remain usable as raw-time hints only.
+                if "mediantime" in value:
+                    self.remember(value, height, digest)
+            if seen != set(range(max(0, batch_end - 9), batch_end + 1)):
+                raise DataError("incomplete_neighborhood", "Bitcoin timestamp metadata batch has gaps")
+        if not all(height in self.rows for height in range(start, end + 1)):
             raise DataError("incomplete_neighborhood", "Bitcoin timestamp neighborhood has gaps")
-        return [rows[n] for n in sorted(rows)]
+        return [dict(self.rows[n]) for n in range(start, end + 1)]
 
-    def median_control(self, height):
-        if height in self.controls: return self.controls[height]
-        headers = []
-        for number in range(max(0, height - 10), height + 1):
-            self.check()
-            meta = self.block(number)
+    def header(self, digest):
+        self.check()
+        if digest not in self.headers:
             try:
-                raw = bytes.fromhex(self.fetch("/block/" + meta["id"] + "/header", False))
+                raw = bytes.fromhex(self.fetch("/block/" + digest + "/header", False))
             except (ValueError, TypeError) as exc:
                 raise DataError("invalid_response", "Bitcoin timestamp control header is malformed") from exc
-            if (len(raw) != 80 or display_hash(sha256d(raw)) != meta["id"] or not header_pow(raw)
-                    or struct.unpack_from("<I", raw, 68)[0] != meta["timestamp"]):
+            if len(raw) != 80 or display_hash(sha256d(raw)) != digest or not header_pow(raw):
+                raise DataError("source_conflict", "Timestamp control header/hash/stated target differs")
+            self.headers[digest] = raw
+        return self.headers[digest]
+
+    def median_control(self, height):
+        self.check()
+        if height in self.controls: return self.controls[height]
+        boundary = self.block(height, fresh=True)
+        headers = []
+        digest = boundary["id"]
+        # Each child header commits to its parent. Walk those hashes backwards
+        # from a fresh height anchor instead of fetching metadata for ten parents.
+        for number in range(height, max(-1, height - 11), -1):
+            self.check()
+            raw = self.header(digest)
+            stamp = struct.unpack_from("<I", raw, 68)[0]
+            meta = self.cache.get(number)
+            row = self.rows.get(number)
+            if (meta and (meta["id"] != digest or meta["timestamp"] != stamp)
+                    or row and (row["hash"] != digest or row["timestamp"] != stamp)
+                    or number == 0 and digest != GENESIS):
                 raise DataError("source_conflict", "Timestamp control header/hash/stated target/time differs")
-            if headers and display_hash(raw[4:36]) != headers[-1]["hash"]:
-                raise DataError("source_conflict", "Timestamp control headers do not link")
-            headers.append({"height": number, "hash": meta["id"], "header_hex": raw.hex(), "timestamp": meta["timestamp"]})
+            headers.append({"height": number, "hash": digest, "header_hex": raw.hex(), "timestamp": stamp})
+            digest = display_hash(raw[4:36])
+        headers.reverse()
+        if any(display_hash(bytes.fromhex(child["header_hex"])[4:36]) != parent["hash"]
+               for parent, child in zip(headers, headers[1:])):
+            raise DataError("source_conflict", "Timestamp control headers do not link")
         median = sorted(h["timestamp"] for h in headers)[len(headers)//2]
-        if median != self.block(height)["mediantime"]:
+        if median != boundary["mediantime"]:
             raise DataError("source_conflict", "Bitcoin metadata median differs from supplied header timestamps")
         control = {"height": height, "mediantime": median, "supplied_headers": headers,
                    "full_spv_or_expected_difficulty_verified": False}
@@ -124,7 +173,10 @@ class TimestampRecovery:
             low = high = tip["height"]
             mode = "observed_tip_neighborhood"
         else:
-            low, high = 0, tip["height"]
+            # Previously checked median times give a safe tighter bracket;
+            # individual raw block timestamps must never be binary-searched.
+            low = max(h for h, meta in self.cache.items() if meta["mediantime"] <= stamp)
+            high = min(h for h, meta in self.cache.items() if meta["mediantime"] > stamp)
             while high - low > 1:
                 self.check()
                 middle = (low + high) // 2

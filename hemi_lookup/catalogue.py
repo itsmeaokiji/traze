@@ -255,7 +255,8 @@ class Catalogue:
             return self.db.execute("SELECT COUNT(*) FROM " + table + clause).fetchone()[0]
         return {"schema": CATALOGUE_SCHEMA, "imports": count("imports"), "nominated_bodies": count("blocks"),
                 "processed_bodies": count("blocks", " WHERE status='complete'"),
-                "failed_or_pending_bodies": count("blocks", " WHERE status!='complete'"),
+                "failed_or_pending_bodies": count("blocks", " WHERE status NOT IN ('complete','proof_only')"),
+                "proof_only_blocks": count("blocks", " WHERE status='proof_only'"),
                 "supported_publications": count("publications", " WHERE supported=1"),
                 "unsupported_publications": count("publications", " WHERE supported=0"),
                 "associated_publications": self.db.execute("SELECT COUNT(DISTINCT publication_id) FROM associations").fetchone()[0],
@@ -338,9 +339,14 @@ class Catalogue:
         number, expected_cover = height(header), covering(height(header))
         packet["query"].update(block_number=number, header=header, covering_keystone=expected_cover)
         placeholders = ",".join("?" for _ in import_ids)
-        candidates = self.db.execute("SELECT DISTINCT p.* FROM publications p JOIN nominations n ON n.hash=p.block_hash WHERE n.import_id IN (" + placeholders + ") ORDER BY p.block_hash,p.txid,p.vout", import_ids)
+        candidates = self.db.execute("SELECT DISTINCT p.* FROM publications p LEFT JOIN nominations n ON n.hash=p.block_hash "
+            "LEFT JOIN associations a ON a.publication_id=p.id LEFT JOIN template_origins o ON o.template_id=a.template_id "
+            "WHERE n.import_id IN (" + placeholders + ") OR o.import_id IN (" + placeholders + ") ORDER BY p.block_hash,p.txid,p.vout", import_ids + import_ids)
         unresolved, unsupported = [], []
         supported_count = 0
+        # Reuse parent reads only inside this query's SQLite snapshot. Each
+        # candidate still checks its own path and recomputes its proof below.
+        parent_headers = {}
         for candidate in candidates:
             if self.check:
                 self.check(len(candidate["data"]))
@@ -355,7 +361,7 @@ class Catalogue:
             for match in matches:
                 template = self.read_json(match["data"])
                 indexes = [i for i, item in enumerate(template["ancestry"]) if hex32(item["hash"]).hex() == key and same_header(item, header)]
-                path = template["ancestry"][indexes[0]:] if indexes else self._linked_path(header, template["checkpoint"]["header"]) if maintained else None
+                path = template["ancestry"][indexes[0]:] if indexes else self._linked_path(header, template["checkpoint"]["header"], parent_headers) if maintained else None
                 if not path:
                     continue
                 record = self.read_json(candidate["data"])
@@ -377,7 +383,8 @@ class Catalogue:
                                                 p["checkpoint"]["height"], p["txid"], p["vout_index"]))
         coverage.update(unresolved_candidates=unresolved, unsupported_payloads=len(unsupported),
                         unsupported_publication_ids=unsupported, supported_candidates_in_scope=supported_count,
-                        target_association_complete=bool(coverage["blocks"]) and not unresolved and not unsupported and not coverage["gaps"])
+                        target_association_complete=bool(coverage["blocks"]) and not unresolved and not unsupported and not coverage["gaps"]
+                            and not any(p['bitcoin_height'] is None for p in packet['proofs']))
         if not coverage["blocks"]:
             packet["issues"].append({"code": "no_processed_scope", "message": "No complete Bitcoin bodies are available in this target's retained scope"})
         packet["status"] = "found" if packet["proofs"] else "incomplete" if not coverage["target_association_complete"] else "no_match"
@@ -393,17 +400,24 @@ class Catalogue:
         packet["offline_recomputation"] = verify_receipt(packet, self.check)
         return packet
 
-    def _linked_path(self, requested, publishing):
+    def _linked_path(self, requested, publishing, parent_headers=None):
         """Reuse an unambiguous stored parent graph, bounded to 256 links."""
         distance = height(publishing) - height(requested)
         if not 0 <= distance <= 256:
             return None
+        if parent_headers is None:
+            parent_headers = {}
         path = [publishing]
         while height(path[-1]) > height(requested):
-            rows = self.db.execute("SELECT data FROM headers WHERE hash=? LIMIT 2", (hex32(path[-1]["parentHash"]).hex(),)).fetchall()
-            if len(rows) != 1:
+            if self.check:
+                self.check()
+            parent_hash = hex32(path[-1]["parentHash"]).hex()
+            if parent_hash not in parent_headers:
+                rows = self.db.execute("SELECT data FROM headers WHERE hash=? LIMIT 2", (parent_hash,)).fetchall()
+                parent_headers[parent_hash] = self.read_json(rows[0][0]) if len(rows) == 1 else None
+            parent = parent_headers[parent_hash]
+            if parent is None:
                 return None
-            parent = self.read_json(rows[0][0])
             if height(parent) + 1 != height(path[-1]):
                 return None
             path.append(parent)

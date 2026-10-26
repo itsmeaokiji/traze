@@ -90,6 +90,7 @@ class WebTests(unittest.TestCase):
         self.jobs = self.server.jobs = Jobs(self.root)
         with patch('hemi_lookup.web.PublicSources', side_effect=AssertionError('No source construction')):
             for path, payload in [('/api/refresh', {'receipt_id': 'example-ordinary'}),
+                                  ('/api/continue', {'receipt_id': 'a' * 32}),
                                   ('/api/lookup', {'block': 5243119, 'new_lookup': True}),
                                   ('/api/lookup', {'block': 5243119, 'bitcoin_range': [1, 2]})]:
                 status, _, raw = self.request(path, payload)
@@ -138,8 +139,10 @@ class WebTests(unittest.TestCase):
         self.assertEqual(self.request("/api/state", extra={"Host": "evil.example"})[0], 403)
 
     def test_cross_origin_or_missing_token_cannot_start_public_reads(self):
-        for headers in ({"Origin": "https://evil.example"}, {"X-Local-Token": ""}):
-            self.assertEqual(self.request("/api/lookup", {"block_number": 5243125}, headers)[0], 403)
+        for path, payload in [('/api/lookup', {'block_number': 5243125}),
+                              ('/api/continue', {'receipt_id': 'a' * 32})]:
+            for headers in ({"Origin": "https://evil.example"}, {"X-Local-Token": ""}, {"Host": "evil.example"}):
+                self.assertEqual(self.request(path, payload, headers)[0], 403)
         self.assertEqual(self.jobs.jobs, {})
         self.assertFalse((self.root / ".hemi_lookup_data/session.json").exists())
 
@@ -270,7 +273,7 @@ class WebTests(unittest.TestCase):
         lock = state / "session.lock"
         lock.write_text("controlled-external-cli-writer")
         with self.assertRaises(WebError) as rejection:
-            self.jobs.start("lookup", {"block_number": 5243125})
+            self.jobs.start("lookup", {"block_number": 5243125, "new_lookup": True})
         self.assertEqual(rejection.exception.code, "busy")
         self.assertEqual(lock.read_text(), "controlled-external-cli-writer")
 

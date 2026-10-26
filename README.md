@@ -62,6 +62,11 @@ offline examples, evidence exports and setup troubleshooting. Ordinary publicati
 proofs and the separate conditional first-height assessment have different
 requirements; missing stronger evidence does not erase a valid ordinary proof.
 
+For an optional known-positive live example, try **5515549** with the Bitcoin
+range left blank. It is outside the included fixture catalogue. A recorded cold
+run found supporting publications at Bitcoin 971,542; this example does not
+guarantee current provider availability or success for other inputs.
+
 For source-free recorded retrieval, run `python -B hemi_lookup_web.py --mode indexed-only`
 instead. This is also the command-line default when no mode is specified. It
 never starts a source scan for an unavailable input. Indexed searches create no

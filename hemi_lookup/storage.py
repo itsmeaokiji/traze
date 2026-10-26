@@ -130,16 +130,16 @@ class Session:
     def reserve(self, url, ceiling, block=False):
         self.check_deadline()
         if len(self.run["requests"]) >= self.max_requests:
-            raise BudgetError("Request limit reached")
+            raise BudgetError("Request limit reached", limit="requests")
         if block and self.run["body_attempts"] >= self.max_blocks:
-            raise BudgetError("Bitcoin body-attempt limit reached")
+            raise BudgetError("Bitcoin body-attempt limit reached", limit="bitcoin_body_attempts")
         amount = ceiling + HEADER_RESERVE
         if self.operating_budget:
             self.operating_budget.before_request(self, amount, block)
         if self.run["received_bytes"] + amount > self.max_bytes - SAFETY_MARGIN:
-            raise BudgetError("Per-lookup response budget reached")
+            raise BudgetError("Per-lookup response budget reached", limit="response_bytes")
         if self.total_bytes + amount > self.session_limit - SAFETY_MARGIN:
-            raise BudgetError(f"Combined {self.session_limit / 1_000_000:g} MB session budget reached")
+            raise BudgetError(f"Combined {self.session_limit / 1_000_000:g} MB session budget reached", limit="cumulative_response_bytes")
         entry = {"url": url, "status": "reserved", "reserved_bytes": amount}
         self.run["requests"].append(entry)
         self.run["received_bytes"] += amount

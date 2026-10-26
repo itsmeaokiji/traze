@@ -49,6 +49,16 @@ a new search or Bitcoin range is requested. Source operations retain the existin
 session ledger, deadlines, data/request limits and collector exclusion rules.
 This mode does not start a background collector or expand its allowance.
 
+An ordinary retained positive is reusable without an optional stronger packet;
+retrieval recomputes proof checks and keeps historical source times. Use an
+explicit new lookup or source recheck when fresh public observations are needed.
+Unfinished browser searches may offer a receipt-bound **Continue search** action.
+It starts one new segment under the unchanged cumulative ledger and per-operation
+caps, within the original frozen extent. Earlier segment coverage stays historical.
+Progress is saved under `discovery-cursors/` beside immutable receipts. It is
+distinct from collector checkpoints and never activates or renews a collector.
+See the [quickstart](QUICKSTART.md) for stopping, restart and recovery semantics.
+
 ## Server-side state
 
 ```shell

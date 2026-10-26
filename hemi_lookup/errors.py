@@ -7,7 +7,8 @@ class DataError(Exception):
 
 
 class BudgetError(DataError):
-    def __init__(self, message):
+    def __init__(self, message, *, limit=None):
+        self.limit = limit
         super().__init__("budget_limit", message)
 
 

@@ -31,8 +31,8 @@ describe('Evidence content hierarchy', () => {
     expect(document.getElementById('coverage-issues')!.textContent).toContain('1 unresolved publication association · 2 unsupported payloads');
     expect(document.getElementById('evidence-assessment')!.textContent).not.toContain('gaps remain');
     expect(document.getElementById('evidence-assessment')!.textContent).not.toContain('scan gap');
-    expect(document.getElementById('issues-list')!.textContent).toContain('Coverage issues: 1 unresolved publication association · 2 unsupported payloads.');
-    expect(document.getElementById('issues-list')!.textContent).not.toContain('Some blocks');
+    expect(document.getElementById('coverage-issues')!.closest('details')).toBeNull();
+    expect(document.getElementById('issues-list')).toBeNull();
     fireEvent.click(screen.getByText('Verification details', { exact: true }));
     expect(screen.getByRole('heading', { name: 'Proof checks' })).toBeTruthy();
     fireEvent.click(screen.getByText('Scanned Bitcoin blocks', { exact: true }));

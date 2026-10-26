@@ -6,13 +6,14 @@ export const rangeInputHelp = 'Enter both Bitcoin block heights. The ending heig
 export function issueMessage(issue: Issue, options: { partial?: boolean; sourceConfirmed?: boolean } = {}): string {
   const { partial = false, sourceConfirmed = false } = options;
   if (issue.code === 'budget_limit') {
-    return issue.message?.includes('Combined 100 MB session budget reached')
+    return (issue.limit === 'cumulative_response_bytes' || (!issue.limit && issue.message?.includes('session budget reached')))
       ? 'The local demo has reached its search allowance. Saved results remain available.'
       : partial ? 'Search limit reached. Results cover only the Bitcoin blocks shown.' : 'Search limit reached. The operation could not finish.';
   }
   if (issue.code === 'time_budget_exhausted') return `Search timed out.${partial ? ' Partial results are available.' : ''}`;
   const messages: Record<string, string> = {
     index_unavailable: 'The publication index is unavailable. Retry later; no source search was started.',
+    no_processed_scope: 'No complete Bitcoin block scan is recorded in this indexed result. Publication proof checks are separate.',
     retained_view_conflict: 'Retained metadata has conflicting views. Use an exact recorded hash; current chain membership is not confirmed.',
     record_not_found: 'This record is not available in the selected index. This does not mean no publication exists.',
     invalid_filter: 'Check the height and evidence filters. Use supported whole-number heights and valid choices.',
@@ -50,7 +51,20 @@ export function issueMessage(issue: Issue, options: { partial?: boolean; sourceC
     session_changed: "The local demo's search allowance could not be verified. Saved results remain available.",
     invalid_prior_budget: "The local demo's search allowance could not be verified. Saved results remain available.",
     refresh_unavailable: 'This result needs a new search before its sources can be rechecked.',
+    invalid_continuation: 'Use the continuation offered by this saved result.',
+    continuation_changed: 'This saved result or its continuation changed. Reopen it before continuing; no acquisition was started.',
+    continuation_unavailable: 'This search cannot be continued from the selected result. Reopen its latest segment or review the recovery message.',
+    continuation_allowance: 'No usable discovery allowance is available. Saved results remain readable; operator review is needed before further acquisition.',
     unknown_receipt: 'This saved result could not be found. Choose another saved result.',
+    saved_receipt_unavailable: 'This saved file is unavailable or unreadable. Choose another saved result; no source search was started.',
+    retained_read_capacity: 'Saved evidence could not be fully checked within the local read limit. Open a saved result or ask the operator to review the retained data. No source search was started.',
+    allowance_unavailable: 'The discovery allowance could not be verified. Saved results remain available; the operator should review accounting before further source requests.',
+    restored_state_requires_review: 'Restored accounting needs operator reconciliation before source requests. Saved results remain available.',
+    index_update_disabled: 'Local index updates are unavailable in this serving mode. Saved evidence remains readable.',
+    invalid_index_update: 'This saved index update could not be validated. Open the original saved result.',
+    receipt_changed: 'The saved evidence differs from its queued index update. The operator should review the original receipt.',
+    invalid_history_cursor: 'This history page is no longer usable. Start history again to reload the list.',
+    history_capacity: 'Saved history exceeds this local listing capacity. Existing result links still work; operator review is needed for a larger archive.',
     unknown_job: 'This operation could not be found. Reload the page to reconnect.',
     invalid_origin: 'Open Traze at its configured website address.',
     invalid_host: 'Open Traze at its configured website address.',

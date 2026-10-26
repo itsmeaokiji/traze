@@ -14,7 +14,9 @@ from unittest.mock import patch
 
 from hemi_lookup.catalogue import Catalogue, DEFAULT_RECEIPTS, build_catalogue
 from hemi_lookup.catalogue_web import make_server
+from hemi_lookup.collection_store import CollectionStore
 from hemi_lookup.errors import DataError
+from hemi_lookup.explorer import ReadBudget, ReadError
 from hemi_lookup.proof import verify_receipt
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -303,6 +305,96 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(packet["query"]["block_number"], 5243125)
         self.assertEqual(len(packet["proofs"][0]["ancestry"]), 1)
         self.assertEqual(verify_receipt(packet)["proofs_checked"], 4)
+
+    def linked_fixture(self):
+        # Controlled storage layout over real retained proofs: force the
+        # maintained graph path instead of a pre-sliced template ancestry.
+        database = self.fresh().parent / 'service.sqlite3'
+        shutil.copyfile(self.database, database)
+        with CollectionStore(database.parent) as store:
+            for identity, raw in store.db.execute('SELECT id,data FROM templates').fetchall():
+                template = json.loads(raw)
+                template['ancestry'] = [template['checkpoint']['header']]
+                store.db.execute('UPDATE templates SET data=? WHERE id=?', (json.dumps(template), identity))
+            store.db.commit()
+        return database
+
+    def test_overlapping_graph_proofs_share_parent_reads_per_request(self):
+        database = self.linked_fixture()
+        with Catalogue(database, readonly=True) as catalogue:
+            statements = []
+            catalogue.db.set_trace_callback(statements.append)
+            for _ in range(2):
+                statements.clear()
+                packet = catalogue.query(TARGETS[0][1])
+                self.assertEqual(verify_receipt(packet)['proofs_checked'], 4)
+                reads = [s for s in statements if s.startswith('SELECT data FROM headers WHERE hash=')]
+                self.assertTrue(reads)
+                self.assertEqual(len(reads), len(set(reads)))
+                self.assertEqual(len(reads), 82)
+
+    def test_parent_ambiguity_and_repair_are_seen_on_subsequent_requests(self):
+        database = self.linked_fixture()
+        parent = json.loads(SEPTEMBER.read_text())['proofs'][0]['ancestry'][-2]
+        altered = copy.deepcopy(parent)
+        altered['stateRoot'] = '0x' + '44' * 32
+        with Catalogue(database) as catalogue:
+            self.assertEqual(len(catalogue.query(TARGETS[0][1])['proofs']), 4)
+            catalogue.db.commit()
+            with catalogue.db:
+                catalogue.db.execute('INSERT INTO headers VALUES (?,?,?,?)',
+                    (parent['hash'][2:], 'controlled-parent-conflict', int(parent['number'],16), json.dumps(altered)))
+            rejected = catalogue.query(TARGETS[0][1])
+            self.assertFalse(rejected['proofs'])
+            self.assertTrue(rejected['coverage']['unresolved_candidates'])
+            catalogue.db.commit()
+            with catalogue.db:
+                catalogue.db.execute("DELETE FROM headers WHERE variant='controlled-parent-conflict'")
+            self.assertEqual(verify_receipt(catalogue.query(TARGETS[0][1]))['proofs_checked'], 4)
+
+    def test_missing_or_wrong_height_parent_never_becomes_a_cached_positive(self):
+        parent = json.loads(SEPTEMBER.read_text())['proofs'][0]['ancestry'][-2]
+        for kind in ('missing', 'height'):
+            with self.subTest(kind=kind), Catalogue(self.linked_fixture()) as catalogue:
+                with catalogue.db:
+                    if kind == 'missing':
+                        catalogue.db.execute('DELETE FROM header_origins WHERE hash=?', (parent['hash'][2:],))
+                        catalogue.db.execute('DELETE FROM headers WHERE hash=?', (parent['hash'][2:],))
+                    else:
+                        altered = copy.deepcopy(parent)
+                        altered['number'] = hex(int(parent['number'],16) - 1)
+                        catalogue.db.execute('UPDATE headers SET data=? WHERE hash=?',
+                            (json.dumps(altered), parent['hash'][2:]))
+                packet = catalogue.query(TARGETS[0][1])
+                self.assertFalse(packet['proofs'])
+                self.assertTrue(packet['coverage']['unresolved_candidates'])
+
+    def test_reused_parent_graph_still_checks_target_metadata_and_distance(self):
+        reference = json.loads(SEPTEMBER.read_text())
+        requested = reference['proofs'][0]['ancestry'][1]
+        publishing = reference['proofs'][-1]['checkpoint']['header']
+        with Catalogue(self.database, readonly=True) as catalogue:
+            parents = {}
+            path = catalogue._linked_path(requested, publishing, parents)
+            self.assertTrue(path)
+            altered = copy.deepcopy(requested)
+            altered['stateRoot'] = '0x' + '44' * 32
+            self.assertIsNone(catalogue._linked_path(altered, publishing, parents))
+            beyond = copy.deepcopy(publishing)
+            beyond['number'] = hex(int(requested['number'],16) + 257)
+            self.assertIsNone(catalogue._linked_path(requested, beyond, parents))
+
+    def test_deadline_applies_even_when_every_parent_is_already_read(self):
+        reference = json.loads(SEPTEMBER.read_text())
+        requested = reference['proofs'][0]['ancestry'][1]
+        publishing = reference['proofs'][-1]['checkpoint']['header']
+        with Catalogue(self.database, readonly=True) as catalogue:
+            parents = {}
+            self.assertTrue(catalogue._linked_path(requested, publishing, parents))
+            catalogue.check = ReadBudget()
+            catalogue.check.deadline = 0
+            with self.assertRaises(ReadError):
+                catalogue._linked_path(requested, publishing, parents)
 
     def test_reference_server_read_only_boundary(self):
         server = make_server(self.database, ROOT, 0)

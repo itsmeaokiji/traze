@@ -24,12 +24,12 @@ describe('main recorded-evidence integration', () => {
     expect(document.querySelector('#observation-line')?.textContent).toContain('Historical source observations:');
     expect(document.querySelector('#observation-line')?.textContent).toContain('Oct 3, 2026');
     expect(document.querySelector('#input-identity-line')?.textContent).toContain('recorded Hemi view');
-    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current views not rechecked');
+    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current source views not rechecked');
     expect(screen.queryByText('Source checks remain incomplete.')).toBeNull();
     fireEvent.click(screen.getByText('Verification details', { exact: true }));
     expect(screen.getByRole('heading',{name:'Current source checks'})).toBeTruthy();
-    expect(document.querySelector('#source-check-list')?.textContent).toContain('Not rechecked');
-    expect(document.querySelector('#source-check-list')?.textContent).not.toContain('Incomplete at the last check');
+    expect(document.querySelector('#source-check-list')?.textContent).toContain('Current source views not rechecked');
+    expect(document.querySelector('#source-check-list')?.textContent).not.toContain('Incomplete at the recorded check');
     expect((screen.getByRole('button',{name:/Recheck sources/}) as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -58,7 +58,7 @@ describe('main recorded-evidence integration', () => {
     evidence.receipt.coverage!.gaps=[{message:'Controlled processing gap'}];
     render(<EvidenceView wrapper={evidence} fresh busy={false} onRecheck={vi.fn()} onError={vi.fn()} />);
     expect(screen.getByRole('heading',{name:'Recorded evidence · scan gaps'})).toBeTruthy();
-    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current views not rechecked');
+    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current source views not rechecked');
   });
 
   it('explains unavailable recorded-metadata rechecks and leaves new lookup available', () => {

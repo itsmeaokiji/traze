@@ -237,7 +237,7 @@ class Explorer:
         filters = self.filters(params)
         signature = digest([route, filters, kind])
         after = self.cursor(params.get("cursor"), signature, route)
-        where, values = ["b.status='complete'"], []
+        where, values = ["b.status IN ('complete','proof_only')"], []
         if "keystone_height" in filters:
             where.append("p.keystone_height=?")
             values.append(filters["keystone_height"])
@@ -253,7 +253,7 @@ class Explorer:
             where.append("p.supported=0")
         common = " FROM publications p JOIN blocks b ON b.hash=p.block_hash LEFT JOIN nominations n ON n.hash=p.block_hash WHERE " + " AND ".join(where)
         if route == "publications":
-            sql = ("WITH page AS (SELECT p.id,p.block_hash,p.txid,p.vout,p.supported,p.payload,p.keystone_height,"
+            sql = ("WITH page AS (SELECT p.id,p.block_hash,p.txid,p.vout,p.supported,p.payload,p.keystone_height,b.status AS block_status,"
                    "COALESCE(MAX(n.height),-1) AS sort_height,MIN(n.height) AS min_height,COUNT(DISTINCT n.height) AS height_count,"
                    + association + " AS associated" + common + " GROUP BY p.id) SELECT * FROM page")
             if after:
@@ -320,19 +320,20 @@ class Explorer:
                 "keystone_height": row["keystone_height"],
                 "keystone_id": display_hash(sha256d(bytes.fromhex(row["payload"]))) if row["supported"] else None,
                 "state": "unsupported" if not row["supported"] else "associated" if associated else "pending",
-                "association_available": associated}
+                "association_available": associated,
+                "evidence_scope": 'full_block_scan' if row['block_status'] == 'complete' else 'publication_proof'}
 
     def publication(self, catalogue, kind, identity, budget):
-        row = catalogue.db.execute("""SELECT p.*,MIN(n.height) AS min_height,COUNT(DISTINCT n.height) AS height_count,
+        row = catalogue.db.execute("""SELECT p.*,b.status AS block_status,MIN(n.height) AS min_height,COUNT(DISTINCT n.height) AS height_count,
             EXISTS(SELECT 1 FROM associations a WHERE a.publication_id=p.id) AS associated
             FROM publications p JOIN blocks b ON b.hash=p.block_hash LEFT JOIN nominations n ON n.hash=p.block_hash
-            WHERE p.id=? AND b.status='complete' GROUP BY p.id""", (identity,)).fetchone()
+            WHERE p.id=? AND b.status IN ('complete','proof_only') GROUP BY p.id""", (identity,)).fetchone()
         if row is None:
             raise ReadError("record_not_found", "This publication is not in the selected index. This does not establish publication absence.", 404)
         budget(len(row["data"]))
         data = json.loads(row["data"])
         hemi = {}
-        for match in catalogue.db.execute("SELECT t.data FROM associations a JOIN templates t ON t.id=a.template_id WHERE a.publication_id=? ORDER BY t.id", (identity,)):
+        for match in catalogue.db.execute("SELECT t.data FROM associations a JOIN templates t ON t.id=a.template_id WHERE a.publication_id=? ORDER BY t.id", (identity,)) if row['height_count'] == 1 else []:
             budget(len(match[0]))
             checkpoint = json.loads(match[0])["checkpoint"]
             block_hash = checkpoint["header"]["hash"].lower()

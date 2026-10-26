@@ -1,6 +1,6 @@
 import { searchCoverageText, searchStopText } from './coveragePresentation';
 import { bitcoinReference, recordedBitcoinSources, recordedHemiSource } from './evidenceLinks';
-import { resultState, sourceState } from './evidenceState';
+import { resultState, sourceAgreementText } from './evidenceState';
 import { formatDate, formatNumber, selectedProof } from './format';
 import { receiptIssues } from './receiptIssues';
 import type { ReceiptWrapper } from './types';
@@ -18,7 +18,6 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
   const firstHeight = firstPublicationState(wrapper, proof);
   const manual = Boolean(proof && index !== defaultIndex);
   const state = resultState(r, Boolean(proof));
-  const source = sourceState(r);
   const cover = r.query.covering_keystone ?? r.query.covering_checkpoint?.height;
   const requestedHash = r.query.requested_block_hash || r.query.block_hash;
   const identity = r.context?.requested_block_identity;
@@ -53,7 +52,7 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
   } else lines.push('Publication association: Unresolved. No applicable publication transaction is displayed.', state.summary);
   lines.push('',
     `Proof checks: ${wrapper.verification.proofs_checked > 0 ? `${formatNumber(wrapper.verification.proofs_checked)} proof record${wrapper.verification.proofs_checked === 1 ? '' : 's'} passed supplied-data checks` : 'No publication proof to check'}`,
-    `Source confirmation: ${recorded ? 'Current source views not rechecked' : source === 'confirmed' ? 'Confirmed at the recorded check' : source === 'conflict' ? 'Conflicting data at the recorded check' : 'Incomplete at the recorded check'}`,
+    `Source agreement: ${sourceAgreementText(r)}`,
     `Result recorded: ${formatDate(r.completed_at)}`,
     `Sources last checked: ${formatDate(r.context?.checked_at)}`, '',
     ...(recorded ? [`Historical source observations: ${historicalSourceTimes(r)}`, ...(r.catalogue?.number_resolved_from_retained_view ? ['Block number resolved from retained metadata; current canonical identity is unconfirmed.'] : [])] : []),

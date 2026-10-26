@@ -174,6 +174,12 @@ class MainCatalogueTests(unittest.TestCase):
     def test_missing_or_corrupt_catalogue_falls_back(self):
         self.jobs.mode = "discovery"
         for mode in ("missing", "corrupt"):
+            # Isolate each fallback case from the previous iteration's valid
+            # browser result, which can now be reused without a stronger packet.
+            self.jobs.receipts.clear()
+            for receipt in (self.state / 'receipts').glob('web-*.json'):
+                self.assertTrue(receipt.resolve().is_relative_to(self.state.resolve()))
+                receipt.unlink()  # Only the previous iteration's owned fixture result.
             if self.database.exists():
                 self.database.unlink()  # Owned test file inside the verified temporary directory.
             if mode == "corrupt":

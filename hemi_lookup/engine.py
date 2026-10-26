@@ -10,6 +10,7 @@ from .network import BTC_APIS, HEMI_RPC
 from .proof import SCHEMA, verify_proof, same_header
 from .storage import now
 from .inputs import covering, block_input
+from .search_plan import SEGMENT_HEIGHTS, WINDOW_FIRST_POLICY
 
 HASH_KEYS = ("hash", "parentHash", "stateRoot", "transactionsRoot")
 
@@ -29,6 +30,9 @@ class Engine:
         self.sources, self.session, self.cache = sources, session, cache
         self.max_ancestry, self.no_cache = max_ancestry, no_cache
         self.progress = progress or (lambda message: None)
+        set_progress = getattr(sources, 'set_progress', None)
+        if set_progress:
+            set_progress(self.progress)
         self.headers, self.checkpoints = {}, {}
         self.rpc_blocks = {}
         self.requested = None
@@ -49,6 +53,8 @@ class Engine:
         r["termination"] = {"reason": "time_budget_exhausted", "mode": r["mode"]}
         if r["mode"] != "live_metadata_refresh":
             r["coverage"]["stop_reason"] = "time_budget_exhausted"
+            r["coverage"]["stop_detail"] = {"code": "time_budget_exhausted", "limit": "overall_seconds",
+                                               "message": str(exc)}
         context = r.setdefault("context", {"checked_at": None})
         context.update({"current_view_confirmed": False, "deadline_expired": True})
         identity = context.get("requested_block_identity")
@@ -62,6 +68,12 @@ class Engine:
 
     def issue(self, code, message, **context):
         self.receipt["issues"].append({"code": code, "message": str(message), **context})
+
+    def budget_stop(self, exc, height=None):
+        self.issue(exc.code, exc, limit=getattr(exc, "limit", None),
+                   **({"bitcoin_height": height} if height is not None else {}))
+        self.receipt["coverage"]["stop_detail"] = {"code": exc.code, "message": str(exc),
+            "limit": getattr(exc, "limit", None), "bitcoin_height": height}
 
     def header(self, number, fresh=False):
         self.check_deadline()
@@ -223,6 +235,7 @@ class Engine:
                 "reason": "Requested hash has not yet been resolved on Hemi mainnet"}}
         try:
             self.check_deadline()
+            self.progress("Reading Hemi block and keystone data")
             if int(self.sources.rpc("eth_chainId", []), 16) != 43111:
                 raise DataError("wrong_network", "Hemi endpoint is not mainnet chain 43111")
             try:
@@ -237,6 +250,8 @@ class Engine:
             r["query"].update({"block_hash": requested["hash"], "header": requested,
                                 "covering_keystone": cover, "covering_checkpoint": cp})
             self.ancestry(cover)
+            self.progress("Preparing the requested Bitcoin search range" if explicit_range
+                          else "Estimating the Bitcoin search range")
             tip_hash = self.sources.btc("/blocks/tip/hash", False)
             tip = self.sources.btc("/block/" + tip_hash)
             r["bitcoin_tip_before"] = {"height": tip["height"], "hash": tip_hash}
@@ -252,22 +267,26 @@ class Engine:
                 high = min(max(item["lookup"]["height"] for item in hints) + 1, int(tip["height"]))
                 r["coverage"]["plan"] = {"start": low, "initial_end": high, "mode": "timestamp_guided",
                     "timestamp_hints": hints, "timestamp_start": stamp - 900, "timestamp_end": stamp + 7200,
-                    "automatic_extension": True, "not_a_protocol_lower_bound": True}
+                    "automatic_extension": False, "not_a_protocol_lower_bound": True,
+                    "segment_policy": WINDOW_FIRST_POLICY,
+                    "execution_segment": [low, min(high, low + SEGMENT_HEIGHTS - 1)]}
             r["coverage"]["plan"]["maximum_body_attempts"] = self.session.max_blocks
-            self.progress(f"Search Bitcoin {low}-{high}; requested Hemi {number}, covering checkpoint {cover}")
+            segment_end = high if explicit_range else r['coverage']['plan']['execution_segment'][1]
+            if not explicit_range:
+                self.progress(f"Estimated Bitcoin search window: {low}-{high}; bounded first segment: {low}-{segment_end}")
+            self.progress(f"Scanning Bitcoin blocks {low}-{segment_end}; requested Hemi {number}, covering keystone {cover}")
             height = low
             while height <= int(tip["height"]):
                 self.check_deadline()
                 if explicit_range and height > high:
                     r["coverage"]["stop_reason"] = "explicit_range_end"
                     break
-                if not explicit_range and height > high:
-                    if self.session.run["body_attempts"] >= self.session.max_blocks:
-                        r["coverage"]["stop_reason"] = "body_attempt_budget"
-                        break
-                    high = min(high + 4, int(tip["height"]))
-                    r["coverage"].setdefault("extensions", []).append({"direction": "forward", "new_end": high})
-                    self.progress(f"No match in previous window; extending through Bitcoin {high}")
+                if not explicit_range and height > segment_end:
+                    r["coverage"]["stop_reason"] = ("estimated_window_end" if segment_end == high
+                                                          else "search_segment_end")
+                    self.progress("Estimated window processed; further search requires an explicit continuation"
+                                  if segment_end == high else "Scan segment processed; estimated-window heights remain")
+                    break
                 try:
                     self.scan_height(height, cover)
                     if r["proofs"]:
@@ -276,7 +295,7 @@ class Engine:
                 except DeadlineError:
                     raise
                 except BudgetError as exc:
-                    self.issue(exc.code, exc, bitcoin_height=height)
+                    self.budget_stop(exc, height)
                     r["coverage"]["stop_reason"] = "budget_limit"
                     break
                 except (DataError, ValueError, KeyError) as exc:
@@ -305,6 +324,10 @@ class Engine:
             self.recheck()
         except DeadlineError as exc:
             self.expire(exc)
+        except BudgetError as exc:
+            self.budget_stop(exc)
+            r['coverage']['stop_reason'] = 'budget_limit'
+            r.setdefault('context', {}).update({'current_view_confirmed': False, 'error': str(exc)})
         except (DataError, ValueError, KeyError, TypeError, TimeoutError) as exc:
             self.issue(getattr(exc, "code", "source_unavailable"), exc)
             r["coverage"]["stop_reason"] = "lookup_incomplete"
@@ -389,9 +412,15 @@ class Engine:
                 raise
             except (DataError, KeyError, ValueError) as exc:
                 r["coverage"]["unresolved_candidates"].append({**observation, "message": str(exc)})
+        # Parsing/root checks can finish before candidate association hits a
+        # limit. A continuation must retry that height rather than skip it.
+        meta['publication_associations_complete'] = not any(
+            item.get('bitcoin_height') == height for item in r['coverage']['unresolved_candidates'])
         self.progress(f"Bitcoin {height}: {parsed['tx_count']} txs, {len(parsed['candidates'])} HEMI candidates, {len(r['proofs'])} matches" + (" (cache)" if cached else ""))
 
     def recheck(self):
+        self.check_deadline()
+        self.progress("Checking source views")
         r = self.receipt
         r.pop("bitcoin_tip_after", None)
         context = {"checked_at": now(), "hemi_network_same": None, "hemi_headers": [], "bitcoin_blocks": [],
@@ -506,7 +535,7 @@ class Engine:
             r["status"] = "found" if stable else "incomplete"
         else:
             stop = r["coverage"]["stop_reason"]
-            complete_stop = stop in ("explicit_range_end", "observed_tip_reached")
+            complete_stop = stop in ("explicit_range_end", "estimated_window_end", "observed_tip_reached")
             r["status"] = "not_found_within_coverage" if stable and clean and complete_stop else "incomplete"
         r["resources"] = self.session.metrics()
         r["resources"]["elapsed_seconds"] = round(time.monotonic() - self.start, 3)

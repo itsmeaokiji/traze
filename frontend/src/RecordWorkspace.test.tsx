@@ -84,7 +84,7 @@ describe('Record inspector workflow', () => {
     select('Bitcoin publication');
     const panel = inspector('Bitcoin publication');
     expect(panel.getByText(data.proofs[0].txid)).toBeTruthy();
-    expect(panel.getByText('Source confirmation is incomplete for this operation.')).toBeTruthy();
+    expect(panel.getByText('Incomplete at the recorded check')).toBeTruthy();
     expect(panel.getByText(formatDate(data.context?.checked_at))).toBeTruthy();
     expect(data).toEqual(snapshot);
     expect(fetch).not.toHaveBeenCalled();

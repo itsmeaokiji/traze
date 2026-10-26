@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { formatDate, formatNumber } from './format';
 import type { Proof, Receipt } from './types';
+import { sourceState, sourceAgreementText } from './evidenceState';
 import type { RouteRole } from './PublicationRoute';
 import { CopyAction } from './CopyAction';
 import { ExternalLink } from './ExternalLink';
@@ -23,8 +24,8 @@ export function RecordInspector({ receipt, proof, role }: { receipt: Receipt; pr
   const identity = receipt.context?.requested_block_identity;
   const recordedHash = receipt.query.block_hash;
   const inputHash = receipt.query.requested_block_hash;
-  const sourceConfirmed = receipt.context?.current_view_confirmed === true;
   const recorded = isRecorded(receipt);
+  const sourceConfirmed = !recorded && sourceState(receipt) === 'confirmed';
   const safeHemiSource = recordedHemiSource(receipt);
   const bitcoinSources = recordedBitcoinSources(receipt);
   const identityText = identity?.status === 'matches_current_rpc_view' ? 'Matched the Hemi RPC view at the recorded check'
@@ -76,7 +77,7 @@ export function RecordInspector({ receipt, proof, role }: { receipt: Receipt; pr
         {bitcoinSources.map(source => <ExternalLink key={source} href={source}>{source.includes('blockstream') ? 'Blockstream API' : 'mempool.space API'}</ExternalLink>)}
       </>}
     </div>
-    <div className="inspector-observation"><span className="detail-label">{recorded ? 'Historical source observation time' : 'Recorded source-check time'}</span><p>{recorded ? historicalSourceTimes(receipt) : formatDate(receipt.context?.checked_at)}</p><p className={sourceConfirmed ? 'inspector-confirmed' : 'inspector-unconfirmed'}>{recorded ? 'Current source views have not been rechecked for this target.' : sourceConfirmed ? 'Source confirmation recorded for this operation.' : 'Source confirmation is incomplete for this operation.'}</p></div>
+    <div className="inspector-observation"><span className="detail-label">{recorded ? 'Historical source observation time' : 'Recorded source-check time'}</span><p>{recorded ? historicalSourceTimes(receipt) : formatDate(receipt.context?.checked_at)}</p><p className={sourceConfirmed ? 'inspector-confirmed' : 'inspector-unconfirmed'}>{sourceAgreementText(receipt)}</p></div>
     </div>
   </aside>;
 }

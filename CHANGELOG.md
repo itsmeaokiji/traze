@@ -1,5 +1,36 @@
 # Changelog
 
+## Discovery recovery, retained evidence and interface clarity
+
+- Persist bounded continuation state and offer the unfinished estimated-window
+  segment before an explicit forward extension, with the original tip and limits.
+- Reuse compatible saved evidence after restart without requiring an optional
+  first-publication packet or treating a capacity-limited retained read as a miss.
+- Separate supplied examples from paginated local search history and preserve
+  original observation times when restoring a result.
+- Queue checked receipt-to-index updates with deduplication, bounded durable
+  retries and separate full-block versus publication-proof-only coverage.
+- Show the operator-configured cumulative discovery ceiling while preserving
+  prior accounting and unchanged per-operation resource limits.
+- Clarify source agreement, optional range inputs, completion announcements,
+  keyboard focus, advanced disclosures and narrow-screen table containment.
+
+## Indexed ancestry read efficiency
+
+- Share parent-header reads across overlapping candidate paths inside one query's
+  SQLite snapshot. No parent cache survives the query.
+- Preserve missing/ambiguous-parent handling, exact input binding, individual
+  proof checks, unresolved associations, deadline checks and existing read limits.
+
+## Bounded automatic search planning
+
+- Reuse related fallback timestamp metadata and linked header controls within a
+  lookup while retaining selected-height refresh, source-anchor and proof checks.
+- Separate the full estimated Bitcoin window from its first bounded scan segment;
+  finish the estimated-window remainder before offering an explicit extension.
+- Preserve older saved cursor policies and show actual preparation, fallback,
+  scan and source-check progress. Per-operation resource defaults are unchanged.
+
 ## Reference models, timeline and historical collection
 
 - Show separately named reference finality calculations, unavailable states and

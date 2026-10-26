@@ -90,6 +90,9 @@ def recorded_lookup(database, requested, *, check=None):
                     if isinstance(source["observation"].get("context", {}).get("checked_at"), str)}
     times.update(item["observed_at"] for source in packet["coverage"]["historical_observations"]
                  for item in source["observation"].get("metadata_observations", []) if isinstance(item.get("observed_at"), str))
+    times.update(item for source in packet['coverage']['historical_observations']
+                 for item in (source['observation'].get('catalogue') or {}).get('historical_source_times', [])
+                 if isinstance(item, str))
     times = sorted(times)
     # Display bounds stay compact as indexed metadata grows. Individual RPC
     # observation times remain in the portable packet's coverage records.

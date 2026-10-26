@@ -108,7 +108,7 @@ describe('React bridge workflow', () => {
     await screen.findByRole('heading', { name: 'Publication found' });
     fireEvent.click(screen.getByRole('button', { name: /Recheck sources/ }));
     await screen.findByRole('heading', { name: 'Evidence retained · source conflict' });
-    expect(within(document.getElementById('source-check-list')!).getByText('Conflict at the last check')).toBeTruthy();
+    expect(within(document.getElementById('source-check-list')!).getByText('Source views conflicted at the recorded check')).toBeTruthy();
     expect(within(document.getElementById('verification-list')!).getAllByText('Passed')).toHaveLength(4);
     expect(screen.getByText('Sources returned conflicting data. Chain status could not be confirmed.')).toBeTruthy();
     expect(document.getElementById('coverage-summary')!.textContent).toContain('Coverage from the original search');

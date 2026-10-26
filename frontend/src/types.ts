@@ -1,7 +1,7 @@
 // The Python bridge owns verification. These types describe its additive v1 data;
 // legacy checkpoint field names remain compatible with existing evidence.
 export type ResultStatus = 'found' | 'not_found_within_coverage' | 'incomplete';
-export interface Issue { code?: string; message?: string }
+export interface Issue { code?: string; message?: string; limit?: string | null; bitcoin_height?: number }
 export interface Observation { height?: number; same?: boolean | null; error?: string }
 export interface Identity {
   status: 'matches_current_rpc_view' | 'different_current_rpc_block' | 'unavailable' | 'not_rechecked';
@@ -23,11 +23,13 @@ export interface Proof {
 export interface Coverage {
   fully_scanned_intervals?: [number, number][];
   blocks?: { height: number; hash: string; transaction_count: number; hemi_candidates: number; cache_hit?: boolean }[];
-  plan?: { mode: string; start: number; initial_end: number };
+  plan?: { mode: string; start: number; initial_end: number; segment_policy?: string;
+    execution_segment?: [number, number]; maximum_body_attempts?: number };
   gaps?: Issue[];
   unresolved_candidates?: Issue[];
   unsupported_payloads?: number;
   stop_reason?: string | null;
+  stop_detail?: Issue;
 }
 export interface Resources {
   response_bytes_this_run?: number;
@@ -85,6 +87,14 @@ export interface Receipt {
   resources?: Resources;
   termination?: { reason: string };
   validation?: { scope?: string; live_public_reads?: boolean };
+  discovery?: { parent_receipt_id: string; parent_receipt_sha256: string; original_extent: [number, number];
+    root_receipt_id: string; segment: number; earlier_coverage_is_historical: true; estimated_window?: [number, number] };
+}
+export interface SearchContinuation {
+  available: boolean; reason: string; receipt_sha256?: string; bitcoin_range?: [number, number];
+  original_extent?: [number, number]; historical_scanned_intervals?: [number, number][];
+  segment?: number; parent_receipt_id?: string | null; latest_receipt_id?: string;
+  estimated_window?: [number, number]; search_phase?: 'estimated_window' | 'forward_extension';
 }
 export interface ReceiptWrapper {
   id: string;
@@ -97,6 +107,16 @@ export interface ReceiptWrapper {
   verification: { proofs_checked: number; current_chain_membership_checked: boolean };
   first_publication?: FirstPublicationAssessment;
   finality?: FinalityAssessment;
+  continuation?: SearchContinuation;
+  index_update?: IndexUpdate;
+}
+export interface IndexUpdate {
+  state: 'not_queued' | 'pending' | 'indexed' | 'already_indexed' | 'rejected';
+  reason?: string; attempts?: number; can_retry: boolean; automatic_retry_pending?: boolean;
+  publication_count?: number; added_publications?: number; added_associations?: number;
+  record_url?: string | null; hemi_record_url?: string | null;
+  body_scope?: { complete: number; proof_only: number; unavailable: number };
+  source_requests: 0; source_views_rechecked?: false;
 }
 
 export interface FinalityPublication {
@@ -184,7 +204,7 @@ export interface FirstPublicationAssessment {
 
 export interface IndexSummary {
   index_kind: 'maintained' | 'catalogue';
-  counts: { processed_bodies: number; supported_publications: number; associated_publications: number; unassociated_publications: number; unsupported_publications: number; failed_or_pending_bodies: number };
+  counts: { processed_bodies: number; supported_publications: number; associated_publications: number; unassociated_publications: number; unsupported_publications: number; failed_or_pending_bodies: number; proof_only_blocks?: number };
   bitcoin_height_bounds: [number, number] | null;
   source_observations_current: false;
   history_complete: false;
@@ -196,6 +216,7 @@ export interface PublicationSummary {
   height_conflict: boolean; txid: string; vout_index: number;
   keystone_height: number | null; keystone_id: string | null;
   state: 'associated' | 'pending' | 'unsupported'; association_available: boolean;
+  evidence_scope?: 'full_block_scan' | 'publication_proof';
 }
 export interface KeystoneSummary {
   height: number; keystone_id: string; publication_count: number; associated_count: number; publications_url: string;
@@ -216,12 +237,20 @@ export interface SavedResult {
   block_number: number | null;
   requested_block_hash?: string;
   completed_at?: string;
-  status: ResultStatus;
+  status: ResultStatus | null;
   mode?: string;
+  segment?: number | null;
+  available?: boolean;
+}
+export interface SavedHistoryPage {
+  items: SavedResult[];
+  page: { limit: number; next_cursor: string | null };
+  order: 'saved_file_desc';
+  metadata_only: true;
 }
 export interface Job {
   id: string;
-  operation: 'lookup' | 'refresh';
+  operation: 'lookup' | 'refresh' | 'continue';
   phase?: 'recorded_lookup' | 'public_discovery' | 'source_refresh' | 'first_publication_check';
   block_input?: number | string;
   block_number: number | null;
@@ -239,9 +268,12 @@ export interface WorkspaceState {
   collection?: CollectionStatus | null;
   csrf_token: string;
   receipts: SavedResult[];
+  saved_history_available?: boolean;
   active_job: Job | null;
-  resources: { available: boolean; total_response_bytes?: number; session_limit_bytes: number; remaining_bytes?: number };
-  limits: { response_mb_per_lookup: number; bitcoin_body_attempts: number; ancestry_links: number; session_response_mb: number };
+  resources: { available: boolean; total_response_bytes?: number; session_limit_bytes: number; remaining_bytes?: number;
+    usable_response_bytes?: number; minimum_body_reservation_bytes?: number; source_operations_available?: boolean; blocked_reason?: string | null };
+  limits: { response_mb_per_lookup: number; bitcoin_body_attempts: number; ancestry_links: number; session_response_mb: number;
+    http_requests?: number; overall_seconds?: number };
 }
 export interface CollectionStatus {
   state: string;

@@ -42,11 +42,11 @@ describe('Retained publication view selection', () => {
     const wrapper = wrap();
     render(<EvidenceView wrapper={wrapper} {...props} />);
     choices(); choose(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Back to receipt default' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to default selection' }));
     expect(document.querySelectorAll('#association [data-route-role]')).toHaveLength(3);
     expect(panel().getByText(wrapper.receipt.proofs[0].txid)).toBeTruthy();
-    expect(document.getElementById('publication-view-label')!.textContent).toContain('Receipt default');
-    expect(screen.queryByRole('button', { name: 'Back to receipt default' })).toBeNull();
+    expect(document.getElementById('publication-view-label')!.textContent).toContain('Default selection');
+    expect(screen.queryByRole('button', { name: 'Back to default selection' })).toBeNull();
     expect(document.activeElement).toBe(document.getElementById('other-proofs-summary'));
   });
 
@@ -62,7 +62,7 @@ describe('Retained publication view selection', () => {
     expect(document.querySelector('[data-route-role="later"]')).toBeTruthy();
     choices(); choose(2);
     expect(document.querySelector('[data-route-role="later"]')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Back to receipt default' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to default selection' }));
     expect(document.querySelector('[data-route-role="later"]')).toBeTruthy();
     expect(panel().getByText(wrapper.receipt.proofs[0].txid)).toBeTruthy();
   });
@@ -88,7 +88,7 @@ describe('Retained publication view selection', () => {
     const coverage = document.getElementById('coverage-summary')!.textContent;
     choices(); choose(3);
     expect(panel().getByText(wrapper.receipt.proofs[2].txid)).toBeTruthy();
-    expect(panel().getByText('Source confirmation is incomplete for this operation.')).toBeTruthy();
+    expect(panel().getByText('Source views conflicted at the recorded check')).toBeTruthy();
     expect(document.getElementById('issues-list')!.textContent).toContain('conflicting data');
     expect(document.getElementById('observation-line')!.textContent).toBe(time);
     expect(document.getElementById('coverage-summary')!.textContent).toBe(coverage);
@@ -99,7 +99,7 @@ describe('Retained publication view selection', () => {
     choices(); choose(4);
     view.rerender(<EvidenceView wrapper={wrap(marchData, 'march')} {...props} />);
     expect(panel().getByText(marchData.proofs[0].txid)).toBeTruthy();
-    expect(document.getElementById('publication-view-label')!.textContent).toContain('Receipt default');
+    expect(document.getElementById('publication-view-label')!.textContent).toContain('Default selection');
   });
 
   it('does not invent a chooser or publication for no-match evidence', () => {

@@ -5,7 +5,7 @@ import { formatBytes, formatDate, formatNumber, selectedProof } from './format';
 import type { Job, ReceiptWrapper, RecoveryEvent, WorkspaceState } from './types';
 import { RecordWorkspace } from './RecordWorkspace';
 import { PublicationChoices } from './PublicationChoices';
-import { resultState, sourceState } from './evidenceState';
+import { resultState, sourceState, sourceAgreementText } from './evidenceState';
 import { StatusIcon } from './StatusIcon';
 import { CopyAction } from './CopyAction';
 import { ExternalLink } from './ExternalLink';
@@ -20,6 +20,8 @@ import { firstPublicationState } from './firstPublicationState';
 import { ResultOverview } from './ResultOverview';
 import { ReferenceFinality } from './ReferenceFinality';
 import { browseReturn, browseReturnLabel } from './browseNavigation';
+import { SearchRecovery, recoveryState } from './SearchRecovery';
+import { IndexUpdateStatus } from './IndexUpdateStatus';
 export { receiptIssues } from './receiptIssues';
 
 function BitcoinLink({ type, hash, label }: { type: 'block' | 'tx'; hash?: string; label: ReactNode }) {
@@ -31,7 +33,7 @@ function BitcoinLink({ type, hash, label }: { type: 'block' | 'tx'; hash?: strin
 function Check({ label, value, note, status = 'unknown' }: { label: string; value: ReactNode; note?: string; status?: 'pass' | 'warning' | 'unknown' }) {
   return <div className="verification-row"><dt>{label}{note && <small>{note}</small>}</dt><dd className={`check-${status}`}><StatusIcon tone={status === 'unknown' ? 'neutral' : status} /><span>{value}</span></dd></div>;
 }
-export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLookup, sourceOperationsEnabled = true }: { wrapper: ReceiptWrapper; fresh: boolean; busy: boolean; onRecheck: () => void; onError: (error: unknown) => void; onNewLookup?: () => void; sourceOperationsEnabled?: boolean }) {
+export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLookup, onContinue, onOpenSaved, workspace, sourceOperationsEnabled = true }: { wrapper: ReceiptWrapper; fresh: boolean; busy: boolean; onRecheck: () => void; onError: (error: unknown) => void; onNewLookup?: () => void; onContinue?: () => void; onOpenSaved?: (id: string) => void; workspace?: WorkspaceState; sourceOperationsEnabled?: boolean }) {
   const [viewChoice, setViewChoice] = useState<{ receiptId: string; index: number } | null>(null);
   const choicesSummary = useRef<HTMLElement>(null);
   const summaryDetails = useRef<HTMLDetailsElement>(null);
@@ -57,7 +59,10 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
   const coverage = r.coverage || {};
   const blocks = coverage.blocks || [];
   const coverageIssues = coverageIssuesText(r);
-  const { warnings } = receiptIssues(r, sourceOperationsEnabled);
+  const recoveryStopShown = sourceOperationsEnabled && !r.proofs.length && Boolean(wrapper.continuation || r.discovery);
+  const { warnings, details: warningDetails } = receiptIssues(r, sourceOperationsEnabled, { primaryStopShown: recoveryStopShown, compact: true });
+  const needsNewLookup = recorded || recoveryState(wrapper, workspace).needsNewLookup;
+  const sourceAgreement = sourceAgreementText(r);
   const state = resultState(r, Boolean(proof));
   const firstHeight = firstPublicationState(wrapper, proof);
   const returnTo = browseReturn();
@@ -79,28 +84,30 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
     setViewChoice(index === defaultIndex ? null : { receiptId: wrapper.id, index });
   }
   function resetProof() { setViewChoice(null); choicesSummary.current?.focus(); }
-  return <section id="result" className={`result result-${state.tone}`} aria-labelledby="result-heading">
-    {returnTo && <a className="text-link browse-return" href={returnTo}>{browseReturnLabel(returnTo)}</a>}
-    <div className="result-heading-row">
-      <div><p id="result-origin" className="eyebrow">{origin}{controlled ? ' · CONTROLLED TEST DATA' : ''}</p><div className="result-title"><StatusIcon tone={state.tone} /><h2 id="result-heading">{state.title}</h2></div><ResultOverview wrapper={wrapper} proof={proof} defaultSelection={!viewingAnother} /><p id="result-summary">{summary}</p></div>
-      <div className="result-actions">{sourceOperationsEnabled && recorded && onNewLookup && <button id="new-lookup-button" className="secondary" disabled={busy} onClick={onNewLookup} title="Run the normal source search for this input, using any specified Bitcoin range.">Run new lookup</button>}{sourceOperationsEnabled && <button id="refresh-button" className="secondary" disabled={busy || !r.query.header || !r.query.covering_checkpoint} onClick={onRecheck} title="Checks source views again. Original scan coverage is preserved.">Recheck sources <span aria-hidden="true">↻</span></button>}{wrapper.record_url && <CopyAction id="copy-record-link" label="Copy record link" className="secondary" value={recordLink!.href} disabled={busy} />}<CopyAction id="copy-summary" label="Copy summary" className="secondary summary-copy" value={readableSummary} scope={copyScope} disabled={busy} onManualCopy={openManualSummary} /><EvidenceDownload wrapper={wrapper} /></div>
-    </div>
-    {warnings.length > 0 && <div id="issues-section" className="issues-section"><h3><StatusIcon tone="warning" />Warnings</h3><ul id="issues-list">{warnings.map(message => <li key={message}>{message}</li>)}</ul></div>}
-    {wrapper.selected_publication_available === false && <p className="coverage-issues" role="alert">The linked publication is unavailable in this indexed view. Other available evidence is shown below.</p>}
-    <PublicationChoices receipt={r} defaultIndex={defaultIndex} displayedIndex={displayedIndex} onSelect={chooseProof} summaryRef={choicesSummary} defaultLabel={wrapper.selected_publication && wrapper.selected_publication_available ? 'Linked publication' : 'Receipt default'} />
+  const publicationWorkspace = <>
+    <PublicationChoices receipt={r} defaultIndex={defaultIndex} displayedIndex={displayedIndex} onSelect={chooseProof} summaryRef={choicesSummary} defaultLabel={wrapper.selected_publication && wrapper.selected_publication_available ? 'Linked publication' : 'Default selection'} />
     {proof && r.proofs.length > 1 && <div id="publication-view" className={`publication-view${viewingAnother ? ' is-manual' : ''}`}>
-      <div><p id="publication-view-label">{viewingAnother ? sameTransaction ? 'Viewing another proof record' : 'Viewing another publication' : wrapper.selected_publication && wrapper.selected_publication_available ? 'Linked publication' : 'Receipt default'} <span>· Proof record {displayedIndex! + 1}</span></p><p className="field-help">{viewingAnother ? `This is a view selection. Download JSON${sourceOperationsEnabled ? ' and Recheck sources use' : ' uses'} the original receipt.` : firstHeight.qualified ? 'This selection carries the qualified first-height assessment shown below.' : wrapper.selected_publication && wrapper.selected_publication_available ? 'This view follows the publication identified in the record link. It is not a globally earliest-publication claim.' : 'Default selection follows the earliest observed applicable Bitcoin height; earlier publications may exist outside the scanned data.'}</p></div>
-      {viewingAnother && <button type="button" className="secondary" onClick={resetProof}>{wrapper.selected_publication && wrapper.selected_publication_available ? 'Back to linked publication' : 'Back to receipt default'}</button>}
+      <div><p id="publication-view-label">{viewingAnother ? sameTransaction ? 'Viewing another proof record' : 'Viewing another publication' : wrapper.selected_publication && wrapper.selected_publication_available ? 'Linked publication' : 'Default selection'} <span>· Proof record {displayedIndex! + 1}</span></p><p className="field-help">{viewingAnother ? `This is a view selection. Download JSON${sourceOperationsEnabled ? ' and Recheck sources use' : ' uses'} the original receipt.` : firstHeight.qualified ? 'This selection carries the qualified first-height assessment shown below.' : wrapper.selected_publication && wrapper.selected_publication_available ? 'This view follows the publication identified in the record link. It is not a globally earliest-publication claim.' : 'Default selection follows the earliest observed applicable Bitcoin height.'}</p></div>
+      {viewingAnother && <button type="button" className="secondary" onClick={resetProof}>{wrapper.selected_publication && wrapper.selected_publication_available ? 'Back to linked publication' : 'Back to default selection'}</button>}
     </div>}
     <RecordWorkspace key={`${wrapper.id}:${displayedIndex ?? 'unresolved'}`} receipt={r} proof={proof}>
       {proof && <div id="transaction-line" className="transaction-line"><span className="detail-label">Publication transaction</span><ExternalLink id="transaction-link" href={bitcoinReference('tx', proof.txid)!} title="Open the publication transaction in a new tab">{proof.txid}</ExternalLink><CopyAction id="copy-txid" label="Copy transaction ID" value={proof.txid} scope={copyScope} disabled={busy} onError={onError} /></div>}
     </RecordWorkspace>
     {relatedHeight !== undefined && <p className="related-publications"><a id="related-publications-link" className="text-link" href={`/browse?keystone_height=${relatedHeight}`}>Browse publications at keystone height {formatNumber(relatedHeight)} <span aria-hidden="true">→</span></a></p>}
-    <FirstPublication wrapper={wrapper} proof={proof} />
-    <ReferenceFinality wrapper={wrapper} proof={proof} />
+  </>;
+  return <section id="result" data-receipt-id={wrapper.id} className={`result result-${state.tone}`} aria-labelledby="result-heading">
+    {returnTo && <a className="text-link browse-return" href={returnTo}>{browseReturnLabel(returnTo)}</a>}
+    <div className="result-heading-row">
+      <div><p id="result-origin" className="eyebrow">{origin}{controlled ? ' · CONTROLLED TEST DATA' : ''}</p><div className="result-title"><StatusIcon tone={state.tone} /><h2 id="result-heading" tabIndex={-1}>{state.title}</h2></div><ResultOverview wrapper={wrapper} proof={proof} defaultSelection={!viewingAnother} /><p id="result-summary">{summary}</p></div>
+      <div className="result-actions">{wrapper.record_url && <CopyAction id="copy-record-link" label="Copy record link" className="secondary" value={recordLink!.href} disabled={busy} />}<CopyAction id="copy-summary" label="Copy summary" className="secondary summary-copy" value={readableSummary} scope={copyScope} disabled={busy} onManualCopy={openManualSummary} /><EvidenceDownload wrapper={wrapper} /></div>
+    </div>
+    <IndexUpdateStatus initial={wrapper.index_update} receiptId={wrapper.id} token={workspace?.csrf_token || ''} enabled={sourceOperationsEnabled && workspace?.serving_mode === 'discovery'} busy={busy} />
+    {warnings.length > 0 && <div id="issues-section" className="issues-section"><h3><StatusIcon tone="warning" />Warnings</h3><ul id="issues-list">{warnings.map(message => <li key={message}>{message}</li>)}</ul>{Boolean(warningDetails?.length) && <details id="warning-details" className="limits-details"><summary>Warning details</summary><ul>{warningDetails!.map(message => <li key={message}>{message}</li>)}</ul></details>}</div>}
+    {wrapper.selected_publication_available === false && <p className="coverage-issues" role="alert">The linked publication is unavailable in this indexed view. Other available evidence is shown below.</p>}
+    {proof && publicationWorkspace}
     <dl id="evidence-assessment" className="evidence-assessment" aria-label="Evidence status">
       <div><dt>Proof checks</dt><dd><StatusIcon tone={wrapper.verification.proofs_checked > 0 ? 'pass' : 'neutral'} /><span>{wrapper.verification.proofs_checked > 0 ? `${formatNumber(wrapper.verification.proofs_checked)} proof record${wrapper.verification.proofs_checked === 1 ? '' : 's'} checked` : 'No publication proof to check'}</span></dd></div>
-      <div><dt>Source confirmation</dt><dd><StatusIcon tone={recorded ? 'neutral' : sourceConfirmed ? 'pass' : 'warning'} /><span>{recorded ? 'Current views not rechecked' : sourceConfirmed ? 'Confirmed at the last check' : sources === 'conflict' ? 'Conflict at the last check' : 'Incomplete at the last check'}</span></dd></div>
+      <div><dt>Source agreement</dt><dd><StatusIcon tone={sources === 'conflict' ? 'warning' : recorded ? 'neutral' : sourceConfirmed ? 'pass' : 'warning'} /><span>{sourceAgreement}</span></dd></div>
       <div><dt>Coverage for this result</dt><dd><StatusIcon tone={coverageIssues ? 'warning' : 'neutral'} /><span>{formatNumber(blocks.length)} Bitcoin block{blocks.length === 1 ? '' : 's'}{recorded ? ' from retained data' : r.mode === 'live_metadata_refresh' ? ' from the original search' : ' scanned'}{coverageIssues ? ` · ${coverageIssues}` : ''}</span></dd></div>
     </dl>
     <div className="result-context" aria-label="Source observations"><p id="observation-line" className="observation-line"><span className="context-label">Source observations</span>{recorded ? `Receipt generated: ${formatDate(r.completed_at)} · Historical source observations: ${historicalSourceTimes(r)} · Current source views not rechecked.` : <>Receipt completed: {formatDate(r.completed_at)} · Ordinary source check: {formatDate(r.context?.checked_at)}{controlled ? ' · Controlled test data.' : fresh || !sourceOperationsEnabled ? '' : ' · Use Recheck sources for a new check.'}{r.mode === 'live_metadata_refresh' ? ' Original scan coverage is preserved.' : ''}</>}</p>
@@ -122,7 +129,7 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
         <p className="section-help">{recorded ? 'No new source check was performed for this generated target. Historical source observations are listed above.' : `Sources last checked: ${formatDate(r.context?.checked_at)}. Opening saved evidence does not perform a new source check.`}</p>
         <dl id="source-check-list" className="verification-list">
           {(identity || r.query.input_type === 'hash') && <Check label="Requested Hemi block identity" value={identity ? identityLabels[identity.status] : 'Not recorded'} note={recorded ? 'Current identity was not compared with a live source for this retrieval' : 'Compared with the Hemi RPC view at the recorded check time'} status={recorded ? 'unknown' : identity?.status === 'matches_current_rpc_view' ? 'pass' : identity ? 'warning' : 'unknown'} />}
-          <Check label="Source checks" value={recorded ? 'Not rechecked' : sourceConfirmed ? 'Confirmed at the last check' : sources === 'conflict' ? 'Conflict at the last check' : 'Incomplete at the last check'} note={recorded ? 'Historical observations retain their original target and scope' : 'Recorded checks of the Hemi RPC and Bitcoin API views; not full independent chain validation'} status={recorded ? 'unknown' : sourceConfirmed ? 'pass' : 'warning'} />
+          <Check label="Source agreement" value={sourceAgreement} note={recorded ? 'Historical observations retain their original target and scope' : 'Recorded checks of the Hemi RPC and Bitcoin API views; not full independent chain validation'} status={sources === 'conflict' ? 'warning' : recorded ? 'unknown' : sourceConfirmed ? 'pass' : 'warning'} />
         </dl>
         <details className="limits-details"><summary>About these checks</summary><p>Proof checks use the supplied Bitcoin headers and Hemi RPC data. Source checks describe the views returned at the recorded check time.</p><p>Traze does not validate the full Bitcoin header chain or independently execute Hemi blocks. Named reference calculations are shown separately when supported; deployed Hemi finality equivalence and PoP reward eligibility are not established.</p></details>
         </details>
@@ -131,12 +138,21 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
         <div className="section-heading"><h3 id="coverage-heading">Coverage for this result</h3></div>
         <p id="coverage-summary" className="section-help">{searchCoverageText(r)}</p>
         {coverageIssues && <p id="coverage-issues" className="coverage-issues">{coverageIssues}. Scan gaps and unresolved associations are separate.</p>}
-        <p id="stop-reason" className="field-help">{searchStopText(r)}</p>
-        <details id="coverage-details" className="limits-details"><summary>Scanned Bitcoin blocks</summary><div className="table-scroll"><table className="coverage-table"><thead><tr><th>Bitcoin block</th><th>Transactions</th><th title="Transaction outputs containing HEMI publication data; candidates may not be applicable to this block">Publication candidates</th></tr></thead><tbody id="coverage-body">
+        {!recoveryStopShown && <p id="stop-reason" className="field-help">{searchStopText(r)}</p>}
+        <details id="coverage-details" className="limits-details"><summary>Scanned Bitcoin blocks</summary>{recoveryStopShown && <p id="stop-reason" className="field-help">{searchStopText(r)}</p>}<div className="table-scroll"><table className="coverage-table"><thead><tr><th>Bitcoin block</th><th>Transactions</th><th title="Transaction outputs containing HEMI publication data; candidates may not be applicable to this block">Publication candidates</th></tr></thead><tbody id="coverage-body">
           {blocks.length ? blocks.map(block => <tr key={`${block.height}:${block.hash}`}><td><BitcoinLink type="block" hash={block.hash} label={formatNumber(block.height)} /></td><td>{formatNumber(block.transaction_count)}</td><td>{formatNumber(block.hemi_candidates)}</td></tr>) : <tr><td colSpan={3} className="muted">No complete Bitcoin block scan was recorded.</td></tr>}
         </tbody></table></div></details>
       </section>
     </div>
+    {sourceOperationsEnabled && <section id="result-search-actions" className="result-search-actions" aria-labelledby="search-actions-heading">
+      <h3 id="search-actions-heading">Search actions</h3>
+      <div className="source-action-buttons">{needsNewLookup && onNewLookup && <button id="new-lookup-button" className="secondary" disabled={busy || workspace?.resources.source_operations_available === false} onClick={onNewLookup} title="Run the normal source search for this input, using any specified Bitcoin range.">Run new lookup</button>}<button id="refresh-button" className="secondary" disabled={busy || !r.query.header || !r.query.covering_checkpoint} onClick={onRecheck} title="Checks source views again. Original scan coverage is preserved.">Recheck sources <span aria-hidden="true">↻</span></button></div>
+      <p className="field-help">A new lookup searches public sources. Recheck sources updates source observations and preserves the original search coverage.</p>
+      <SearchRecovery wrapper={wrapper} workspace={workspace} busy={busy} onContinue={onContinue} onOpenSaved={onOpenSaved} showNewLookup={false} />
+    </section>}
+    {!proof && publicationWorkspace}
+    <FirstPublication wrapper={wrapper} proof={proof} />
+    <ReferenceFinality wrapper={wrapper} proof={proof} />
     {(requestedHash || r.query.covering_checkpoint || proof) && <details id="record-details" className="limits-details"><summary>Record details</summary><dl id="record-details-list" className="verification-list">
       {requestedHash && <Check label="Hemi block hash" value={requestedHash} />}
       {requestedHash && !identity && <Check label="Block identity status" value="Not separately recorded" />}

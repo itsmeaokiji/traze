@@ -2,7 +2,7 @@ import { formatNumber, shortHash } from './format';
 import type { RefObject } from 'react';
 import type { Receipt } from './types';
 
-export function PublicationChoices({ receipt, defaultIndex, displayedIndex, onSelect, summaryRef, defaultLabel = 'Receipt default' }: { receipt: Receipt; defaultIndex?: number; displayedIndex?: number; onSelect: (index: number) => void; summaryRef?: RefObject<HTMLElement | null>; defaultLabel?: string }) {
+export function PublicationChoices({ receipt, defaultIndex, displayedIndex, onSelect, summaryRef, defaultLabel = 'Default selection' }: { receipt: Receipt; defaultIndex?: number; displayedIndex?: number; onSelect: (index: number) => void; summaryRef?: RefObject<HTMLElement | null>; defaultLabel?: string }) {
   if (receipt.proofs.length < 2) return null;
   return <details id="other-proofs" className="other-proofs publication-choices">
     <summary id="other-proofs-summary" ref={summaryRef}>Matching publication evidence · {receipt.proofs.length} proof records</summary>
