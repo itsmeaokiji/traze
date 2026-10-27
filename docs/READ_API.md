@@ -93,7 +93,10 @@ Optional filters:
 
 `associated` means supplied Hemi metadata has been linked to the publication;
 it does not mean current chain membership or authoritative Bitcoin finality.
-`pending` means a supported publication has no complete supplied association.
+`pending` means a publication with a supported payload has no complete supplied
+Hemi association. The UI labels it **Hemi evidence unavailable**; the API value
+does not imply that a background job is running. Reported-height conflicts are
+a separate condition and can prevent an evidence link even for associated metadata.
 `unsupported` means the parser cannot assert a supported keystone payload.
 
 Results sort by descending reported Bitcoin sort height, then ascending
@@ -131,7 +134,7 @@ The response contains:
 
 - `record_url`: `/records/hemi/{exact-hash}`, safe to open in a new tab or after
   restarting the server with the same index.
-- `receipt`: the existing `hemi-publication-receipt-v1` packet, including input
+- `receipt`: the JSON evidence export in the existing `hemi-publication-receipt-v1` format, including input
   binding, publication proofs, historical observations, coverage and issues.
 - `verification`: checks recomputed from the supplied data. No stored success
   flag is trusted; a failed proof produces an error rather than a success packet.

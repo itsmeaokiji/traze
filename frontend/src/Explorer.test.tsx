@@ -91,7 +91,7 @@ describe('public explorer workflows', () => {
     render(<BrowseIndex />);
     expect(await screen.findByRole('link', { name: 'Inspect publication ' + first.txid })).toBeTruthy();
     expect(document.body.textContent).toContain('Gaps may exist between these bounds');
-    expect(document.body.textContent).toContain('12 publications await Hemi metadata');
+    expect(document.body.textContent).toContain('12 publications have no usable Hemi evidence');
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await screen.findByText(/No indexed records match/);
     expect(fetch).toHaveBeenCalledWith('/api/v1/publications?limit=20&cursor=next-controlled-cursor', expect.anything());
@@ -105,7 +105,7 @@ describe('public explorer workflows', () => {
     vi.stubGlobal('fetch', vi.fn(() => respond({ publication: p, hemi_records: [], reported_bitcoin_heights: [965931], data: {}, retrieved_at: '2026-10-17T11:00:00Z' })));
     render(<PublicationRecordView id={p.id} />);
     await screen.findByRole('heading', { name: 'Bitcoin publication' });
-    expect(screen.getByText('Hemi metadata pending')).toBeTruthy();
+    expect(screen.getByText('Hemi evidence unavailable')).toBeTruthy();
     expect(screen.getByText(/have not been associated/)).toBeTruthy();
     expect(screen.queryByRole('link', { name: /Inspect Hemi/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Copy record link' })).toBeTruthy();

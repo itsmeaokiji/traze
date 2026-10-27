@@ -99,14 +99,14 @@ holds the network-operation lock. A search needing new source requests receives
 a busy result while another source operation owns that lock. SQLite read
 transactions provide consistent packets while collection commits updates.
 
-The website shows processed Bitcoin blocks, supported publications, keystone
+The website shows processed Bitcoin blocks, publications with supported payloads, keystone
 associations, unresolved work and the last recorded progress. These counts are
 separate: a processed block does not imply that every Hemi association is ready.
 
 Jobs record public tip observations and their actual gaps. `first_observed_at`
 means the first successful observed tip at or above the height; `processed_at`
 records parsed body availability. `evidence_ready_at` is set only after all
-supported publications have checked metadata/ancestry and the update's source
+publications with supported payloads have checked metadata/ancestry and the update's source
 checks complete. Empty blocks can be fully processed without any publication.
 These observations do not establish exact mining/provider-arrival time or
 ongoing current-chain membership. Per-block timing records remain separate from

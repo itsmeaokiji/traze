@@ -13,7 +13,7 @@ chain consensus verification or a Hemi Bitcoin-finality calculation.
 ## Search behaviour
 
 In discovery mode, a normal lookup reuses compatible recorded data. When there
-is an applicable publication without a complete stronger packet, the same source
+is an applicable publication without a complete first-publication verification package, the same source
 job attempts to prepare the extra evidence. There is no second accounting run,
 background collection, renewed deadline or hidden allowance increase.
 
@@ -24,24 +24,24 @@ The builder:
 2. Uses the Bitcoin-attributes account's historical nonce as a bounded **locator
    hint**, then authenticates an actual Bitcoin-attributes transaction in a full
    Hemi transaction body strictly before the covering keystone. The nonce is
-   neither a proof nor an assumption that establishes the first-height claim.
+   neither a proof nor an assumption that establishes the first-publication claim.
 3. Reconstructs full supported Hemi headers and the anchor/publishing transaction
    bodies, and obtains all Bitcoin bodies from the authenticated anchor height
    through the selected publication height. Valid cached bodies are reused.
 4. Requests the required history account and fresh-parent storage witnesses using
    `eth_getProof`. Proofs authenticate against the exact full header state roots.
 5. Re-observes interval and route identities, then invokes the versioned checker
-   in an owned, cancellable, source-free process.
+   in an owned, cancellable, process without external source requests.
 
 Unsupported or unresolved earlier publication candidates prevent first-height
 promotion. The builder does not classify them as irrelevant just because it
 already has a positive publication. Incomplete data never establishes absence.
 
 An optional archive-method failure is separate from a contradictory chain view.
-It blocks the stronger assessment without discarding independently checkable
+It blocks the first-publication assessment without discarding independently checkable
 ordinary publication evidence. Full Hemi/BTC identity conflicts suspend affected
 assessments. The displayed receipt headers are matched to the full headers
-authenticated by the stronger checker; a weaker receipt flag cannot substitute.
+authenticated by the first-publication checker; a weaker receipt flag cannot substitute.
 
 **Recheck sources** retains its existing meaning: source observations are checked
 again without a new interval scan. A new search is needed to attempt additional
@@ -80,9 +80,9 @@ system-security-bit claim. See [history assurance](HISTORY_ASSURANCE.md).
 | --- | --- |
 | First applicable publication under supported rules | Complete interval/history evidence passed and the operator accepted the named assumptions. The conclusion refers to recorded selected branches. |
 | First applicable publication under snapshot assumptions | Version-3 evidence binds a recorded snapshot/domain and the caller separately accepted its new policy and exact context checksum. Historical-profile and validating-source premises remain external. |
-| First in checked interval | The complete interval passed, but the stronger conditions are incomplete, unsupported or unaccepted. |
-| First-publication evidence invalid | A proof, identity or other stronger-evidence check contradicted its claimed data. No stronger promotion occurs. |
-| Assessment suspended | Changed/conflicting source observations, or an incomplete explicit source recheck, prevent using the stronger assessment. |
+| First in checked interval | The complete interval passed, but the additional first-publication conditions are incomplete, unsupported or unaccepted. |
+| First-publication evidence invalid | A proof, identity or other first-publication evidence check contradicted its claimed data. No conditional first-publication conclusion is accepted. |
+| Assessment suspended | Changed/conflicting source observations, or an incomplete explicit source recheck, prevent using the first-publication assessment. |
 | Assessment incomplete/not available | Required data or a supported profile is missing, preparation has not occurred, or a resource/provider limit stopped it. Ordinary search facts remain separate. |
 
 Selecting another transaction/output does not transfer the assessment. The UI
@@ -123,7 +123,7 @@ It is separate from the original receipt JSON. Only the matching displayed
 publication exposes this action. The snapshot digest in its URL must still
 match; a changed selection/view does not silently substitute a different packet.
 
-Routes are server-controlled, source-free reads:
+Routes are server-controlled, reads without external source requests:
 
 ```text
 /api/receipts/{id}/first-publication/{manifest-sha256}/download

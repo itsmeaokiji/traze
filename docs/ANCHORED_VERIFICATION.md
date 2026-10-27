@@ -2,7 +2,7 @@
 
 The `traze_evidence` package verifies a separately versioned packet containing full Hemi headers, authenticated Hemi transaction bodies and complete Bitcoin bodies for a finite interval. It runs with Python 3.10 or newer and the standard library. No node, RPC, pip package, Traze cache or accounting ledger is required.
 
-This command is separate from the existing provided-header receipt verifier. It does not change the Explorer UI or the guarantees of older receipts.
+This command is separate from the existing JSON evidence verifier using supplied headers. It does not change the Explorer UI or the guarantees of older receipts.
 
 ## Run
 

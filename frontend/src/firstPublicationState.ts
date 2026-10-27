@@ -54,10 +54,10 @@ export function firstPublicationState(wrapper: ReceiptWrapper, proof?: Proof) {
               : 'First-publication assessment incomplete';
   const description = qualified ? snapshot ? 'Complete interval checks and a computational starting bound support this Bitcoin height within the recorded Hemi snapshot, conditional on operator-accepted source, historical-profile and security assumptions.' : 'This Bitcoin height is supported by complete interval checks and a computational starting bound, under the operator-accepted assumptions. The assessment describes the recorded chain view.'
     : another ? 'The retained assessment belongs to another publication. Selecting this record does not transfer its first-height conclusion.'
-      : conflict ? 'Changed or conflicting source observations prevent using the stronger assessment. Retained publication evidence remains inspectable.'
-        : assessment?.status === 'invalid' ? 'The stronger evidence contains an inconsistency. No first-height conclusion is accepted from it.'
-          : validInterval ? 'The publication is first within the completely checked interval. A stronger conclusion is not established; review the missing requirements below.'
-            : 'Ordinary publication evidence and search coverage remain separate. Missing stronger evidence does not mean no publication exists.';
+      : conflict ? 'Changed or conflicting source observations prevent using the first-publication assessment. Retained publication evidence remains inspectable.'
+        : assessment?.status === 'invalid' ? 'The first-publication evidence contains an inconsistency. No conditional first-publication conclusion is accepted from it.'
+          : validInterval ? 'The publication is first within the completely checked interval. A conditional first-publication conclusion is not established; review the missing requirements below.'
+            : 'Ordinary publication evidence and search coverage remain separate. Missing first-publication assessment evidence does not mean no publication exists.';
   const download = exact && !conflict && assessment?.packet_available && assessment.download_url
     && /^\/api\/(?:receipts\/[a-z0-9-]+|v1\/blocks\/0x[0-9a-f]{64})\/first-publication\/[0-9a-f]{64}\/download$/.test(assessment.download_url)
     ? assessment.download_url : undefined;

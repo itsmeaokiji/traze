@@ -63,7 +63,7 @@ node scripts/verify-input-binding.mjs demo_results/mainnet_4028425_hash.json
 node --test tests/verifier-cli.test.mjs
 ```
 
-These tools recompute supplied-data checks without Python or network calls. Generated reports go to demo_results/. Hash-input tamper checks are reported only for receipts that actually declare a hash input.
+These tools recompute checks of supplied evidence without Python or network calls. Generated reports go to demo_results/. Hash-input tamper checks are reported only for receipts that actually declare a hash input.
 
 ## Automated configuration
 

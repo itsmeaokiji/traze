@@ -1,12 +1,12 @@
 Traze frontend third-party notices
 
-Original Traze code: MIT, Copyright (c) 2026 Neru.
+Original Traze code: MIT, Copyright (c) 2026 itsmeaokiji.
 Original Traze code
 ===================
 
 MIT License
 
-Copyright (c) 2026 Neru
+Copyright (c) 2026 itsmeaokiji
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

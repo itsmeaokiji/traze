@@ -13,7 +13,7 @@ Traze links a requested Hemi block to an applicable Bitcoin publication through 
 | Source observations | Records provider views, identity checks, conflicts and observation times |
 | Coverage | Records processed ranges, missing bodies, unsupported formats and unresolved candidates |
 
-Provided-data proof checks, source-view agreement and search completeness answer different questions. Distinct API hosts do not prove independent infrastructure.
+Proof checks on supplied evidence, source-view agreement and search completeness answer different questions. Distinct API hosts do not prove independent infrastructure.
 
 ## Result meanings
 
@@ -33,7 +33,7 @@ The route is visible by default. Select a chain node or open **Inspect record de
 
 ## Boundaries
 
-Traze does not independently execute Hemi, validate the entire Bitcoin header/chainwork/UTXO state, establish authoritative Hemi finality-counter equivalence, or verify PoP reward eligibility. Bitcoin depth and supplied-data proof validity are not substitutes for those guarantees.
+Traze does not independently execute Hemi, validate the entire Bitcoin header/chainwork/UTXO state, establish authoritative Hemi finality-counter equivalence, or verify PoP reward eligibility. Bitcoin depth and proof validity for supplied evidence are not substitutes for those guarantees.
 
 The current codec and rules were reviewed against pinned [heminetwork keystone source](https://github.com/hemilabs/heminetwork/blob/bf771ced8cfd2fb782c3b0d6d0bc8ea87b1e7cc1/hemi/hemi.go) and [publication codec](https://github.com/hemilabs/heminetwork/blob/bf771ced8cfd2fb782c3b0d6d0bc8ea87b1e7cc1/hemi/pop/pop.go). Reviewed source is not automatic evidence of every future deployed format.
 

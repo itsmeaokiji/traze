@@ -40,7 +40,7 @@ export function finalityView(wrapper: ReceiptWrapper, proof?: Proof): {
     && value.operator_source_acceptance === 'exact_context_selected' && value.input_binding?.kind === 'original_receipt') {
     return { kind: 'block', values: block.values, reference: block.reference_publication,
       ama: comparison?.block_values || undefined,
-      description: 'Conditional Hemi-block model using the checked first-height reference and separately accepted recorded-source assumptions.' };
+      description: 'Conditional Hemi-block model using the checked first-publication block-height reference and separately accepted recorded-source assumptions.' };
   }
   const selected = proof && model.publication_calculations.find(item => samePublication(item.publication, proof));
   if (!selected) return { kind: 'unavailable', description: 'The inspected publication has no matching checked calculation.' };

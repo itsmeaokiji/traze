@@ -1,6 +1,6 @@
 # Contributing
 
-Traze is a local prototype. Original Traze code uses the [MIT License](LICENSE).
+Traze is a developer-run Hemi–Bitcoin publication explorer. Original Traze code uses the [MIT License](LICENSE).
 
 Read [development instructions](docs/DEVELOPMENT.md), [verification scope](docs/VERIFICATION.md) and [the roadmap](docs/ROADMAP.md).
 

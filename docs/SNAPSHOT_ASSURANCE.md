@@ -22,9 +22,9 @@ and accepting it without review defeats that trust boundary. Packet fields never
 set either caller option. No option supplies missing or contradictory evidence.
 
 Without acceptance, a mechanically valid packet returns
-`verified_snapshot_evidence`, not a conditional first-height conclusion. The old
+`verified_snapshot_evidence`, not a conditional first-publication conclusion. The old
 history policy does not accept the new snapshot premises. A mismatching caller
-context checksum rejects the stronger assessment. The website only shows its
+context checksum rejects the first-publication assessment. The website only shows its
 qualified label after the same checks and caller acceptance pass.
 
 ## Format and checks
@@ -52,7 +52,7 @@ requested/publisher full hashes and parent/state-root/timestamp metadata to
 authenticated Hemi headers. The selected snapshot must include the publisher,
 and its identity must match the recorded number recheck. Observation times need
 timezones and consistent order. Context/network/profile/domain contradictions
-block a stronger conclusion. Missing context is incomplete. The original interval
+block a conditional first-publication conclusion. Missing context is incomplete. The original interval
 and history witnesses are still checked, not replaced by RPC claims.
 
 The domain includes every eligible same-branch keystone from the covering
@@ -103,8 +103,8 @@ collect fresh snapshot/profile context for arbitrary searches.
 
 Local and public read adapters accept the new policy via `--first-height-policy`
 and the separately selected checksum via `--accept-context`. Existing defaults
-retain their version-2 behavior. The source-free evidence worker receives those
+retain their version-2 behavior. The offline evidence worker receives those
 options from server configuration, never from a visitor request or receipt.
-Source conflicts suspend the stronger label. Downloaded packages include all
+Source conflicts suspend the conditional first-publication label. Downloaded packages include all
 three manifests, the exact bodies, verifier source and these instructions; the
 recipient independently chooses whether to accept the assumptions and context.

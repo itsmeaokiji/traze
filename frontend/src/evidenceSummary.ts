@@ -51,8 +51,8 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
     if (manual) lines.push('Manual selection changes the view only. The JSON export and source recheck use the original receipt.');
   } else lines.push('Publication association: Unresolved. No applicable publication transaction is displayed.', state.summary);
   lines.push('',
-    `Proof checks: ${wrapper.verification.proofs_checked > 0 ? `${formatNumber(wrapper.verification.proofs_checked)} proof record${wrapper.verification.proofs_checked === 1 ? '' : 's'} passed supplied-data checks` : 'No publication proof to check'}`,
-    `Source agreement: ${sourceAgreementText(r)}`,
+    `Proof checks: ${wrapper.verification.proofs_checked > 0 ? `${formatNumber(wrapper.verification.proofs_checked)} proof record${wrapper.verification.proofs_checked === 1 ? '' : 's'} passed checks of supplied evidence` : 'No publication proof to check'}`,
+    `Recorded source agreement: ${sourceAgreementText(r)}`,
     `Result recorded: ${formatDate(r.completed_at)}`,
     `Sources last checked: ${formatDate(r.context?.checked_at)}`, '',
     ...(recorded ? [`Historical source observations: ${historicalSourceTimes(r)}`, ...(r.catalogue?.number_resolved_from_retained_view ? ['Block number resolved from retained metadata; current canonical identity is unconfirmed.'] : [])] : []),

@@ -20,7 +20,7 @@ closed modern runs, matching prior validation records and no active source sessi
 Older pre-closure-format entries may be pinned unchanged when followed by modern
 closed entries and no unsettled reservations; they are not rewritten as closed.
 `prepare` preserves that ledger and the seed catalogue. It creates a SQLite
-snapshot, immutable scope binding and source-free report state in the new index.
+snapshot, immutable scope binding and report state created without external source requests in the new index.
 Repair intervals require one retained compiled body per height; they never admit
 a new raw-body download. Intervals must be disjoint and total at most 200 heights.
 

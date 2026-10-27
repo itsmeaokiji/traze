@@ -1,5 +1,14 @@
 # Changelog
 
+## Documentation and public terminology
+
+- Streamline the README and quickstart; add a task-based documentation index,
+  search reference and terminology guide.
+- Clarify evidence availability, supported payloads and historical source
+  agreement without changing API fields, evidence formats or verification rules.
+- Use the current project attribution consistently across source and supplied
+  website notices; retain third-party notices.
+
 ## Public examples and publication checks
 
 - Use descriptive example/test names and self-contained model explanations while
@@ -125,7 +134,7 @@
 - Responsive React publication connector, record inspector, proof selection and evidence summaries.
 - Portable retained-body fixtures, explicit catalogue body-directory setup and isolated catalogue tests.
 - Public-facing setup/evidence docs and automated-check configuration.
-- MIT project license, Copyright (c) 2026 Neru, with retained third-party notices.
+- MIT project license, Copyright (c) 2026 itsmeaokiji, with retained third-party notices.
 - Independent evidence/input verifiers under scripts/, with explicit proof and input-test results.
 - Runtime dependency notices included with the supplied frontend build.
 - Opt-in finite publication collection, separate keystone-association progress and incremental managed SQLite indexing.

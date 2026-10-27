@@ -22,7 +22,7 @@ The original copyright and permission notice is retained. Source/rule attributio
 
 [Frontend asset notices](frontend/THIRD_PARTY_NOTICES.md) retain font licenses, source pins and mark provenance. Local notices include [Geist OFL text](frontend/licenses/geist-OFL.txt), [Geist Mono OFL text](frontend/licenses/geist-mono-OFL.txt) and [Hemi UI MIT text](frontend/licenses/hemi-ui-MIT.txt).
 
-The Hemi logomark identifies Hemi records. The [MIT project license](LICENSE) covers original Traze code and does not replace third-party terms or grant trademark rights. See [licensing](docs/LICENSE_REVIEW.md).
+The Hemi logomark identifies Hemi records. The [MIT project license](LICENSE) covers original Traze code and does not replace third-party terms or grant trademark rights. See [licensing](docs/LICENSING.md).
 
 ## Frontend runtime and generated helpers
 

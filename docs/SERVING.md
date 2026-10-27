@@ -49,7 +49,7 @@ a new search or Bitcoin range is requested. Source operations retain the existin
 session ledger, deadlines, data/request limits and collector exclusion rules.
 This mode does not start a background collector or expand its allowance.
 
-An ordinary retained positive is reusable without an optional stronger packet;
+An ordinary retained positive is reusable without an optional first-publication verification package;
 retrieval recomputes proof checks and keeps historical source times. Use an
 explicit new lookup or source recheck when fresh public observations are needed.
 Unfinished browser searches may offer a receipt-bound **Continue search** action.

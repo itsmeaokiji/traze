@@ -65,7 +65,7 @@ describe('indexed timeline identity and meaning', () => {
     mount([publication('a', { state: 'pending', association_available: false }), publication('d', { state: 'unsupported', association_available: false, keystone_height: null, keystone_id: null })]);
     expect(document.querySelectorAll('.timeline-row.is-associated')).toHaveLength(0);
     expect(document.querySelectorAll('.timeline-row.is-pending')).toHaveLength(2);
-    expect(screen.getByText('Hemi metadata pending')).toBeTruthy();
+    expect(screen.getByText('Hemi evidence unavailable')).toBeTruthy();
     expect(screen.getByText('No Hemi association asserted')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /Highlight keystone/ })).toHaveLength(1);
     expect(document.body.textContent).toContain('not fresh source checks');
@@ -73,7 +73,7 @@ describe('indexed timeline identity and meaning', () => {
 
   it('does not label an inconsistent availability flag as metadata available', () => {
     mount([publication('a', { association_available: false })]);
-    expect(screen.getByText('Hemi metadata pending')).toBeTruthy();
+    expect(screen.getByText('Hemi evidence unavailable')).toBeTruthy();
     expect(document.querySelector('.timeline-row.is-associated')).toBeNull();
   });
 

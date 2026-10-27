@@ -9,7 +9,7 @@ export function CollectionStatus({ value }: { value?: Collection | null }) {
   return <section className="collection-status" aria-labelledby="collection-heading">
     <div className="collection-heading"><h2 id="collection-heading">Indexed coverage</h2><span>{collectionState(value.state)}</span></div>
     <p className="muted">Collected data available to searches. Coverage for an individual result is shown below with its evidence.</p>
-    {value.processed_blocks !== undefined && <p>{formatNumber(value.processed_blocks)} Bitcoin blocks processed · {formatNumber(value.supported_publications)} supported publications · {formatNumber(value.associated_publications)} keystone associations</p>}
+    {value.processed_blocks !== undefined && <p>{formatNumber(value.processed_blocks)} Bitcoin blocks processed · {formatNumber(value.supported_publications)} publications with supported payloads · {formatNumber(value.associated_publications)} keystone associations</p>}
     {uncertain && <p className="collection-warning">{formatNumber(value.unresolved_publications)} unresolved publications · {formatNumber(value.pending_ancestry)} pending ancestry checks · {formatNumber(value.source_conflicts)} source-view issues</p>}
     {value.state === 'source_conflict' && <p className="collection-warning">Conflicting source views require review. Retained evidence remains historical.</p>}
     {['blocked', 'incomplete', 'limited', 'storage_limited'].includes(value.state) && <p className="collection-warning">Collection is not advancing. Available evidence is limited to collected coverage.</p>}

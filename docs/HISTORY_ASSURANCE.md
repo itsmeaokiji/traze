@@ -1,4 +1,4 @@
-# History witnesses and conditional first-height assessment
+# History witnesses and conditional first-publication assessment
 
 The offline `traze_evidence` command supports a separate version-2 packet that combines an existing anchored interval packet with authenticated Hemi history-contract account/storage witnesses. It requires Python 3.10 or newer and the standard library. It performs no RPC requests and needs no node, Traze service, cache, ledger or additional package.
 
@@ -105,9 +105,9 @@ The conclusion is the first applicable Bitcoin **block height** supporting the r
 | --- | --- |
 | 0 | Mechanical evidence passed; inspect the assessment and accepted-policy fields to distinguish evidence-only from conditional success |
 | 2 | Invalid, contradictory or malformed evidence/identity; argparse also uses 2 for invalid command arguments |
-| 3 | Incomplete or unsupported stronger evidence/profile |
+| 3 | Incomplete or unsupported first-publication evidence/profile |
 
-When interval verification passed but a history witness is missing, unsupported or invalid, the version-2 result preserves those valid interval facts while blocking the stronger assessment. A missing witness is not an authenticated absence of a publication. Wrong roots/values or other proof contradictions cannot promote the result. An authentic account with another runtime is unsupported. Missing interval bodies or unresolved earlier candidates still fail the base interval contract.
+When interval verification passed but a history witness is missing, unsupported or invalid, the version-2 result preserves those valid interval facts while blocking the first-publication assessment. A missing witness is not an authenticated absence of a publication. Wrong roots/values or other proof contradictions cannot promote the result. An authentic account with another runtime is unsupported. Missing interval bodies or unresolved earlier candidates still fail the base interval contract.
 
 No profile mismatch, source conflict, absent history proof, packet flag or accepted-policy option can override a failed mechanical check. Historical provenance remains historical; there is no implicit RPC refresh.
 
@@ -117,7 +117,7 @@ The existing interval caps remain: a 2,000,000-byte manifest, 4,096 Hemi headers
 
 These are local verification resource bounds. They are not adversary-work parameters in the computational security model. Full-state membership does not replay Hemi execution or rollup derivation, prove a profile's historical deployment, validate every privileged operation, select the most-work Bitcoin chain or make the hypothetical random-oracle model a concrete-hash theorem.
 
-The parent-based argument does not require the anchor's own slot to survive indefinitely, but the implemented complete packet still has the 4,096-header ancestry cap. A successful synthetic membership check with an older anchor does not demonstrate an unlimited full-packet route. A real packet exceeding the verification envelope remains unsupported/incomplete rather than receiving a stronger assurance.
+The parent-based argument does not require the anchor's own slot to survive indefinitely, but the implemented complete packet still has the 4,096-header ancestry cap. A successful synthetic membership check with an older anchor does not demonstrate an unlimited full-packet route. A real packet exceeding the verification envelope remains unsupported/incomplete rather than receiving a conditional first-publication conclusion.
 
 Normal Explorer visitors do not need this command or a local file download. Website integration is separate from this offline extension.
 

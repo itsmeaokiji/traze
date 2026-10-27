@@ -89,8 +89,8 @@ describe('Portable evidence actions', () => {
     render(<EvidenceView wrapper={wrapper} {...props} fresh />);
     expect(text()).toContain('Result: Evidence retained · source recheck timed out');
     expect(text()).toContain('Origin: Source recheck · Controlled test data; not a live chain observation');
-    expect(text()).toContain('4 proof records passed supplied-data checks');
-    expect(text()).toContain('Source agreement: Incomplete at the recorded check');
+    expect(text()).toContain('4 proof records passed checks of supplied evidence');
+    expect(text()).toContain('Recorded source agreement: Incomplete at the recorded check');
     expect(text()).toContain('Coverage from the original search');
     expect(text()).toContain('Source recheck timed out. Retained evidence');
     expect(text()).not.toContain('Internal reservation/socket diagnostic');
@@ -115,7 +115,7 @@ describe('Portable evidence actions', () => {
 
   it('counts March proof records separately from its one checked Bitcoin block', () => {
     render(<EvidenceView wrapper={wrap(marchData)} {...props} />);
-    expect(text()).toContain('6 proof records passed supplied-data checks');
+    expect(text()).toContain('6 proof records passed checks of supplied evidence');
     expect(text()).toContain('Fully scanned Bitcoin blocks: 1');
     expect(text()).toContain('Published keystone: 4,028,450');
     expect(text()).toContain('Requested block supported through the displayed later-keystone publication');

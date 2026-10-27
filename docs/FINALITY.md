@@ -1,4 +1,4 @@
-# Offline finality calculations
+# Reference finality calculations
 
 The standalone calculator recomputes named height models from retained publication
 evidence. It does not call a finality endpoint, start collection, change receipts
@@ -33,7 +33,7 @@ Neither profile establishes equivalence with the deployed public endpoint.
 The calculator does **not** emulate the whole BFG RPC handler. That handler queries
 keystone validity/descendants and a Bitcoin backend, compares candidates in batches
 and can stop after its ultrafinality threshold. The offline block model instead
-uses a separately justified conditional first-height reference. Numerical formula
+uses a separately justified conditional first-publication block-height reference. Numerical formula
 agreement alone is not proof of identical handler behavior.
 
 ## Run a publication calculation
@@ -49,7 +49,7 @@ This example recomputes six ordinary publication proofs and returns
 the recorded tip gives inclusive depth 7,245, BFG effective confirmations 7,244
 and the profile's `super_finality=true`. Those historical numbers are not the
 current finality of Hemi. The Hemi-block calculation remains `not_established`
-without stronger reference evidence and caller acceptance.
+without first-publication reference evidence and caller acceptance.
 
 Add `--profile ama-signed-nine-block-model` to calculate the signed-counter
 signed model. It returns signed counter 7,235 for the same historical inputs;
@@ -57,7 +57,7 @@ it does not relabel BFG's effective-confirmation field.
 
 ## Conditional Hemi-block calculation
 
-The stronger mode requires all of the following:
+The conditional Hemi-block mode requires all of the following:
 
 1. The ordinary receipt is recomputed and bound to the independently requested
    Hemi number/hash and Bitcoin tip height/hash. Supplied Hemi header metadata and
@@ -108,7 +108,7 @@ untrusted packet. Modified receipt bytes require a new review and context choice
 On success the overall status is `conditional_block_calculation`, with block status
 `calculated_under_accepted_recorded_assumptions`. The block reference remains
 separate from `display_selection`: choosing another retained publication does not
-silently replace the conditional first-height reference. Its model applies only
+silently replace the conditional first-publication block-height reference. Its model applies only
 within the accepted Hemi snapshot and recorded Bitcoin-view assumptions.
 
 ## Output and failure meanings
@@ -154,7 +154,7 @@ without starting another child. No persistent calculation-success cache is used.
 Reference vectors are labelled **code-traced expected values**. Neither the Go
 reference service nor a live deployed finality endpoint was executed for those
 vectors. Tests combine them with actual retained receipts, the original public
-snapshot packet, source-free CLI execution and malformed/altered-input controls.
+snapshot packet, offline CLI execution and malformed/altered-input controls.
 Historical success does not establish arbitrary-input coverage, current finality,
 sustained performance, PoP rewards or production readiness.
 
@@ -169,7 +169,7 @@ calculation scope. Reopening the page does not advance the tip or refresh source
 The conditional Hemi-block reference never follows inspector selection.
 
 `finality.calculation` contains the standalone result. `finality.comparison` holds
-AMA values derived from the same checked publication identities and tip; this
+Signed-counter comparison values derived from the same checked publication identities and tip; this
 does not execute the proof checker twice. `finality.input_binding` identifies the
 original receipt and exact calculation-input checksums. Failed or unavailable
 calculation inputs produce `calculation: null`, not zero finality. Incomplete

@@ -1,6 +1,6 @@
 # Licensing and attribution
 
-Original Traze code is licensed under the [MIT License](../LICENSE), Copyright (c) 2026 Neru.
+Original Traze code is licensed under the [MIT License](../LICENSE), Copyright (c) 2026 itsmeaokiji.
 
 Third-party code and assets retain their copyright, license and attribution requirements. The project license does not grant trademark rights or imply Hemi endorsement.
 

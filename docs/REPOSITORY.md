@@ -2,8 +2,8 @@
 
 | Path | Purpose |
 | --- | --- |
-| hemi_lookup/ | Public-data discovery, supplied-data verification, accounting and SQLite catalogue |
-| traze_evidence/ | Standalone, source-free interval and conditional first-height verifier required by the website |
+| hemi_lookup/ | Public-data discovery, verification of supplied evidence, accounting and SQLite catalogue |
+| traze_evidence/ | Standalone, offline interval and conditional first-height verifier required by the website |
 | hemi_lookup_cli.py, hemi_lookup_web.py, hemi_catalogue.py | CLI, local browser server and catalogue entry points |
 | frontend/ | React/TypeScript source, dependency manifest and asset notices |
 | web/ | Supplied frontend build and distribution license text |
@@ -11,7 +11,7 @@
 | catalogue_demo/ | Retained-data reference consumer |
 | tests/ | Product regression tests, controlled source servers and historical fixtures |
 | demo_results/ | Publication evidence examples and a scoped-negative packet |
-| examples/snapshot-first-height/ | Optional public mainnet packet for source-free version-3 snapshot verification |
+| examples/snapshot-first-height/ | Optional public mainnet packet for offline version-3 snapshot verification |
 | docs/ | Setup, development, verification, licensing and roadmap documentation |
 
 [repository-files.json](../repository-files.json) defines the source distribution. Runtime cache, SQLite state, installed dependencies and generated reports are excluded.
@@ -30,7 +30,7 @@ The optional snapshot example contains ten separate Bitcoin bodies totaling
 than installed runtime state. It does not change the quickstart's catalogue
 counts and never accepts external assumptions on the reader's behalf.
 
-Receipt JSON and binary fixtures disable Git text normalization. Preserve their exact bytes and source observations. Frontend notices accompany the generated build; see [licensing](LICENSE_REVIEW.md).
+Receipt JSON and binary fixtures disable Git text normalization. Preserve their exact bytes and source observations. Frontend notices accompany the generated build; see [licensing](LICENSING.md).
 
 ## Text and example checks
 
