@@ -140,7 +140,7 @@ The response contains:
 - `finality`: an additive `traze-web-finality-assessment-v1` object. Supported
   named reference arithmetic uses a recorded Bitcoin tip, never the request time.
   `calculation` is the checked BFG reference result or `null`; `comparison` keeps
-  AMA-model values separately named. The block calculation can remain `null`
+  signed-counter comparison values separately named. The block calculation can remain `null`
   while publication-only arithmetic is available. `input_binding` supplies exact
   receipt checksums and any explicit derived-input overrides. See the
   [calculation contract](FINALITY.md) for statuses, assumptions and reproduction.

@@ -64,7 +64,7 @@ export function finalitySummary(wrapper: ReceiptWrapper, proof?: Proof): string[
       `BFG reference threshold: ${view.values.super_finality ? 'Reached' : 'Not reached'} (T - H >= 10).`,
       `Inclusive Bitcoin depth: ${formatNumber(view.values.raw_bitcoin_confirmations)}.`,
       `Recorded source consistency: ${wrapper.finality.source_conflict ? 'conflicting retained source views' : model.source_context.status}.`);
-    if (view.ama) lines.push(`Separate AMA model signed counter: ${formatNumber(view.ama.signed_counter)} (T - H - 9).`);
+    if (view.ama) lines.push(`Signed-counter comparison: ${formatNumber(view.ama.signed_counter)} (T - H - 9).`);
     if (view.kind === 'block') lines.push('Inspecting another publication does not change this Hemi-block reference.');
     const snapshot = model.first_height_evidence.context;
     if (snapshot?.snapshot) lines.push(`Separate Hemi snapshot: ${formatNumber(snapshot.snapshot.number)}, observed ${formatDate(snapshot.observed_from)}–${formatDate(snapshot.observed_through)}. These observations are not a certified simultaneous cross-chain snapshot.`);

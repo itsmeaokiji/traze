@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import ordinaryData from '../../demo_results/mainnet_5243117.json';
 import keystoneData from '../../demo_results/mainnet_5243125.json';
-import marchData from '../../demo_results/milestone3_march_later_hash_20261004T174823173306Z.json';
+import marchData from '../../demo_results/mainnet_4028425_hash.json';
 import negativeData from '../../demo_results/scoped_no_match.json';
 import { selectedProof } from './format';
 import { PublicationRoute } from './PublicationRoute';

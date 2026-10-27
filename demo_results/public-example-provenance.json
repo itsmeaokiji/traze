@@ -1,0 +1,55 @@
+{
+  "schema": "traze-public-example-provenance-v1",
+  "source_commit": "8cbe8e3d8c099575348815ee892480012f7ca2af",
+  "derivation": "Development-run identifiers, installation-wide accounting and stage bookkeeping omitted. Proofs, observations and material methodology remain historical.",
+  "files": {
+    "demo_results/mainnet_4028425_automatic.json": {
+      "original_sha256": "82e1184e6a564017ed4bf6a63a6fcc5bf6d413ea7df1993cf83bb4bbc27e85e5",
+      "public_sha256": "c9a38ca6fb82e877af85f3d291b415d32ddb03125ca363e02ba0ba067c03dc9e",
+      "source_blob": "c68addc2a39c6ae7eeddd3c19d297879e13ea5ae"
+    },
+    "demo_results/mainnet_4028425_hash.json": {
+      "original_sha256": "98043185fd1c134430c991b5e06335179763e6b35383fd6948a2a5200b19cf37",
+      "public_sha256": "45cdc2c67e62fc58a44cbcd488a124d4cdc29adb89d7d637a9f6f00ee81aed0b",
+      "source_blob": "9d41d6b559e700d94d1cb42dff4b29755f6af529"
+    },
+    "demo_results/mainnet_5243117.json": {
+      "original_sha256": "2487f17691523c3c5e0f619faff78e17cd51b6b21137173956d5a0a1a75a65c1",
+      "public_sha256": "4f6ece5b23f765fe0de2f274ee0ea2d5c82fbf9ce3dfa6bc85bef00a7f3ab1b1",
+      "source_blob": "a14cedc3c8d884036ed178ec8d97f87222825344"
+    },
+    "demo_results/mainnet_5243125.json": {
+      "original_sha256": "05e312109b685db55067a4fdce8fa69b1f7554729dc8a36c15ee09d952f8b030",
+      "public_sha256": "8640ac4d864221455956b4a598c32ff1000d746757b35e52859525e68d0ada67",
+      "source_blob": "1620f966d1548bf204ab64e8eea7fea597ebbe26"
+    },
+    "demo_results/scoped_no_match.json": {
+      "original_sha256": "7097adc25dc545a435e28a1b03e2f2ac6d9854ecd85a7f95164689ca7bc79281",
+      "public_sha256": "52ce617b9e32e33a090a38c5c8c2cde241e6381d461db9eb406b784d0fcbd509",
+      "source_blob": "8ffded7123637e89b0b8e9a0847f967fd8b0f35d"
+    },
+    "tests/fixtures/source-feasibility/bitcoin-metadata.json": {
+      "original_sha256": "53c4b54fbb1e2a585bda5c048cf80febb2270e98caaff3175e6c281110e3a655",
+      "public_sha256": "7b6fd363cee4d2982aaf28e5969815384ed6cf7c5d1c7d44f353853251ff11ea",
+      "source_blob": "9522299805d0f6a97319344fbb71702b0bbd3468"
+    },
+    "demo_results/mainnet_5243118_catalogue.json": {
+      "original_sha256": "8f9d7b0d1ae4853d7b8482667a095854499fc27161ba6f70f0c09c45a50eeb15",
+      "public_sha256": "63eb30a4241d4a0c3e5d07f49696ad75b5543b8315610007b854685bd9f40388",
+      "derivation": "Rebuilt offline from public import receipts; mathematical proof inputs and requested identity unchanged.",
+      "source_blob": "99cf40a386b5d2c76611152e15a2784fd0fb12c7"
+    },
+    "demo_results/main_catalogue_5243119.json": {
+      "original_sha256": "75ec980e820dfdd38b9d60db116f2ba8afa550ff08e8b460a3fbcb10368d550e",
+      "public_sha256": "e149ae0392f17acedf1b045b6b98cbab5361b17c0765fb67270714aa22a9cacc",
+      "derivation": "Rebuilt offline from public import receipts; mathematical proof inputs and requested identity unchanged.",
+      "source_blob": "31dbdfd13936cde946616c4d9461499bde573408"
+    },
+    "tests/fixtures/finality/website_assessment_5200117.json": {
+      "original_sha256": "ad9067c7e263b9ac587625a6133b47ddc2c6b8460c76e2bc13231eb6f3cd29e0",
+      "public_sha256": "d27dd0604cb43c6884e7536e74b96535ecb664caf2fd7b256ab37d796feb4b3b",
+      "derivation": "Only the comparison description is normalized; calculated values, inputs and bindings are unchanged.",
+      "source_blob": "16334236b130a29047b511c876ca23a9cb343a51"
+    }
+  }
+}

@@ -19,7 +19,7 @@ match the separately included
 Its assumptions and later Hemi observation times remain explicit and separate.
 
 `reference_vectors.json` records ten arithmetic cases traced to the pinned BFG
-routine/constant and the supplied signed AMA model. The archived-source checksums
+routine/constant and the explicit signed-counter comparison. The archived-source checksums
 bind the reviewed public reference bytes. They are not outputs from an executed
 Go service or a deployed mainnet endpoint. Height-zero and uint32-boundary vectors
 are numerical controls, not actual publication claims.
@@ -28,10 +28,15 @@ Tests use these fixtures together with existing direct/later-keystone historical
 receipts. Temporary corruption and metadata changes are controlled negative cases;
 the original files are not edited. See [the calculation contract](../../../docs/FINALITY.md).
 
-`website_assessment_5200117.json` is an actual source-free website-worker result
+`website_assessment_5200117.json` is derived from a source-free website-worker result
 for `recorded_5200117.json` and the included version-3 snapshot packet, with the
 fixture's exact snapshot/source contexts explicitly selected. It contains both
 named arithmetic models and a conditional recorded block reference; it is not a
-fresh or deployed-reference response. UI tests add controlled presentation-only
+fresh or deployed-reference response. Its public comparison description is
+normalized to the self-contained model definition; historical inputs and
+calculated values are unchanged. UI tests add controlled presentation-only
 receipt metadata without changing the historical proofs. Packet input accounting
 is specific to this retained example and is not a production cost benchmark.
+
+[Public-copy fingerprints](../../../demo_results/public-example-provenance.json)
+retain the original assessment provenance.

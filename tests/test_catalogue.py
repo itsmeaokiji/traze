@@ -32,7 +32,7 @@ TARGETS = (
 class CatalogueTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        qa_root = (ROOT / "output/qa-temp-phase1").resolve()
+        qa_root = (ROOT / "output/qa-temp-catalogue").resolve()
         assert qa_root.is_relative_to(ROOT.resolve())
         qa_root.mkdir(parents=True, exist_ok=True)
         cls.temporary = tempfile.TemporaryDirectory(prefix="traze_catalogue_test_", dir=qa_root)

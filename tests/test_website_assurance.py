@@ -1,4 +1,4 @@
-"""Website assurance boundaries independent of private historical artifacts."""
+"""Website assurance boundaries using isolated retained-data fixtures."""
 
 from copy import deepcopy
 import json

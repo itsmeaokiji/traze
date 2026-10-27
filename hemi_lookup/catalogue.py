@@ -20,7 +20,7 @@ from .proof import SCHEMA, same_header, verify_proof, verify_receipt
 CATALOGUE_SCHEMA = "traze-offline-catalogue-v1"
 DEFAULT_RECEIPTS = (
     "demo_results/mainnet_5243117.json",
-    "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+    "demo_results/mainnet_4028425_automatic.json",
 )
 
 

@@ -1,23 +1,25 @@
 {
   "schema": "traze-retained-bitcoin-corpus-v1",
   "prepared_date": "2026-10-12 Asia/Manila",
-  "qualification": "Copied from existing retained evidence; no new chain request. Heights and historical source views are recorded observations, not independent chain-position or current-consensus verification. Hashes bind fixture bytes; parser/proof checks are separate.",
+  "qualification": "Copied from existing retained evidence; no new chain request. Heights and historical source views are recorded observations, not independent chain-position or current-consensus verification. Hashes bind fixture bytes; parser/proof checks are separate. Public receipt copies omit development bookkeeping; captured-receipt fingerprints retain provenance. Bitcoin body bytes and source observations are unchanged.",
   "receipts": [
     {
       "path": "demo_results/mainnet_5243117.json",
-      "sha256": "2487f17691523c3c5e0f619faff78e17cd51b6b21137173956d5a0a1a75a65c1",
+      "sha256": "4f6ece5b23f765fe0de2f274ee0ea2d5c82fbf9ce3dfa6bc85bef00a7f3ab1b1",
       "started_at": "2026-10-03T13:27:44.130039+00:00",
       "completed_at": "2026-10-03T13:29:09.046939+00:00",
       "original_hemi_block": 5243117,
-      "source_checked_at": "2026-10-03T13:28:50.832423+00:00"
+      "source_checked_at": "2026-10-03T13:28:50.832423+00:00",
+      "captured_receipt_sha256": "2487f17691523c3c5e0f619faff78e17cd51b6b21137173956d5a0a1a75a65c1"
     },
     {
-      "path": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
-      "sha256": "82e1184e6a564017ed4bf6a63a6fcc5bf6d413ea7df1993cf83bb4bbc27e85e5",
+      "path": "demo_results/mainnet_4028425_automatic.json",
+      "sha256": "c9a38ca6fb82e877af85f3d291b415d32ddb03125ca363e02ba0ba067c03dc9e",
       "started_at": "2026-10-04T16:58:51.956068+00:00",
       "completed_at": "2026-10-04T17:00:34.641491+00:00",
       "original_hemi_block": 4028425,
-      "source_checked_at": "2026-10-04T17:00:22.620905+00:00"
+      "source_checked_at": "2026-10-04T17:00:22.620905+00:00",
+      "captured_receipt_sha256": "82e1184e6a564017ed4bf6a63a6fcc5bf6d413ea7df1993cf83bb4bbc27e85e5"
     }
   ],
   "bodies": [
@@ -29,7 +31,7 @@
       "sha256": "bf32962e2545a3031076cf40f60e88a04102d8bb6cb3c1b6fad04aae68d45cfe",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "https://blockstream.info/api",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -43,7 +45,7 @@
       "sha256": "766a29ebb371df0e0810691e96d41577ac6c0087be8fa3088a3924208021d385",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -57,7 +59,7 @@
       "sha256": "b32878be83b00e885986651b4e78e8be1566ea9a9f919953694890547299b3f2",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -71,7 +73,7 @@
       "sha256": "ee5b8a1586d8c9317d0f0cbc955ca12a13b778c16ac2307413e0d83365920708",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -85,7 +87,7 @@
       "sha256": "b825c0b65ccbcbab44e0b47068e13d29e8f86dedb291d0fcfb76c055466c72f8",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -99,7 +101,7 @@
       "sha256": "a15a3fb5ac3e141bdde1236a8046f41669bcc708a547d9c8f9fd655f433b77e4",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -113,7 +115,7 @@
       "sha256": "f27de1624503c486c2a3b05fcec73551bc89d23e9d543e1be89b5847141bc3b4",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -127,7 +129,7 @@
       "sha256": "3df1219bb632903428ca9c9a2193b8b6e700a525d59bb9abe57d6e3968789ed9",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -141,7 +143,7 @@
       "sha256": "2e5fcc3e9d8b4194db56a90315ea7ccbbda331282160ddd96c6ac53133c218be",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -155,7 +157,7 @@
       "sha256": "9e3dceb2aad9711f7b90bf2a5295e6d3fe5871cfcc51cad0e23c8d8c7b5a986f",
       "observations": [
         {
-          "receipt": "demo_results/milestone2_automatic_20261004T170034660491Z.json",
+          "receipt": "demo_results/mainnet_4028425_automatic.json",
           "recorded_body_source": "verified_local_body_cache",
           "receipt_completed_at": "2026-10-04T17:00:34.641491+00:00"
         }
@@ -261,5 +263,6 @@
     }
   ],
   "body_count": 17,
-  "total_body_bytes": 25845550
+  "total_body_bytes": 25845550,
+  "public_metadata_updated": "2026-10-27"
 }

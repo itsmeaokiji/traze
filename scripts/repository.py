@@ -10,7 +10,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parent.parent
 BLOCKED = {".hemi_lookup_data", ".git", "node_modules", "__pycache__", "output", ".codex", ".agents", ".aws"}
-TEXT = {".py", ".mjs", ".js", ".ts", ".tsx", ".json", ".md", ".yml", ".yaml", ".html", ".css", ".txt"}
+BINARY = {".bin", ".woff2", ".png", ".jpg", ".jpeg"}
 CREDENTIALS = (
     ("github_token", re.compile(r"gh[pousr]_[A-Za-z0-9]{24,}")),
     ("github_fine_grained_token", re.compile(r"github_pat_[A-Za-z0-9_]{50,}")),
@@ -19,7 +19,52 @@ CREDENTIALS = (
     ("private_key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
 )
 USER_PATH = re.compile(r"(?:[A-Za-z]:[\\/]+Users[\\/]+[A-Za-z0-9_][A-Za-z0-9_ .-]*[\\/]|/Users/[A-Za-z0-9_][A-Za-z0-9_.-]*/)")
-SESSION_TEXT = re.compile(r"\b(?:owner (?:approved|selected)|agent records (?:its|the) review|already-approved aggregate|authorize a new (?:live|validation) scope|current resume point|closed allowances|visual thesis)\b", re.IGNORECASE)
+SESSION_TEXT = re.compile(r"\b(?:owner (?:approved|selected)|agent records (?:its|the) review|already-approved aggregate|authorize a new (?:live|validation) scope|current resume point|closed allowances|visual thesis|closed experiment|supplied AMA answer|Hemi PoP Q&A transcript, section)\b", re.IGNORECASE)
+STAGE_COMMENT = re.compile(r'''(?im)^\s*(?://|\#|"{3}|'{3}).*\b(?:F\d+|H\d+)\s+(?:integration|worker result)\b''')
+STAGE_FILE = re.compile(r"^(?:milestone\d+_|phase\d+_|test_h\d+_)", re.IGNORECASE)
+
+
+def inspect_text(relative, raw):
+    """Scan every UTF-8 file, regardless of its extension; never echo its data."""
+    problems = []
+    try:
+        text = raw.decode('utf-8-sig')
+        if '\0' in text:
+            raise ValueError('NUL is not permitted in selected text')
+    except (UnicodeDecodeError, ValueError):
+        if PurePosixPath(relative).suffix.lower() not in BINARY:
+            problems.append({'file': relative, 'kind': 'invalid_text_encoding'})
+        return None, problems
+    for name, pattern in CREDENTIALS:
+        if pattern.search(text):
+            problems.append({'file': relative, 'kind': name})
+    if USER_PATH.search(text):
+        problems.append({'file': relative, 'kind': 'machine_specific_user_path'})
+    if relative != 'scripts/repository.py' and (SESSION_TEXT.search(text) or STAGE_COMMENT.search(text)):
+        problems.append({'file': relative, 'kind': 'working_session_narrative'})
+    if STAGE_FILE.search(PurePosixPath(relative).name):
+        problems.append({'file': relative, 'kind': 'stage_specific_filename'})
+    if relative.endswith('.json') and relative.startswith(('demo_results/', 'tests/fixtures/')):
+        try:
+            value = json.loads(text)
+        except ValueError:
+            problems.append({'file': relative, 'kind': 'invalid_json_example'})
+        else:
+            def bookkeeping(item):
+                if isinstance(item, dict):
+                    if 'milestone_usage' in item:
+                        return True
+                    resources = item.get('resources')
+                    if isinstance(resources, dict) and resources.keys() & {'run_id', 'response_bytes_session_with_prior_validation'}:
+                        return True
+                    validation = item.get('validation')
+                    if isinstance(validation, dict) and validation.keys() & {'milestone', 'new_bitcoin_bodies_permitted'}:
+                        return True
+                    return any(bookkeeping(child) for child in item.values())
+                return isinstance(item, list) and any(bookkeeping(child) for child in item)
+            if bookkeeping(value):
+                problems.append({'file': relative, 'kind': 'development_example_bookkeeping'})
+    return text, problems
 
 
 def safe_file(root, relative):
@@ -69,7 +114,7 @@ def check_startup(root, files):
 
 def check(root):
     files = selected(root)
-    problems, links, total = [], 0, 0
+    problems, links, total, text_files, binary_files = [], 0, 0, 0, 0
     for relative in files:
         path = safe_file(root, relative)
         raw = path.read_bytes()
@@ -80,16 +125,12 @@ def check(root):
                 problems.append({"file": relative, "kind": "image_extension_mismatch"})
         if relative.startswith("HEMI_") or relative in {"tests/test_milestone2.py", "tests/test_source_feasibility.py"}:
             problems.append({"file": relative, "kind": "experiment_only_material"})
-        if path.suffix not in TEXT:
+        text, findings = inspect_text(relative, raw)
+        problems.extend(findings)
+        if text is None:
+            binary_files += 1
             continue
-        text = raw.decode("utf-8")
-        for name, pattern in CREDENTIALS:
-            if pattern.search(text):
-                problems.append({"file": relative, "kind": name})
-        if USER_PATH.search(text):
-            problems.append({"file": relative, "kind": "machine_specific_user_path"})
-        if relative != "scripts/repository.py" and SESSION_TEXT.search(text):
-            problems.append({"file": relative, "kind": "working_session_narrative"})
+        text_files += 1
         if path.suffix == ".md":
             for match in re.finditer(r"\[[^\]\n]*\]\(([^)\n]+)\)", text):
                 target = match.group(1).strip()
@@ -118,7 +159,7 @@ def check(root):
     for receipt in corpus["receipts"]:
         raw = safe_file(root, receipt["path"]).read_bytes()
         if hashlib.sha256(raw).hexdigest() != receipt["sha256"]:
-            problems.append({"file": receipt["path"], "kind": "original_receipt_bytes_changed"})
+            problems.append({"file": receipt["path"], "kind": "fixture_receipt_bytes_changed"})
     if len(corpus["bodies"]) != corpus["body_count"] or body_bytes != corpus["total_body_bytes"]:
         problems.append({"file": str(corpus_path.relative_to(root)), "kind": "fixture_manifest_totals"})
     distribution = (root / "frontend/public/THIRD_PARTY_LICENSES.txt").read_bytes()
@@ -136,6 +177,7 @@ def check(root):
                          'detail': startup.get('error', 'Runtime import failed')})
     return {"status": "passed" if not problems else "failed", "selected_files": len(files),
             "selected_bytes": total, "local_links_checked": links,
+            "text_files_checked": text_files, "binary_files_checked": binary_files,
             "fixture_bodies": len(corpus["bodies"]), "fixture_bytes": body_bytes,
             "startup": startup, "problems": problems, "chain_requests": 0}, files
 

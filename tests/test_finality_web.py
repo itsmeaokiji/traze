@@ -1,4 +1,4 @@
-"""F2 integration using retained chain evidence and labelled resource controls."""
+"""Website finality integration using retained chain evidence and labelled resource controls."""
 
 from copy import deepcopy
 import hashlib

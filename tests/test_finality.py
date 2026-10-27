@@ -80,7 +80,7 @@ class ReceiptCalculationTests(unittest.TestCase):
             accepted_source_policy=finality.SOURCE_POLICY, accepted_source_context_sha256=source, **options)
 
     def test_actual_direct_and_later_receipts_recompute_all_proofs(self):
-        paths = ['demo_results/mainnet_5243117.json', 'demo_results/milestone2_automatic_20261004T170034660491Z.json']
+        paths = ['demo_results/mainnet_5243117.json', 'demo_results/mainnet_4028425_automatic.json']
         for name in paths:
             with self.subTest(name=name):
                 receipt = finality.load_receipt(ROOT / name)

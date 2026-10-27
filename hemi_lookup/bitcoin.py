@@ -1,4 +1,4 @@
-"""Bitcoin parsing and Hemi v1 keystone codec, ported from validated experiments.
+"""Bitcoin transaction parsing and Hemi v1 keystone payload decoding.
 
 This module checks serialization and commitments; it is not a consensus node.
 """

@@ -33,7 +33,7 @@ The body-directory option is explicit. Without it, the catalogue command retains
 ## Start the app and search your own block
 
 A clean setup uses the supplied historical fixture corpus. It does not include
-an operator's private maintained index, lifetime ledger or later pilot data.
+an existing maintained index, lifetime ledger or previously acquired installation data.
 Searches first reuse available evidence and, in discovery mode, attempt bounded
 public-data discovery when required.
 

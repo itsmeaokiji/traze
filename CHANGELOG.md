@@ -1,5 +1,14 @@
 # Changelog
 
+## Public examples and publication checks
+
+- Use descriptive example/test names and self-contained model explanations while
+  preserving existing profile identifiers and arithmetic.
+- Supply derived examples without development bookkeeping, with explicit source
+  provenance and updated import fingerprints. Bitcoin evidence stays unchanged.
+- Inspect every selected UTF-8 text file, including deployment templates, SVGs
+  and extensionless files, and reject development-only example metadata.
+
 ## Local connection overload handling
 
 - Send retryable HTTP 503 replies and briefly drain incoming request data before

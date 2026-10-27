@@ -2151,9 +2151,7 @@
     "hash": "0000000000000000000039490bcc951aa812dc2c2262fe7eea7bed2b9ad62c54"
   },
   "resources": {
-    "run_id": "c2654df0a66d",
     "response_bytes_this_run": 284761,
-    "response_bytes_session_with_prior_validation": 51606768,
     "bitcoin_body_attempts": 0,
     "cache_body_reads": 7,
     "http_requests": 122,

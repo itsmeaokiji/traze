@@ -23,7 +23,7 @@ class VisualJobs(Jobs):
 
 
 if __name__ == "__main__":
-    with tempfile.TemporaryDirectory(prefix="traze_visual_step7_") as directory:
+    with tempfile.TemporaryDirectory(prefix="traze_visual_states_") as directory:
         root = Path(directory).resolve()
         assert root.is_relative_to(Path(tempfile.gettempdir()).resolve())
         samples = root / "demo_results"
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         control("c", "Controlled source conflict", ordinary, mode="live_metadata_refresh", issue={"code": "source_conflict", "message": "Controlled mismatch"}, conflict=True)
         control("d", "Controlled incomplete without proof", negative)
         control("e", "Controlled incomplete with proof", ordinary)
-        jobs.receipts["0" * 32] = {"path": ROOT / "demo_results/milestone3_march_later_hash_20261004T174823173306Z.json", "label": "March later-keystone case", "origin": "saved_example"}
+        jobs.receipts["0" * 32] = {"path": ROOT / "demo_results/mainnet_4028425_hash.json", "label": "March later-keystone case", "origin": "saved_example"}
         server = LocalServer(8767, jobs)
 
         def commands():

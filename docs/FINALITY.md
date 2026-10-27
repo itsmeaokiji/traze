@@ -13,10 +13,10 @@ recorded Bitcoin tip height. Every result names its profile.
 | Profile | Calculation | Threshold meaning |
 | --- | --- | --- |
 | `bfg-v2-464bcdf0-reference` | Effective confirmations = T - H | The pinned routine's `super_finality` is true at T - H >= 10 |
-| `ama-signed-nine-block-model` | Signed counter = T - H - 9 | The transcript-described model reaches zero at T = H + 9 |
+| `ama-signed-nine-block-model` | Signed counter = T - H - 9 | The signed-counter comparison reaches zero at T = H + 9 |
 
 Ordinary inclusive Bitcoin depth is T - H + 1 and remains a separate field. For a
-publication at 100 and tip 109, inclusive depth is 10, the AMA counter is zero,
+publication at 100 and tip 109, inclusive depth is 10, the signed comparison counter is zero,
 and the pinned BFG arithmetic returns effective confirmations 9 with
 `super_finality=false`. At tip 110, those values become 11, 1, and 10/true.
 These are illustrative arithmetic cases, not observations of a deployed node.
@@ -25,9 +25,10 @@ The BFG profile pins revision
 `464bcdf0af87fdcfd0544532f92ca4e094384574`: its
 [calculation/selection source](https://github.com/hemilabs/heminetwork/blob/464bcdf0af87fdcfd0544532f92ca4e094384574/service/bfg/bfg.go)
 and [API constant](https://github.com/hemilabs/heminetwork/blob/464bcdf0af87fdcfd0544532f92ca4e094384574/api/bfgapi/bfgapi.go).
-The signed profile is the mathematical interpretation of the supplied AMA answer,
-not an alternative claim about that binary. The relationship between the two
-interfaces and the deployed public endpoint remains unverified.
+The signed-counter comparison is defined here as T - H - 9. It reaches zero
+at T = H + 9 and is not an alternative claim about the pinned binary. Its
+existing profile ID is retained for compatibility with saved calculations.
+Neither profile establishes equivalence with the deployed public endpoint.
 
 The calculator does **not** emulate the whole BFG RPC handler. That handler queries
 keystone validity/descendants and a Bitcoin backend, compares candidates in batches
@@ -50,7 +51,7 @@ and the profile's `super_finality=true`. Those historical numbers are not the
 current finality of Hemi. The Hemi-block calculation remains `not_established`
 without stronger reference evidence and caller acceptance.
 
-Add `--profile ama-signed-nine-block-model` to calculate the separately named
+Add `--profile ama-signed-nine-block-model` to calculate the signed-counter
 signed model. It returns signed counter 7,235 for the same historical inputs;
 it does not relabel BFG's effective-confirmation field.
 
@@ -162,7 +163,7 @@ sustained performance, PoP rewards or production readiness.
 Saved-result wrappers and `GET /api/v1/blocks/{number-or-hash}` include an additive
 `finality` object with schema `traze-web-finality-assessment-v1`. The result page
 shows **Reference finality calculation**, with the BFG reference as its primary
-model and the separately labelled AMA arithmetic in expandable details. It names
+model and the separately labelled signed-counter arithmetic in expandable details. It names
 the publication reference, recorded Bitcoin tip, source-observation time and
 calculation scope. Reopening the page does not advance the tip or refresh sources.
 The conditional Hemi-block reference never follows inspector selection.

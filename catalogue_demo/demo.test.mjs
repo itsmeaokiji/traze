@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {routeRecords, resultCopy} from './demo.mjs';
 
-const receipt = JSON.parse(readFileSync(new URL('../demo_results/phase1_5243118.json', import.meta.url)));
+const receipt = JSON.parse(readFileSync(new URL('../demo_results/mainnet_5243118_catalogue.json', import.meta.url)));
 test('additional-target route starts with the packet target', () => {
   const records = routeRecords(receipt);
   assert.equal(records[0].value, 5243118);

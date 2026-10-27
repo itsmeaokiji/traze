@@ -6,6 +6,9 @@ This corpus contains 17 historical Bitcoin bodies totaling 25,845,550 bytes, wit
 
 The bodies are historical data fixtures. File checksums are transport/integrity checks, not independent chain consensus. Catalogue import reparses each body, checks the transaction root and extracts the reviewed HEMI-format candidates.
 
-The two source receipts retain their original bytes and source times. Database tests use temporary databases built from this corpus; they do not copy a personal SQLite catalogue.
+The two public import receipts omit development bookkeeping while retaining their
+proofs and source times. The manifest records their current fingerprints and the
+original captured-receipt fingerprints. Raw Bitcoin bodies remain byte-identical.
+Database tests build temporary catalogues from this corpus.
 
 Keep this directory separate from runtime cache/accounting. Changing a fixture or source receipt requires updating provenance and meaningful checks; never relabel controlled data as a new live observation.

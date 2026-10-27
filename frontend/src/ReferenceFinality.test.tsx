@@ -8,7 +8,7 @@ import { formatDate } from './format';
 import type { FinalityAssessment, Receipt, ReceiptWrapper } from './types';
 
 // Only presentation metadata is controlled. Proofs and the assessment are the
-// retained historical fixture and an actual isolated F2 worker result.
+// retained historical fixture and an isolated reference-calculation worker result.
 function fixture(): ReceiptWrapper {
   const receipt = structuredClone(recorded) as unknown as Receipt;
   receipt.status = 'found'; receipt.mode = 'public_read_only';

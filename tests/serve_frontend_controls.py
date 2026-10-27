@@ -36,7 +36,7 @@ if __name__ == "__main__":
                 raise RuntimeError("Controlled QA release was not received")
             return super().lookup(*args, **kwargs)
 
-    with tempfile.TemporaryDirectory(prefix="traze_frontend_step1_qa_") as directory:
+    with tempfile.TemporaryDirectory(prefix="traze_frontend_controls_") as directory:
         root = Path(directory).resolve()
         assert root.is_relative_to(Path(tempfile.gettempdir()).resolve())
         samples = root / "demo_results"
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         jobs = Jobs(root, mode="discovery")
         # Make the March saved case permanently available in this test menu.
         jobs.receipts["a" * 32] = {
-            "path": ROOT / "demo_results/milestone3_march_later_hash_20261004T174823173306Z.json",
+            "path": ROOT / "demo_results/mainnet_4028425_hash.json",
             "label": "March later-keystone case", "origin": "saved_example",
         }
         timeout = copy.deepcopy(ORDINARY)

@@ -5100,9 +5100,7 @@
     "hash": "000000000000000000007ad84e8a08fdda386897bd23c11009e93f3810e532b4"
   },
   "resources": {
-    "run_id": "1bf2931edb1f",
     "response_bytes_this_run": 2071323,
-    "response_bytes_session_with_prior_validation": 69259047,
     "bitcoin_body_attempts": 1,
     "cache_body_reads": 9,
     "http_requests": 201,
@@ -5180,18 +5178,6 @@
       "Bitcoin height is source-reported; offline inclusion verifies the supplied header, not its global chain position",
       "Negative coverage is a scan record, not a cryptographic non-inclusion proof",
       "Receipt current-confidence fields are historical observations, not fresh verification"
-    ]
-  },
-  "milestone_usage": {
-    "new_response_bytes": 17220408,
-    "new_body_attempts": 10,
-    "remaining_response_bytes": 22779592,
-    "remaining_body_attempts": 10,
-    "cumulative_response_bytes": 69259047,
-    "run_ids": [
-      "0920749f6b91",
-      "51c6ec850f20",
-      "1bf2931edb1f"
     ]
   }
 }

@@ -1270,9 +1270,7 @@
     }
   ],
   "resources": {
-    "run_id": "a740e00104ce",
     "response_bytes_this_run": 201269,
-    "response_bytes_session_with_prior_validation": 71131139,
     "bitcoin_body_attempts": 0,
     "cache_body_reads": 0,
     "http_requests": 153,
@@ -1286,16 +1284,6 @@
     "conservative_requests": 0,
     "byte_scope": "HTTP bodies/headers plus conservative interrupted reservations; TLS/TCP overhead excluded",
     "elapsed_seconds": 112.282
-  },
-  "milestone_usage": {
-    "response_bytes": 401096,
-    "body_attempts": 0,
-    "remaining_bytes": 1598904,
-    "cumulative_response_bytes": 71131139,
-    "run_ids": [
-      "f0b61e48b637",
-      "a740e00104ce"
-    ]
   },
   "completed_at": "2026-10-04T18:42:37.546714+00:00"
 }

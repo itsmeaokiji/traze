@@ -123,7 +123,7 @@ class OperatingBudget:
                 usage["body_attempts"] += run["body_attempts"]
         self.previous = usage
         # This is a ceiling for this operating session, not a reset of lifetime
-        # totals or an amendment to a previous finite experiment's allowance.
+        # totals or an amendment to a previous finite job's resource limits.
         session.session_limit = session.total_bytes + max(0, self.policy["response_bytes"] - usage["response_bytes"])
 
     def before_request(self, session, amount, block):

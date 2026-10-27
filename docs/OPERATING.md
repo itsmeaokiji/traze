@@ -123,7 +123,7 @@ The successor still freshly checks the Bitcoin height mapping before reuse and
 performs the normal uncached Hemi/Bitcoin checks before advancing its cursor.
 A changed overlap hash blocks before another raw-body download; retained proof
 material remains historical. Reuse is limited to unfinished overlapping work,
-not a global cross-service cache or permission to reopen a closed experiment.
+not a global cross-service cache or reactivation of an operator-stopped collection job.
 Copied metadata consumes managed SQLite storage; retention remains subject to
 the operating policy and the limits below.
 
@@ -136,7 +136,7 @@ A mismatched context, changed policy, removed prior prefix or recorded future
 period blocks work. This is consistency checking over operator-controlled local
 files, not a cryptographic audit log or protection against a privileged operator.
 
-The renewable policy does not amend any earlier finite experiment's allowance or
+The renewable policy does not amend the resource limits of an earlier finite collection job or
 reset the installation's original totals. Ordinary finite lookups retain their
 existing cumulative ceiling. Backward clock movement is rejected; the service
 uses the system UTC clock and does not establish an independent time authority.

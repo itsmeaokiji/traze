@@ -42,7 +42,7 @@ _PROFILES = {
         'id': AMA_PROFILE, 'kind': 'transcript_described_model',
         'formula': 'signed_counter = T - H - 9',
         'threshold': 9, 'threshold_meaning': 'model_finality_reached when signed_counter >= 0',
-        'reference': 'Hemi PoP Q&A transcript, section 2.5',
+        'reference': 'Signed-counter comparison: signed_counter = T - H - 9; zero at T = H + 9',
         'whole_bfg_handler_reproduced': False, 'deployed_equivalence_verified': False,
     },
 }

@@ -9,7 +9,7 @@ from hemi_lookup.errors import DataError
 ROOT = Path(__file__).resolve().parent.parent
 REFERENCE = json.loads((ROOT / "demo_results/mainnet_5243125.json").read_text())
 ORDINARY = json.loads((ROOT / "demo_results/mainnet_5243117.json").read_text())
-MARCH = json.loads((ROOT / "demo_results/milestone2_automatic_20261004T170034660491Z.json").read_text())
+MARCH = json.loads((ROOT / "demo_results/mainnet_4028425_automatic.json").read_text())
 BODY = (ROOT / "tests/fixtures/mainnet_965931.bin").read_bytes()
 
 

@@ -29,9 +29,9 @@ from hemi_lookup.storage import Session, atomic_json
 from hemi_lookup.web import Jobs
 
 
-class H2IntegrationTests(unittest.TestCase):
+class IndexAccountingTests(unittest.TestCase):
     def setUp(self):
-        qa = ROOT / 'output/qa-temp-h2'
+        qa = ROOT / 'output/qa-temp-index-accounting'
         qa.mkdir(parents=True, exist_ok=True)
         self.temp = tempfile.TemporaryDirectory(dir=qa)
         self.addCleanup(self.temp.cleanup)

@@ -110,7 +110,7 @@ An index can retain its original lifetime ledger in a separate operator state
 directory. [Paired backup and recovery](docs/PAIRED_RECOVERY.md) preserves that
 binding, required reports and stop controls, restores to a new location and keeps
 acquisition blocked until later authoritative state is reconciled. Private state
-and local pilot results are not included in this source distribution.
+and installation-specific acquired data are not included in this source distribution.
 
 An opt-in ongoing controller can continue bounded jobs from a saved cursor under an explicit renewable operating policy. Period quotas span jobs and restarts; compiled evidence survives disposable-cache eviction. It requires a reviewed policy and an explicit run command. See [ongoing collection and operating limits](docs/OPERATING.md).
 
@@ -137,7 +137,7 @@ source is not global publication absence.
 Traze does not independently execute Hemi, validate full Bitcoin consensus/chainwork/UTXO state, calculate authoritative Hemi finality counters or verify PoP reward eligibility. Raw Bitcoin depth and provided-data proof validity have narrower meanings.
 
 The reference calculator recomputes pinned BFG arithmetic and a separately named
-AMA model. A conditional recorded Hemi-block calculation needs matching stronger
+signed-counter comparison. A conditional recorded Hemi-block calculation needs matching stronger
 evidence and separately accepted operator contexts. These model results are not
 verified equivalents of a deployed Hemi endpoint or current-chain finality.
 

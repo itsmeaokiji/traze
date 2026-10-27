@@ -1891,9 +1891,7 @@
     "hash": "00000000000000000000dd0b70fc69408e4be7a3ce3b9ba671340b178000501c"
   },
   "resources": {
-    "run_id": "1225906ebeae",
     "response_bytes_this_run": 9836926,
-    "response_bytes_session_with_prior_validation": 51322007,
     "bitcoin_body_attempts": 7,
     "cache_body_reads": 0,
     "http_requests": 120,

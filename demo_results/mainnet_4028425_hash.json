@@ -4861,9 +4861,7 @@
     "hash": "00000000000000000000ddd31530af080984611d6a87272c0469a6eb25be296a"
   },
   "resources": {
-    "run_id": "adc121cb68a9",
     "response_bytes_this_run": 442673,
-    "response_bytes_session_with_prior_validation": 70711421,
     "bitcoin_body_attempts": 0,
     "cache_body_reads": 1,
     "http_requests": 177,
@@ -4880,10 +4878,8 @@
   },
   "completed_at": "2026-10-04T17:48:23.155307+00:00",
   "validation": {
-    "milestone": 3,
     "case": "march_later_hash",
     "live_public_metadata": true,
-    "new_bitcoin_bodies_permitted": false,
     "qualification": "Known retained Bitcoin body; this checks input identity, not cold discovery"
   },
   "offline_recomputation": {
@@ -4940,17 +4936,6 @@
       "Bitcoin height is source-reported; offline inclusion verifies the supplied header, not its global chain position",
       "Negative coverage is a scan record, not a cryptographic non-inclusion proof",
       "Receipt current-confidence fields are historical observations, not fresh verification"
-    ]
-  },
-  "milestone_usage": {
-    "response_bytes": 981465,
-    "body_attempts": 0,
-    "remaining_bytes": 2018535,
-    "cumulative_response_bytes": 70711421,
-    "run_ids": [
-      "59a965dbe7f5",
-      "12b417d5c665",
-      "adc121cb68a9"
     ]
   }
 }

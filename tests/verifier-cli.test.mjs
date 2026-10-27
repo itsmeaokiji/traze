@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const numberReceipt = join(root, 'demo_results/mainnet_5243117.json');
-const hashReceipt = join(root, 'demo_results/milestone3_march_later_hash_20261004T174823173306Z.json');
+const hashReceipt = join(root, 'demo_results/mainnet_4028425_hash.json');
 
 function isolated(action) {
   const base = resolve(tmpdir());

@@ -59,7 +59,7 @@ The separate catalogue consumer is an integration example. The main explorer rem
 
 ```shell
 node scripts/verify-evidence.mjs demo_results/mainnet_5243117.json
-node scripts/verify-input-binding.mjs demo_results/milestone3_march_later_hash_20261004T174823173306Z.json
+node scripts/verify-input-binding.mjs demo_results/mainnet_4028425_hash.json
 node --test tests/verifier-cli.test.mjs
 ```
 

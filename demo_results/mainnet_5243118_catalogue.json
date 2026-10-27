@@ -1,7 +1,7 @@
 {
   "schema": "hemi-publication-receipt-v1",
   "mode": "offline_catalogue",
-  "started_at": "2026-10-08T05:11:04.181450+00:00",
+  "started_at": "2026-10-27T07:37:17.524496+00:00",
   "query": {
     "input_type": "hash",
     "requested_block_hash": "0xe6c881d834d01c8e220ecf38e0638dba756e5f0dd9b492fd6871fee3e73d2302",
@@ -1866,7 +1866,7 @@
     ],
     "scopes": [
       {
-        "receipt_sha256": "2487f17691523c3c5e0f619faff78e17cd51b6b21137173956d5a0a1a75a65c1",
+        "receipt_sha256": "4f6ece5b23f765fe0de2f274ee0ea2d5c82fbf9ce3dfa6bc85bef00a7f3ab1b1",
         "label": "mainnet_5243117.json",
         "fully_scanned_intervals": [
           [
@@ -1889,7 +1889,7 @@
     "extraction_scope": "reviewed HEMI first-data-push parser",
     "historical_observations": [
       {
-        "receipt_sha256": "2487f17691523c3c5e0f619faff78e17cd51b6b21137173956d5a0a1a75a65c1",
+        "receipt_sha256": "4f6ece5b23f765fe0de2f274ee0ea2d5c82fbf9ce3dfa6bc85bef00a7f3ab1b1",
         "label": "mainnet_5243117.json",
         "observation": {
           "bitcoin_tip_after": {
@@ -2065,7 +2065,7 @@
     "new_source_checks": false
   },
   "status": "found",
-  "completed_at": "2026-10-08T05:11:04.185448+00:00",
+  "completed_at": "2026-10-27T07:37:17.526733+00:00",
   "offline_recomputation": {
     "status": "verified_against_provided_headers",
     "proofs_checked": 4,

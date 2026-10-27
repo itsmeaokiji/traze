@@ -22,9 +22,11 @@ if __name__ == "__main__":
     declarations = body[1:-1].strip()
     assert "animation: none !important" in declarations
     assert "transition: none !important" in declarations
-    with tempfile.TemporaryDirectory(prefix="traze_motion_static_") as directory:
+    qa_root = (ROOT / "output/qa-temp-reduced-motion").resolve()
+    qa_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="traze_motion_static_", dir=qa_root) as directory:
         temporary = Path(directory).resolve()
-        assert temporary.is_relative_to((ROOT / "output/qa-temp-step9").resolve())
+        assert temporary.is_relative_to((ROOT / "output/qa-temp-reduced-motion").resolve())
         assets = temporary / "web"
         shutil.copytree(ROOT / "web", assets)
         css_files = list((assets / "assets").glob("*.css"))
