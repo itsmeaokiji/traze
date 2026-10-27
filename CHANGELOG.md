@@ -1,5 +1,14 @@
 # Changelog
 
+## Local connection overload handling
+
+- Send retryable HTTP 503 replies and briefly drain incoming request data before
+  closing an overloaded local connection.
+- Return a JSON busy error understood by the existing interface, with Retry-After
+  and no-store headers. Keep the sixteen-connection admission limit unchanged.
+- Bound overload cleanup to one 100-millisecond deadline and 64 KiB of discarded
+  input, without dispatching a handler, starting a lookup or changing evidence.
+
 ## Discovery recovery, retained evidence and interface clarity
 
 - Persist bounded continuation state and offer the unfinished estimated-window

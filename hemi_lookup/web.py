@@ -6,8 +6,10 @@ import hmac
 import json
 import re
 import secrets
+import socket
 import sqlite3
 import threading
+import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -41,6 +43,14 @@ EXAMPLES = (
     ("example-no-match", "Scoped no-match", "scoped_no_match.json"),
 )
 SAFE_ID = re.compile(r"(?:example-[a-z-]+|[0-9a-f]{32})\Z")
+_BUSY_BODY = b'{"error":{"code":"read_busy","message":"Local connection capacity is busy. Retry shortly."}}'
+_BUSY_RESPONSE = (
+    b"HTTP/1.0 503 Service Unavailable\r\n"
+    b"Content-Type: application/json; charset=utf-8\r\n"
+    + f"Content-Length: {len(_BUSY_BODY)}\r\n".encode('ascii')
+    + b"Retry-After: 1\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n"
+    + _BUSY_BODY
+)
 
 
 class WebError(DataError):
@@ -454,9 +464,23 @@ class LocalServer(ThreadingHTTPServer):
 
     def process_request(self, request, client_address):
         if not self.connections.acquire(blocking=False):
+            deadline = time.monotonic() + .1
             try:
                 request.settimeout(.1)
-                request.sendall(b"HTTP/1.0 503 Service Unavailable\r\nContent-Length: 0\r\nRetry-After: 1\r\nConnection: close\r\n\r\n")
+                request.sendall(_BUSY_RESPONSE)
+                # Keep the receive side open after the reply. Closing with
+                # unread request bytes can abort the peer's response read.
+                request.shutdown(socket.SHUT_WR)
+                remaining_bytes = 64 * 1024
+                while remaining_bytes:
+                    remaining_seconds = deadline - time.monotonic()
+                    if remaining_seconds <= 0:
+                        break
+                    request.settimeout(remaining_seconds)
+                    chunk = request.recv(min(4096, remaining_bytes))
+                    if not chunk:
+                        break
+                    remaining_bytes -= len(chunk)
             except OSError:
                 pass
             finally:
