@@ -62,7 +62,8 @@ export function finalitySummary(wrapper: ReceiptWrapper, proof?: Proof): string[
       `Recorded source observation: ${formatDate(wrapper.finality.input_binding?.retained_tip_observation?.observed_at || model.source_context.inputs.observed_at)}.`,
       `BFG reference effective confirmations: ${formatNumber(view.values.effective_confirmations)}.`,
       `BFG reference threshold: ${view.values.super_finality ? 'Reached' : 'Not reached'} (T - H >= 10).`,
-      `Inclusive Bitcoin depth: ${formatNumber(view.values.raw_bitcoin_confirmations)}.`,
+      `Bitcoin depth from recorded tip: ${formatNumber(view.values.raw_bitcoin_confirmations)}.`,
+      'Calculated from the recorded Bitcoin tip. This is not a new source check or a Hemi finality value.',
       `Recorded source consistency: ${wrapper.finality.source_conflict ? 'conflicting retained source views' : model.source_context.status}.`);
     if (view.ama) lines.push(`Signed-counter comparison: ${formatNumber(view.ama.signed_counter)} (T - H - 9).`);
     if (view.kind === 'block') lines.push('Inspecting another publication does not change this Hemi-block reference.');

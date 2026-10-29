@@ -68,7 +68,7 @@ describe('bounded search continuation', () => {
     const view = render(<DiscoveryAllowance workspace={{...state,serving_mode:'indexed-only'}} />);
     expect(view.container.textContent).toBe('');
     view.rerender(<DiscoveryAllowance workspace={state} />);
-    expect(screen.getByText(/66.00 MB available/)).toBeTruthy();
+    expect(document.getElementById('discovery-capacity')!.textContent).toBe('66.00 MB available for discovery');
     expect(screen.getByText(/does not renew the cumulative allowance/)).toBeTruthy();
   });
 

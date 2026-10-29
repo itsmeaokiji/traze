@@ -74,13 +74,13 @@ describe('content clarity without changing evidence or acquisition rules', () =>
     const create = vi.spyOn(URL,'createObjectURL');
     render(<EvidenceView wrapper={wrapper} {...props} />);
     expect(screen.getByRole('heading',{name:'No match in checked range'})).toBeTruthy();
-    expect(document.getElementById('evidence-assessment')!.textContent).toContain('Recorded source agreement');
+    expect(document.getElementById('evidence-assessment')!.textContent).toContain('Source checks');
     expect(document.getElementById('evidence-assessment')!.textContent).toContain('Source views matched at the recorded check');
     expect(document.getElementById('evidence-assessment')!.textContent).toContain('No publication proof to check');
     expect(document.getElementById('reference-finality')).toBeNull();
     expect(document.getElementById('download-calculation')).toBeNull();
     expect(document.getElementById('download-link')).toBeTruthy();
-    expect(evidenceSummary(wrapper,undefined,false)).toContain('Recorded source agreement: Source views matched at the recorded check');
+    expect(evidenceSummary(wrapper,undefined,false)).toContain('Source checks: Source views matched at the recorded check');
     expect(wrapper).toEqual(before); expect(fetch).not.toHaveBeenCalled(); expect(create).not.toHaveBeenCalled();
   });
 
@@ -118,7 +118,7 @@ describe('content clarity without changing evidence or acquisition rules', () =>
     const panel = within(screen.getByRole('complementary'));
     expect(panel.getByText('Source views conflicted at the recorded check')).toBeTruthy();
     expect(panel.queryByText('Source views matched at the recorded check')).toBeNull();
-    expect(evidenceSummary(wrapper,0,false)).toContain('Recorded source agreement: Source views conflicted at the recorded check');
+    expect(evidenceSummary(wrapper,0,false)).toContain('Source checks: Source views conflicted at the recorded check');
     expect(wrapper).toEqual(before);
   });
 });

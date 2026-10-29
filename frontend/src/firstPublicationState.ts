@@ -5,6 +5,15 @@ export const FIRST_HEIGHT_POLICY = 'hemi-full-state-first-height-assumptions-v1'
 export const SNAPSHOT_POLICY = 'hemi-snapshot-first-height-assumptions-v1';
 export const SNAPSHOT_RESULT = 'traze-snapshot-verification-result-v3';
 
+// Normalize known legacy display messages without changing stored diagnostics or exports.
+export function firstPublicationIssueText(issue: { code?: string; message?: string }): string {
+  if (issue.message === 'The stronger evidence package has not been prepared for this publication.'
+    || (!issue.message && issue.code === 'evidence_not_prepared')) return 'The first-publication verification package has not been prepared for this publication.';
+  if (issue.message === 'The stronger evidence package could not be completed.') return 'The first-publication verification package could not be completed.';
+  if (issue.message === 'No applicable publication is available for the stronger check.') return 'No applicable publication is available for the first-publication assessment.';
+  return issue.message || issue.code || 'No diagnostic message recorded';
+}
+
 export function firstPublicationState(wrapper: ReceiptWrapper, proof?: Proof) {
   const assessment = wrapper.first_publication;
   const publication = assessment?.publication;
@@ -53,11 +62,12 @@ export function firstPublicationState(wrapper: ReceiptWrapper, proof?: Proof) {
             : assessment?.status === 'not_available' || !assessment ? 'First-publication assessment not available'
               : 'First-publication assessment incomplete';
   const description = qualified ? snapshot ? 'Complete interval checks and a computational starting bound support this Bitcoin height within the recorded Hemi snapshot, conditional on operator-accepted source, historical-profile and security assumptions.' : 'This Bitcoin height is supported by complete interval checks and a computational starting bound, under the operator-accepted assumptions. The assessment describes the recorded chain view.'
-    : another ? 'The retained assessment belongs to another publication. Selecting this record does not transfer its first-height conclusion.'
+    : another ? 'The retained assessment belongs to another publication. Selecting this record does not transfer its first-publication conclusion.'
       : conflict ? 'Changed or conflicting source observations prevent using the first-publication assessment. Retained publication evidence remains inspectable.'
         : assessment?.status === 'invalid' ? 'The first-publication evidence contains an inconsistency. No conditional first-publication conclusion is accepted from it.'
           : validInterval ? 'The publication is first within the completely checked interval. A conditional first-publication conclusion is not established; review the missing requirements below.'
-            : 'Ordinary publication evidence and search coverage remain separate. Missing first-publication assessment evidence does not mean no publication exists.';
+            : assessment?.status === 'not_available' || !assessment ? 'Publication evidence is available. The additional evidence required for this first-publication assessment is not available for this result.'
+              : 'The first-publication assessment could not finish. Ordinary publication evidence remains available; review the missing requirements below.';
   const download = exact && !conflict && assessment?.packet_available && assessment.download_url
     && /^\/api\/(?:receipts\/[a-z0-9-]+|v1\/blocks\/0x[0-9a-f]{64})\/first-publication\/[0-9a-f]{64}\/download$/.test(assessment.download_url)
     ? assessment.download_url : undefined;

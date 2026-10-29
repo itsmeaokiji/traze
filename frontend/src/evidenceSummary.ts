@@ -1,6 +1,6 @@
 import { searchCoverageText, searchStopText } from './coveragePresentation';
 import { bitcoinReference, recordedBitcoinSources, recordedHemiSource } from './evidenceLinks';
-import { resultState, sourceAgreementText } from './evidenceState';
+import { resultState, sourceAgreementText, sourceDepthText } from './evidenceState';
 import { formatDate, formatNumber, selectedProof } from './format';
 import { receiptIssues } from './receiptIssues';
 import type { ReceiptWrapper } from './types';
@@ -22,7 +22,7 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
   const requestedHash = r.query.requested_block_hash || r.query.block_hash;
   const identity = r.context?.requested_block_identity;
   const identities = { matches_current_rpc_view: 'Matched the Hemi RPC view at the recorded check', different_current_rpc_block: 'Different RPC block hash at the recorded check', unavailable: 'Unconfirmed at the recorded check', not_rechecked: 'Current identity not rechecked for the generated target' };
-  const origin = recorded ? 'Recorded evidence' : fresh ? r.mode === 'live_metadata_refresh' ? 'Source recheck' : 'Search result' : 'Saved result';
+  const origin = recorded ? 'Stored evidence' : fresh ? r.mode === 'live_metadata_refresh' ? 'Source recheck' : 'Search result' : 'Saved result';
   const lines = [
     'Traze publication evidence', '',
     `Result: ${state.title}`,
@@ -45,14 +45,16 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
       `Published keystone ID: ${proof.checkpoint.keystone_id}`,
       `Association: ${cover === undefined ? 'Covering-keystone relationship is unresolved' : proof.checkpoint.height === cover ? 'Covering keystone encoded in the displayed publication transaction' : 'Requested block supported through the displayed later-keystone publication and supplied Hemi ancestry'}`,
       `Publication transaction ID: ${proof.txid}`,
+      `Transaction output: ${Number.isInteger(proof.vout_index) && proof.vout_index! >= 0 ? formatNumber(proof.vout_index) : 'Not recorded'}`,
       `Containing Bitcoin block: ${formatNumber(proof.bitcoin_height)}`,
       `Bitcoin block hash: ${proof.bitcoin_block_hash}`,
+      `Bitcoin depth from source checks: ${sourceDepthText(r, proof)}`,
     );
     if (manual) lines.push('Manual selection changes the view only. The JSON export and source recheck use the original receipt.');
   } else lines.push('Publication association: Unresolved. No applicable publication transaction is displayed.', state.summary);
   lines.push('',
     `Proof checks: ${wrapper.verification.proofs_checked > 0 ? `${formatNumber(wrapper.verification.proofs_checked)} proof record${wrapper.verification.proofs_checked === 1 ? '' : 's'} passed checks of supplied evidence` : 'No publication proof to check'}`,
-    `Recorded source agreement: ${sourceAgreementText(r)}`,
+    `Source checks: ${sourceAgreementText(r)}`,
     `Result recorded: ${formatDate(r.completed_at)}`,
     `Sources last checked: ${formatDate(r.context?.checked_at)}`, '',
     ...(recorded ? [`Historical source observations: ${historicalSourceTimes(r)}`, ...(r.catalogue?.number_resolved_from_retained_view ? ['Block number resolved from retained metadata; current canonical identity is unconfirmed.'] : [])] : []),
@@ -84,7 +86,7 @@ export function evidenceSummary(wrapper: ReceiptWrapper, displayedIndex: number 
       ] : []),
       'Unconditional global proof: Not established.',
     ] : ['Globally earliest publication: Not established. Publications may exist outside the checked coverage.',
-      `First-publication assessment: ${firstHeight.title}.`]),
+      `First-publication assessment: ${firstHeight.title}.`, ...(proof ? [firstHeight.description] : [])]),
     ...finalitySummary(wrapper, proof),
     'Proof checks use supplied Bitcoin headers and Hemi RPC data. Full Bitcoin header-chain validation, independent Hemi execution, deployed Hemi finality equivalence, and PoP reward eligibility are outside these proof checks.',
     'This summary reflects recorded evidence. Copying or opening it does not recheck sources. Provider backend independence is not established.',

@@ -24,14 +24,24 @@ const before = (a: string, b: string) => Boolean(document.getElementById(a)!.com
 describe('Result hierarchy and material warning preservation', () => {
   it('puts the route, ordinary checks and coverage before source actions and advanced details', () => {
     const value = wrapper(); const original = structuredClone(value); const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
-    render(<EvidenceView wrapper={value} {...props} />);
-    expect(before('transaction-line', 'evidence-assessment')).toBe(true);
+    const { rerender } = render(<EvidenceView wrapper={value} {...props} />);
+    expect(before('association', 'evidence-assessment')).toBe(true);
     expect(before('evidence-assessment', 'result-search-actions')).toBe(true);
     expect(before('coverage-summary', 'first-publication')).toBe(true);
     expect(before('result-search-actions', 'first-publication')).toBe(true);
     expect((document.getElementById('first-publication-details') as HTMLDetailsElement).open).toBe(false);
     expect(document.getElementById('result-summary')!.textContent).toContain('Earlier publications may exist');
     expect(value).toEqual(original); expect(fetch).not.toHaveBeenCalled();
+    const actions = document.getElementById('result-search-actions')!;
+    expect(screen.queryByRole('button', { name: 'Run new lookup' })).toBeNull();
+    expect(actions.textContent).not.toContain('Run new lookup starts');
+    expect(actions.textContent).toContain('Recheck sources checks source views again; it does not expand search coverage.');
+    expect(actions.textContent).toContain('Source operations use the existing discovery allowance.');
+    const retained = wrapper(); retained.receipt.mode = 'offline_catalogue';
+    rerender(<EvidenceView wrapper={retained} {...props} />);
+    expect(screen.queryByRole('button', { name: 'Run new lookup' })).toBeNull();
+    expect(document.getElementById('result-search-actions')!.textContent).not.toContain('Run new lookup starts');
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('provides one new-lookup action for a retained result that also needs recovery', () => {
@@ -42,6 +52,8 @@ describe('Result hierarchy and material warning preservation', () => {
     expect(screen.getAllByRole('button', { name: 'Run new lookup' })).toHaveLength(1);
     expect(document.getElementById('search-recovery')).toBeNull();
     const region = within(document.getElementById('result-search-actions')!);
+    expect(document.getElementById('result-search-actions')!.textContent).toContain('Run new lookup starts a new source search.');
+    expect(document.getElementById('result-search-actions')!.textContent).toContain('it does not expand search coverage.');
     fireEvent.click(region.getByRole('button', { name: 'Run new lookup' }));
     expect(lookup).toHaveBeenCalledTimes(1); expect(recheck).not.toHaveBeenCalled();
     fireEvent.click(region.getByRole('button', { name: /Recheck sources/ }));
@@ -56,6 +68,7 @@ describe('Result hierarchy and material warning preservation', () => {
     expect(before('coverage-summary', 'association')).toBe(true);
     expect(before('result-search-actions', 'association')).toBe(true);
     expect(screen.queryByRole('button', { name: 'Run new lookup' })).toBeNull();
+    expect(document.getElementById('result-search-actions')!.textContent).not.toContain('Run new lookup starts');
     expect(start).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Continue search' }));
     expect(start).toHaveBeenCalledTimes(1);
@@ -96,7 +109,7 @@ describe('Result hierarchy and material warning preservation', () => {
     expect(warnings.textContent).toContain('did not pass its proof checks');
     expect(warnings.textContent).toContain('valid Hemi Mainnet');
     expect(warnings.querySelectorAll('li')).toHaveLength(3);
-    expect(before('issues-section', 'transaction-line')).toBe(true);
+    expect(before('issues-section', 'association')).toBe(true);
     expect(document.getElementById('evidence-assessment')!.textContent).toContain('Source views conflicted');
   });
 
@@ -120,7 +133,7 @@ describe('Result hierarchy and material warning preservation', () => {
     render(<EvidenceView wrapper={value} {...props} />);
     expect(screen.getByRole('heading', { name: 'First-publication evidence invalid' })).toBeTruthy();
     expect(screen.getByText('Controlled invalid history witness').closest('details')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Stronger evidence invalid' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'First-publication evidence invalid' })).toBeTruthy();
   });
 
   it('keeps finality limitations visible while calculation values and export are expandable', () => {

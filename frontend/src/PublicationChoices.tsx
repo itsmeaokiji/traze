@@ -2,10 +2,11 @@ import { formatNumber, shortHash } from './format';
 import type { RefObject } from 'react';
 import type { Receipt } from './types';
 
-export function PublicationChoices({ receipt, defaultIndex, displayedIndex, onSelect, summaryRef, defaultLabel = 'Default selection' }: { receipt: Receipt; defaultIndex?: number; displayedIndex?: number; onSelect: (index: number) => void; summaryRef?: RefObject<HTMLElement | null>; defaultLabel?: string }) {
+export function PublicationChoices({ receipt, defaultIndex, displayedIndex, onSelect, summaryRef, defaultLabel = 'Default selection', selectionHelp }: { receipt: Receipt; defaultIndex?: number; displayedIndex?: number; onSelect: (index: number) => void; summaryRef?: RefObject<HTMLElement | null>; defaultLabel?: string; selectionHelp?: string }) {
   if (receipt.proofs.length < 2) return null;
   return <details id="other-proofs" className="other-proofs publication-choices">
     <summary id="other-proofs-summary" ref={summaryRef}>Matching publication evidence · {receipt.proofs.length} proof records</summary>
+    {selectionHelp && <p className="field-help">{selectionHelp}</p>}
     <p className="section-help">Choose a retained proof record to update the route and inspector. Proof-record counts do not imply distinct transactions.</p>
     <ol id="proofs-body" className="publication-options" aria-label="Matching publication proof records">
       {receipt.proofs.map((proof, index) => <li key={index}>

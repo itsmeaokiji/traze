@@ -10,9 +10,9 @@ import { historicalSourceTimes, isRecorded } from './recordedEvidence';
 
 const titles: Record<RouteRole, string> = { requested: 'Requested Hemi block', covering: 'Covering keystone', later: 'Later keystone', publication: 'Bitcoin publication' };
 
-function Fact({ label, value, identifier = false }: { label: string; value?: ReactNode; identifier?: boolean }) {
+function Fact({ label, value, identifier = false, note }: { label: string; value?: ReactNode; identifier?: boolean; note?: string }) {
   const canCopy = identifier && typeof value === 'string' && /^(?:0x)?[0-9a-f]{64}$/i.test(value);
-  return <div className="inspector-fact"><dt>{label}</dt><dd className={identifier ? 'inspector-identifier' : undefined}><span className="inspector-value">{value === undefined || value === null || value === '' ? 'Unavailable' : value}</span>{canCopy && <CopyAction label={`Copy ${label}`} value={value as string} compact />}</dd></div>;
+  return <div className="inspector-fact"><dt>{label}</dt><dd className={identifier ? 'inspector-identifier' : undefined}><span className="inspector-value">{value === undefined || value === null || value === '' ? 'Unavailable' : value}</span>{canCopy && <CopyAction label={`Copy ${label}`} value={value as string} compact />}{note && <small className="inspector-note">{note}</small>}</dd></div>;
 }
 function Reference({ type, hash, children }: { type: 'block' | 'tx'; hash: string; children: ReactNode }) {
   const url = bitcoinReference(type, hash);
@@ -39,7 +39,7 @@ export function RecordInspector({ receipt, proof, role }: { receipt: Receipt; pr
   return <aside id="record-inspector" tabIndex={-1} className={`record-inspector inspector-${role === 'publication' ? 'bitcoin' : 'hemi'}`} aria-labelledby="record-inspector-title">
     <div className="inspector-heading"><p className="eyebrow">SELECTED RECORD</p><h3 id="record-inspector-title" aria-live="polite" aria-atomic="true">{titles[role]}</h3></div>
     <div className="inspector-content" key={role}>
-    <p className="inspector-intro">Details from this receipt. Selecting a record does not recheck sources.</p>
+    <p className="inspector-intro">Details for the selected record.</p>
     <dl className="inspector-facts">
       {role === 'requested' && <>
         <Fact label="Hemi block number" value={receipt.query.block_number !== null ? formatNumber(receipt.query.block_number) : 'Unresolved height'} />
@@ -57,14 +57,15 @@ export function RecordInspector({ receipt, proof, role }: { receipt: Receipt; pr
       {role === 'later' && proof && <>
         <Fact label="Published keystone height" value={formatNumber(proof.checkpoint.height)} />
         <Fact label="Published keystone ID" value={proof.checkpoint.keystone_id} identifier />
-        <Fact label="Checked Hemi ancestry links" value={formatNumber(proof.ancestry.length - 1)} />
         <Fact label="Relationship" value="Encoded in the transaction; supplied Hemi parent-hash links support the requested block." />
       </>}
       {role === 'publication' && (proof ? <>
         <Fact label="Publication transaction ID" value={proof.txid} identifier />
+        <Fact label="Transaction output" value={Number.isInteger(proof.vout_index) && proof.vout_index! >= 0 ? formatNumber(proof.vout_index) : 'Not recorded'} note={Number.isInteger(proof.vout_index) && proof.vout_index! >= 0 ? 'Output indices start at 0. This output contains the Hemi publication data.' : undefined} />
         <Fact label="Containing Bitcoin block" value={formatNumber(proof.bitcoin_height)} />
         <Fact label="Bitcoin block hash" value={proof.bitcoin_block_hash} identifier />
         <Fact label="Published keystone height" value={formatNumber(proof.checkpoint.height)} />
+        <Fact label="Published keystone ID" value={proof.checkpoint.keystone_id} identifier />
       </> : <>
         <Fact label="Publication status" value="Unresolved" />
         <Fact label="Result scope" value={receipt.status === 'not_found_within_coverage' ? 'No applicable publication was found in the scanned range. Publications may exist outside this range.' : 'Publication evidence could not be resolved. This result does not establish publication absence.'} />
@@ -73,11 +74,11 @@ export function RecordInspector({ receipt, proof, role }: { receipt: Receipt; pr
     <div className="inspector-source-links" aria-label="Record source links">
       {role !== 'publication' && (safeHemiSource ? <ExternalLink href={safeHemiSource}>Hemi RPC source</ExternalLink> : <span className="muted">Hemi source not recorded</span>)}
       {role === 'publication' && <>
-        {proof && <><Reference type="tx" hash={proof.txid}>View transaction</Reference><Reference type="block" hash={proof.bitcoin_block_hash}>View Bitcoin block</Reference></>}
+        {proof && <><Reference type="tx" hash={proof.txid}>Open transaction</Reference><Reference type="block" hash={proof.bitcoin_block_hash}>Open Bitcoin block</Reference></>}
         {bitcoinSources.map(source => <ExternalLink key={source} href={source}>{source.includes('blockstream') ? 'Blockstream API' : 'mempool.space API'}</ExternalLink>)}
       </>}
     </div>
-    <div className="inspector-observation"><span className="detail-label">{recorded ? 'Historical source observation time' : 'Recorded source-check time'}</span><p>{recorded ? historicalSourceTimes(receipt) : formatDate(receipt.context?.checked_at)}</p><p className={sourceConfirmed ? 'inspector-confirmed' : 'inspector-unconfirmed'}>{sourceAgreementText(receipt)}</p></div>
+    <div className="inspector-observation"><span className="detail-label">{recorded ? 'Historical source observation time' : 'Recorded source-check time'}</span><p>{recorded ? historicalSourceTimes(receipt) : formatDate(receipt.context?.checked_at)}</p>{(!recorded || sourceState(receipt) === 'conflict') && <p className={sourceConfirmed ? 'inspector-confirmed' : 'inspector-unconfirmed'}>{sourceAgreementText(receipt)}</p>}</div>
     </div>
   </aside>;
 }

@@ -49,10 +49,10 @@ describe('React bridge workflow', () => {
     expect((document.getElementById('saved-results') as HTMLDetailsElement).open).toBe(false);
     expect(document.activeElement).toBe(document.querySelector('#saved-results > summary'));
     expect(fetch.mock.calls.every(([, options]) => options?.method !== 'POST')).toBe(true);
-    expect(screen.getByRole('link', { name: /Download JSON/ }).getAttribute('href')).toBe('/api/receipts/example-ordinary/download');
-    expect(screen.getByRole('link', { name: evidence.receipt.proofs[0].txid }).getAttribute('href')).toBe(`https://blockstream.info/tx/${evidence.receipt.proofs[0].txid}`);
+    expect(screen.getByRole('link', { name: /Download evidence JSON/ }).getAttribute('href')).toBe('/api/receipts/example-ordinary/download');
+    expect(document.getElementById('transaction-link')!.getAttribute('href')).toBe(`https://blockstream.info/tx/${evidence.receipt.proofs[0].txid}`);
     fireEvent.click(screen.getByRole('button', { name: 'Copy transaction ID' }));
-    await screen.findByRole('button', { name: 'Copied' });
+    await screen.findByRole('button', { name: 'transaction ID copied' });
     expect(writeText).toHaveBeenCalledWith(evidence.receipt.proofs[0].txid);
     expect((document.getElementById('developer-diagnostics') as HTMLDetailsElement).open).toBe(false);
   });

@@ -11,5 +11,5 @@ export function EvidenceDownload({ wrapper }: { wrapper: ReceiptWrapper }) {
     return () => URL.revokeObjectURL(next);
   }, [wrapper]);
   const href = wrapper.record_url ? url : `/api/receipts/${encodeURIComponent(wrapper.id)}/download`;
-  return <a id="download-link" className="download-link" href={href} aria-disabled={!href || undefined} download={wrapper.filename}>Download JSON <span aria-hidden="true">↓</span></a>;
+  return <a id="download-link" className="download-link" href={href} aria-disabled={!href || undefined} download={wrapper.filename}>Download evidence JSON <span aria-hidden="true">↓</span></a>;
 }

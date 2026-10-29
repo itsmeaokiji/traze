@@ -87,7 +87,7 @@ historical. See [serving modes](SERVING.md).
 
 ## Export and verify evidence offline
 
-Use **Download JSON** in the app, or inspect an included export:
+Use **Download evidence JSON** in the app, or inspect an included export:
 
 ```shell
 python -B hemi_lookup_cli.py verify demo_results/mainnet_5243117.json --json

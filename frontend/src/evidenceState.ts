@@ -1,6 +1,7 @@
-import type { Receipt } from './types';
+import type { Proof, Receipt } from './types';
 import type { StatusTone } from './StatusIcon';
 import { isRecorded } from './recordedEvidence';
+import { formatNumber } from './format';
 
 // Display qualifications only. Stored evidence and publication selection are unchanged.
 export function sourceState(receipt: Receipt): 'confirmed' | 'conflict' | 'incomplete' {
@@ -15,10 +16,16 @@ export function sourceState(receipt: Receipt): 'confirmed' | 'conflict' | 'incom
 export function sourceAgreementText(receipt: Receipt): string {
   const state = sourceState(receipt);
   if (isRecorded(receipt)) return state === 'conflict'
-    ? 'Recorded source views conflicted; current views not rechecked' : 'Current source views not rechecked';
+    ? 'Recorded source views conflicted; current views not rechecked' : 'Not rechecked for this result';
   return state === 'confirmed' ? 'Source views matched at the recorded check'
     : state === 'conflict' ? 'Source views conflicted at the recorded check'
       : 'Incomplete at the recorded check';
+}
+
+export function sourceDepthText(receipt: Receipt, proof: Proof): string {
+  return sourceState(receipt) === 'confirmed' && Number.isInteger(proof.current_bitcoin_depth_in_provider_view)
+    ? `${formatNumber(proof.current_bitcoin_depth_in_provider_view)} blocks`
+    : 'Not established for this result';
 }
 
 export function operationTimedOut(receipt: Receipt): boolean {
@@ -48,8 +55,8 @@ export function resultState(receipt: Receipt, hasProof: boolean): { title: strin
   if (isRecorded(receipt) && hasProof) {
     const incomplete = Boolean(receipt.coverage?.gaps?.length || receipt.coverage?.unresolved_candidates?.length || receipt.coverage?.unsupported_payloads);
     return {
-      title: receipt.coverage?.gaps?.length ? 'Recorded evidence · scan gaps' : 'Recorded publication evidence',
-      summary: 'Matching evidence from retained data. Current source views have not been rechecked; earlier publications may exist outside the compiled coverage.',
+      title: incomplete ? 'Publication found · coverage incomplete' : 'Publication found',
+      summary: 'Matching publication evidence from stored data. Earlier publications may exist outside the compiled coverage.',
       tone: incomplete ? 'warning' : 'neutral',
     };
   }

@@ -45,7 +45,7 @@ describe('operation completion feedback', () => {
   it.each([
     ['found', 'Publication found'], ['negative', 'No match in checked range'],
     ['incomplete', 'Search incomplete'], ['conflict', 'Evidence retained · source conflict'],
-    ['recorded', 'Recorded publication evidence'],
+    ['recorded', 'Publication found'],
   ])('announces the qualified %s outcome through deliberate heading focus', async (kind, title) => {
     const value = packet(kind), { release } = staged(value);
     render(<App />); await ready(); search();
@@ -56,7 +56,7 @@ describe('operation completion feedback', () => {
     expect(status().getAttribute('aria-live')).toBe('off');
     expect(screen.queryByRole('button', { name: 'View result' })).toBeNull();
     if (kind === 'incomplete' || kind === 'conflict') expect(status().textContent).toContain('incomplete result');
-    if (kind === 'recorded') expect(status().textContent).toContain('Current source views were not rechecked');
+    if (kind === 'recorded') expect(status().textContent).toContain('Publication found in stored evidence');
   });
 
   it('preserves another control and offers an explicit result action with polite feedback', async () => {

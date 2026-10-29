@@ -1,5 +1,25 @@
 # Changelog
 
+## Publication-result layout
+
+- Keep discovery capacity visible and place full accounting/limits behind an
+  explicit disclosure; retain unavailable-capacity warnings.
+- Compact publication selection and prioritize the connected records ahead of
+  index bookkeeping, retaining manual-selection and evidence qualifications.
+- Emphasize the explicitly labelled containing Bitcoin block while preserving
+  transaction/output links, responsive routes and reduced-motion support.
+
+## Publication-result clarity
+
+- Separate the publication-search outcome, stored-evidence origin, source checks
+  and optional first-publication assessment without changing their verification rules.
+- Distinguish source-confirmed Bitcoin depth from arithmetic using a recorded
+  tip; retain observation times and model qualifications.
+- Identify the publication transaction/output and its containing Bitcoin block
+  in the connector. Reduce repeated freshness text while preserving material warnings.
+- Normalize known legacy first-publication messages for display; preserve original
+  JSON evidence, status codes, policy identifiers and exports.
+
 ## Documentation and public terminology
 
 - Streamline the README and quickstart; add a task-based documentation index,

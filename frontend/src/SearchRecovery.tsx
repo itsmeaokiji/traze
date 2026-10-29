@@ -5,14 +5,25 @@ import { searchStopText } from './coveragePresentation';
 export function DiscoveryAllowance({ workspace }: { workspace?: WorkspaceState }) {
   if (!workspace || workspace.serving_mode !== 'discovery') return null;
   const resources = workspace.resources;
-  return <p id="discovery-allowance" className="field-help discovery-allowance">
-    {resources.available ? <>Discovery allowance: {formatBytes(resources.usable_response_bytes)} available for new requests on this installation.
-      {' '}Ceiling: {formatBytes(resources.session_limit_bytes)}{typeof resources.total_response_bytes === 'number' ? ` · ${formatBytes(resources.total_response_bytes)} counted` : ''}.
-      {' '}Each operation allows up to {workspace.limits.bitcoin_body_attempts} Bitcoin block download attempts, {workspace.limits.response_mb_per_lookup} MB of response data,
-      {' '}{formatNumber(workspace.limits.http_requests ?? 600)} requests and {formatNumber((workspace.limits.overall_seconds ?? 600) / 60)} minutes.</>
-      : 'Discovery allowance could not be verified. Saved evidence remains readable.'}
-    {' '}The cumulative allowance is shared across searches and continuations; a new operation does not renew the cumulative allowance.
-  </p>;
+  const blocked = resources.source_operations_available === false;
+  const reasons: Record<string, string> = {
+    cumulative_response_bytes: 'The remaining allowance cannot reserve another full Bitcoin block. Saved results remain available.',
+    allowance_unavailable: 'Discovery allowance could not be verified. Saved evidence remains readable.',
+    source_operation_active: 'A source operation is active. Saved results remain available.',
+    restored_state_requires_review: 'Restored accounting needs operator review before new source requests.',
+  };
+  return <div id="discovery-allowance" className="discovery-allowance">
+    <p id="discovery-capacity" className={`field-help${!resources.available || blocked ? ' allowance-warning' : ''}`}>
+      {!resources.available ? 'Discovery allowance could not be verified. Saved evidence remains readable.'
+        : blocked ? reasons[resources.blocked_reason || ''] || 'Live discovery is unavailable. Saved results remain available.'
+          : <>{formatBytes(resources.usable_response_bytes)} available for discovery</>}
+    </p>
+    <details id="discovery-limits" className="limits-details"><summary>Search limits</summary>
+      {resources.available && <p>{formatBytes(resources.usable_response_bytes)} available for new requests on this installation. Ceiling: {formatBytes(resources.session_limit_bytes)}{typeof resources.total_response_bytes === 'number' ? ` · ${formatBytes(resources.total_response_bytes)} counted` : ''}.</p>}
+      <p>Each operation allows up to {workspace.limits.bitcoin_body_attempts} Bitcoin block download attempts, {workspace.limits.response_mb_per_lookup} MB of response data, {formatNumber(workspace.limits.http_requests ?? 600)} requests and {formatNumber((workspace.limits.overall_seconds ?? 600) / 60)} minutes.</p>
+      <p>The cumulative allowance is shared across searches and continuations; a new operation does not renew the cumulative allowance.</p>
+    </details>
+  </div>;
 }
 
 export function recoveryState(wrapper: ReceiptWrapper, workspace?: WorkspaceState) {

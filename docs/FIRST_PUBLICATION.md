@@ -1,5 +1,12 @@
 # First-publication assessment in the Explorer
 
+The main **Publication found** result and **Publication order: Earliest observed
+in this result** do not require this additional assessment. **First-publication
+assessment not available** means that its additional evidence is unavailable for
+this result; ordinary publication evidence can still be inspected and verified.
+Display labels may normalize legacy diagnostic wording. Original JSON messages,
+machine status codes and policy identifiers remain unchanged.
+
 The website can prepare and consume the versioned history/interval evidence
 checker. Normal users enter a Hemi block number or hash, select **Find
 publication**, and inspect the result. A command-line tool or local download is
@@ -115,7 +122,7 @@ initial discovery, and does not strengthen the conditional assessment.
 Receipt and indexed-block responses add a `first_publication` assessment with
 query/publication identities, checker result, assumptions, issues, recorded
 context and an optional exact-snapshot download URL. Existing receipt schemas,
-`verification` and **Download JSON** keep their previous meanings.
+`verification` and **Download evidence JSON** keep their previous meanings.
 
 **Download verification package** optionally returns a ZIP containing the exact
 versioned packet, interval bodies, standard-library checker, license and instructions.

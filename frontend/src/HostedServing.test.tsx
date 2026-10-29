@@ -31,9 +31,9 @@ describe('hosted read surface', () => {
     expect(screen.getByText(/Bitcoin stale · Hemi unavailable/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: '5243119' } });
     fireEvent.submit(document.getElementById('lookup-form')!);
-    await screen.findByRole('heading', { name: 'Recorded publication evidence' });
+    await screen.findByRole('heading', { name: 'Publication found' });
     expect(screen.getByRole('list', { name: 'Hemi to Bitcoin association' })).toBeTruthy();
-    expect((await screen.findByRole('link', { name: /Download JSON/ })).getAttribute('href')).toMatch(/^blob:/);
+    expect((await screen.findByRole('link', { name: /Download evidence JSON/ })).getAttribute('href')).toMatch(/^blob:/);
     expect(fetch.mock.calls.some(([path]) => path === '/api/v1/blocks/5243119')).toBe(true);
   });
 

@@ -35,8 +35,12 @@ describe('Publication route evidence meaning', () => {
     expect(view.getAllByText('4,028,425')).toHaveLength(2);
     expect(view.getByText('Later keystone')).toBeTruthy();
     expect(view.getByText('4,028,450')).toBeTruthy();
-    expect(view.getByRole('link', { name: 'Block 941,750' }).getAttribute('href')).toBe(`https://blockstream.info/block/${marchData.proofs[0].bitcoin_block_hash}`);
-    expect(view.getByText('Containing Bitcoin block. Transaction ID below.')).toBeTruthy();
+    expect(view.getByRole('link', { name: 'block 941,750' }).getAttribute('href')).toBe(`https://blockstream.info/block/${marchData.proofs[0].bitcoin_block_hash}`);
+    expect(view.getByText('Containing Bitcoin block')).toBeTruthy();
+    expect(view.queryByText('Included in Bitcoin block')).toBeNull();
+    const blockLink = view.getByRole('link', { name: 'block 941,750' });
+    expect([...blockLink.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join('').trim()).toBe('941,750');
+    expect(blockLink.querySelector('.sr-only')!.textContent).toBe('block ');
   });
 
   it('does not add a later stage for an unselected candidate', () => {
@@ -55,7 +59,7 @@ describe('Publication route evidence meaning', () => {
     receipt.context = { ...receipt.context, current_view_confirmed: false };
     receipt.selection = { current_proof_index: null, best_observed_proof_index: 0 };
     const route = show(receipt);
-    expect(within(route).getByRole('link', { name: 'Block 965,931' })).toBeTruthy();
+    expect(within(route).getByRole('link', { name: 'block 965,931' })).toBeTruthy();
     expect(route.querySelectorAll('[data-evidence="unresolved"]')).toHaveLength(0);
   });
 

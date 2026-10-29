@@ -72,7 +72,8 @@ export function useOperationFeedback(completion?: OperationCompletion) {
       const action = completion.operation === 'refresh' ? 'source recheck' : completion.operation === 'continue' ? 'search segment' : 'search';
       const name = completion.origin === 'resumed' ? `Resumed ${action}` : action[0].toUpperCase() + action.slice(1);
       const incomplete = completion.result.receipt.status === 'incomplete' ? ' with an incomplete result' : '';
-      setMessage(`${name} finished${incomplete}. ${heading.textContent.trim()}.${completion.operation === 'refresh' ? ' Original scan coverage is unchanged.' : isRecorded(completion.result.receipt) ? ' Current source views were not rechecked.' : ''}`);
+      const storedFound = isRecorded(completion.result.receipt) && heading.textContent.trim() === 'Publication found';
+      setMessage(`${name} finished${incomplete}. ${heading.textContent.trim()}${storedFound ? ' in stored evidence' : ''}.${completion.operation === 'refresh' ? ' Original scan coverage is unchanged.' : isRecorded(completion.result.receipt) && !storedFound ? ' Current source views were not rechecked.' : ''}`);
     } else setMessage('');
     const active = document.activeElement;
     const waiting = active === document.body || active === document.documentElement || active === intent?.origin;

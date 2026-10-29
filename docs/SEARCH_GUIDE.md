@@ -13,7 +13,7 @@ and **Recheck sources** make explicit live requests. One lookup and any first-pu
 evidence preparation share the same resource limits; they do not get separate
 allowances. Use indexed-only mode below for inspection without external source requests.
 
-Select nodes to inspect records. Expand the matching-publication list to choose a later-keystone proof. Use Copy summary or Download JSON to share evidence. Recorded source times remain historical; opening or selecting a record is not a fresh source check.
+Select nodes to inspect records. Expand the matching-publication list to choose a later-keystone proof. Use **Copy summary** for the selected view or **Download evidence JSON** for the original evidence export. Opening a transaction or an indexed publication is distinct from browsing all collected publications for a keystone. Recorded source times remain historical; opening or selecting a record is not a fresh source check.
 
 The result places ordinary proof checks, source agreement and checked coverage
 before advanced assessments. When no matching proof is available, coverage and
@@ -27,6 +27,38 @@ export** for reference-model values and their separate JSON. Source conflicts,
 invalid-evidence warnings and conditional qualifications are not hidden by these
 disclosures. Repeated source-unavailable messages can share a warning summary;
 **Warning details** and the original evidence retain the separate qualifications.
+
+The search form shows a short discovery-capacity status. Expand **Search limits**
+for counted usage, the installation ceiling, per-operation bounds and cumulative
+accounting rules. Unverified accounting or unavailable source operations remain
+visible before opening that disclosure. Expanding it does not start a request or
+renew an allowance.
+
+The selected proof and matching-publication chooser share a compact context row
+before the route. The default-selection explanation is available in the chooser;
+manual/linked-selection and conditional qualifications remain visible. The Bitcoin
+node emphasizes its explicitly labelled containing block, with the separate
+transaction/output immediately below. Full identifiers and inspection actions
+remain available.
+
+**Publication found** is the main search outcome. **Stored evidence** identifies
+reused evidence, with **Source checks: Not rechecked for this result** shown
+separately. The result-generation time and historical source times describe
+different events. A block number resolved from a recorded Hemi view does not
+establish the current block hash at that height.
+
+**Publication order** describes the selected publication's ordering assurance.
+**Earliest observed in this result** can coexist with **First-publication assessment
+not available**: the ordinary publication evidence is available, but the separate
+verification package required for that additional conclusion is unavailable.
+The connector identifies the publication transaction and output, then its containing
+Bitcoin block. Proof-record counts do not imply distinct transaction counts.
+
+**Bitcoin depth from source checks** requires confirmed source checks for the
+result and a recorded depth value. **Bitcoin depth from recorded tip** is separate
+arithmetic using the reference calculation's recorded tip and observation time.
+A historical calculation does not fill in a missing source-confirmed value,
+refresh observations or establish a Hemi finality value.
 
 **Run new lookup** explicitly starts source work and can also attempt additional
 first-publication checks within that operation's limits. An ordinary search that

@@ -1,7 +1,7 @@
 import type { Proof, ReceiptWrapper } from './types';
 import { formatDate, formatNumber } from './format';
 import { StatusIcon } from './StatusIcon';
-import { firstPublicationState } from './firstPublicationState';
+import { firstPublicationIssueText, firstPublicationState } from './firstPublicationState';
 
 export function FirstPublication({ wrapper, proof }: { wrapper: ReceiptWrapper; proof?: Proof }) {
   if (!proof) return null;
@@ -10,18 +10,19 @@ export function FirstPublication({ wrapper, proof }: { wrapper: ReceiptWrapper; 
   const interval = state.exact ? assessment?.result?.interval_evidence?.verified_interval : undefined;
   const tone = state.qualified ? 'pass' : assessment?.status === 'invalid' || state.conflict ? 'warning' : 'neutral';
   const important = state.qualified || state.conflict || assessment?.status === 'invalid' || state.another;
+  const showDescription = important || !assessment || assessment.status === 'not_available';
   const visibleIssues = !state.another && (state.conflict || assessment?.status === 'invalid');
   return <section id="first-publication" className={`first-publication first-publication-${tone}`} aria-labelledby="first-publication-heading">
     <div className="section-heading"><h3 id="first-publication-heading"><StatusIcon tone={tone} />{state.title}</h3>
       {state.qualified && proof && <span className="muted">Bitcoin {formatNumber(proof.bitcoin_height)}</span>}
     </div>
-    {important && <p className="section-help">{state.description}</p>}
-    {visibleIssues && Boolean(assessment?.issues.length) && <ul className="assessment-issues">{assessment!.issues.map((issue, index) => <li key={index}>{issue.message || issue.code}</li>)}</ul>}
+    {showDescription && <p className="section-help">{state.description}</p>}
+    {visibleIssues && Boolean(assessment?.issues.length) && <ul className="assessment-issues">{assessment!.issues.map((issue, index) => <li key={index}>{firstPublicationIssueText(issue)}</li>)}</ul>}
     <details id="first-publication-details" className="limits-details assessment-disclosure"><summary>Assessment details</summary>
-    {!important && <p className="section-help">{state.description}</p>}
+    {!showDescription && <p className="section-help">{state.description}</p>}
     {state.qualified && state.snapshot && state.context?.snapshot && state.context.domain && <p className="field-help">Hemi snapshot: {formatNumber(state.context.snapshot.number)} · Eligible keystones: {formatNumber(state.context.domain.first_hemi_keystone)}–{formatNumber(state.context.domain.last_hemi_block)}. Future snapshots are outside this assessment.</p>}
     {interval && <p className="field-help">Complete Bitcoin interval: {formatNumber(interval.first_height)}–{formatNumber(interval.last_height)}. {state.qualified ? 'This assessment is separate from the search coverage and unresolved associations below.' : 'Pre-anchor exclusion requires separate justification.'}</p>}
-    {!state.another && !visibleIssues && Boolean(assessment?.issues.length) && <ul className="assessment-issues">{assessment!.issues.map((issue, index) => <li key={index}>{issue.message || issue.code}</li>)}</ul>}
+    {!state.another && !visibleIssues && Boolean(assessment?.issues.length) && <ul className="assessment-issues">{assessment!.issues.map((issue, index) => <li key={index}>{firstPublicationIssueText(issue)}</li>)}</ul>}
     <details className="limits-details"><summary>Assumptions and limits</summary>
       {state.context?.status === 'verified_context_binding' && state.context.snapshot && <>
         <p className="packet-times">Snapshot hash: <code className="assurance-hash">{state.context.snapshot.hash}</code><br />Hemi source observations: {formatDate(state.context.observed_from)}–{formatDate(state.context.observed_through)}. The block timestamp is reported metadata, not a verified wall-clock cutoff.</p>

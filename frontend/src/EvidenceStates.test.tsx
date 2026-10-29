@@ -69,7 +69,7 @@ describe('Evidence state qualifications', () => {
     expect(proofChecks().getAllByText('Passed')).toHaveLength(4);
     expect(document.getElementById('issues-list')!.textContent).toContain('Search timed out. Partial results are available.');
     expect(document.getElementById('issues-list')!.textContent).not.toContain('Internal timeout detail');
-    expect(document.getElementById('transaction-link')!.textContent).toBe(wrapper.receipt.proofs[0].txid);
+    expect(document.getElementById('transaction-link')!.getAttribute('href')).toBe(`https://blockstream.info/tx/${wrapper.receipt.proofs[0].txid}`);
   });
 
   it('describes a timed-out source recheck as a recheck while preserving original coverage and manual-view qualifications', () => {

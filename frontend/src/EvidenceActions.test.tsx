@@ -90,7 +90,7 @@ describe('Portable evidence actions', () => {
     expect(text()).toContain('Result: Evidence retained · source recheck timed out');
     expect(text()).toContain('Origin: Source recheck · Controlled test data; not a live chain observation');
     expect(text()).toContain('4 proof records passed checks of supplied evidence');
-    expect(text()).toContain('Recorded source agreement: Incomplete at the recorded check');
+    expect(text()).toContain('Source checks: Incomplete at the recorded check');
     expect(text()).toContain('Coverage from the original search');
     expect(text()).toContain('Source recheck timed out. Retained evidence');
     expect(text()).not.toContain('Internal reservation/socket diagnostic');

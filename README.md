@@ -44,11 +44,39 @@ The [quickstart](docs/QUICKSTART.md) covers setup, included examples and trouble
 
 ## How search works
 
-Traze first reuses compatible stored evidence and recomputes its proof checks.
-Discovery mode can query public Hemi and Bitcoin sources when more data is needed.
-It estimates a Bitcoin search range, checks publications and reports the scanned
-coverage, unresolved work and stopping reason. A match or completed assessment
-is not guaranteed for every input.
+### Current workflow — developer-run application
+
+Traze currently runs on your computer and serves its web interface locally.
+The backend reuses evidence stored in that installation. In discovery mode,
+it can query public Hemi and Bitcoin sources within configured resource limits.
+
+```mermaid
+flowchart TD
+    A["Local web interface<br/>Hemi block number or hash"] --> B{"Compatible evidence in this installation?"}
+
+    B -- Yes --> C["Recompute evidence checks<br/>Publication payload, Bitcoin inclusion<br/>and Hemi ancestry"]
+
+    B -- No --> D{"Public-source discovery permitted?"}
+
+    D -- Yes --> E["Query public Hemi RPC and Bitcoin APIs<br/>Resolve keystone and search<br/>a bounded Bitcoin range"]
+
+    D -- No --> F["Evidence unavailable for this request<br/>No source search started"]
+
+    E --> C
+
+    C --> G["Report the scoped result<br/>Publication found, scoped no-match<br/>or incomplete"]
+
+    G --> H["Inspect linked records,<br/>source observations and coverage"]
+
+    H --> I["Copy a summary or export evidence JSON<br/>Verify exported evidence offline"]
+```
+
+Normal searches reuse compatible evidence before requesting new public data.
+Explicit **Run new lookup** starts a bounded source search. Proof checks, source
+observations and search completeness remain separate; a scoped no-match does not
+establish global publication absence. Results report the checked coverage,
+unresolved work and stopping reason. A match or completed assessment is not
+guaranteed for every input.
 
 For indexed retrieval without external source requests, use
 `python -B hemi_lookup_web.py --mode indexed-only`. This is the command-line

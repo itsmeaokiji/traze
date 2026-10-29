@@ -49,7 +49,7 @@ describe('publication investigation refinements', () => {
     const view = render(<EvidenceView wrapper={wrapper} {...props} />);
     expect(document.getElementById('evidence-assessment')!.textContent).toContain('Bitcoin blocks from retained data');
     expect(screen.getByRole('heading', { name: 'Coverage for this result' })).toBeTruthy();
-    expect(document.getElementById('observation-line')!.textContent).toContain('Current source views not rechecked');
+    expect(document.getElementById('evidence-assessment')!.textContent).toContain('Not rechecked for this result');
     expect(document.getElementById('coverage-summary')!.textContent).toContain('Retained Bitcoin coverage: 965,925–965,931, 965,934.');
     expect(document.getElementById('coverage-summary')!.textContent).not.toContain('965,925–965,931, 965,925–965,931');
     expect(wrapper.receipt.coverage).toEqual(before);
@@ -94,7 +94,7 @@ describe('publication investigation refinements', () => {
     const evidenceUrl = screen.getByRole('link', { name: /Inspect Hemi keystone/ }).getAttribute('href')!;
     view.unmount(); window.history.replaceState(null, '', evidenceUrl);
     view = render(<App />);
-    await screen.findByRole('heading', { name: 'Recorded publication evidence' });
+    await screen.findByRole('heading', { name: 'Publication found' });
     await waitFor(() => expect(browseReturn()).toBe(location));
     expect(screen.getByRole('link', { name: '← Back to filtered publications' }).getAttribute('href')).toBe(location);
     expect(new URL(window.location.href).searchParams.get('publication')).toBe(id);

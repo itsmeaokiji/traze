@@ -60,11 +60,11 @@ describe('public explorer workflows', () => {
     await waitFor(() => expect((screen.getByRole('button', { name: 'Find publication' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: '5243119' } });
     fireEvent.submit(document.querySelector('#lookup-form')!);
-    await screen.findByRole('heading', { name: 'Recorded publication evidence' });
+    await screen.findByRole('heading', { name: 'Publication found' });
     expect(requests).toContain('/api/v1/blocks/5243119');
     expect(window.location.pathname).toBe(packet.record_url);
     expect(screen.getByRole('button', { name: 'Copy record link' })).toBeTruthy();
-    expect((await screen.findByRole('link', { name: /Download JSON/ })).getAttribute('href')).toMatch(/^blob:/);
+    expect((await screen.findByRole('link', { name: /Download evidence JSON/ })).getAttribute('href')).toMatch(/^blob:/);
     expect(screen.queryByRole('button', { name: /Recheck sources/ })).toBeNull();
   });
 
@@ -77,10 +77,14 @@ describe('public explorer workflows', () => {
     const fetch = vi.fn((path: string) => respond(path === '/api/state' ? state : packet));
     vi.stubGlobal('fetch', fetch);
     render(<App />);
-    await screen.findByRole('heading', { name: 'Recorded publication evidence' });
+    await screen.findByRole('heading', { name: 'Publication found' });
     expect(fetch).toHaveBeenCalledWith(`/api/v1/blocks/${packet.receipt.query.block_hash}?publication=${publication}`, expect.anything());
     expect(screen.getByRole('alert').textContent).toContain('linked publication is unavailable');
     expect(document.body.textContent).toContain('Indexed evidence may change');
+    const note = document.querySelector('.record-view-note')!;
+    expect(note.textContent).toContain('The copied record link identifies the Hemi block and selected publication when available.');
+    expect(note.textContent).not.toContain('Copy record link opens');
+    expect(note.textContent).toContain('Download evidence JSON preserves the original displayed snapshot.');
   });
 
   it('browses summaries, follows a cursor and changes to keystone browsing', async () => {
@@ -117,7 +121,7 @@ describe('public explorer workflows', () => {
     packet.selected_publication = 'e'.repeat(64); packet.selected_publication_available = true;
     render(<EvidenceView wrapper={packet} fresh busy={false} sourceOperationsEnabled={false} onRecheck={vi.fn()} onError={vi.fn()} />);
     expect(document.querySelector('#publication-view-label')?.textContent).toContain('Linked publication');
-    expect(document.querySelector('#transaction-link')?.textContent).toBe(packet.receipt.proofs[1].txid);
+    expect(document.getElementById('transaction-link')!.getAttribute('href')).toBe(`https://blockstream.info/tx/${packet.receipt.proofs[1].txid}`);
     expect(document.body.textContent).not.toContain('Default selection follows the earliest');
   });
 

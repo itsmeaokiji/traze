@@ -52,7 +52,7 @@ describe('Motion preserves evidence and immediate interaction', () => {
     fireEvent.click(document.getElementById('other-proofs-summary')!);
     fireEvent.click(screen.getByRole('button', { name: 'View proof record 2' }));
     expect(document.querySelectorAll('#association [data-route-role]')).toHaveLength(4);
-    expect(document.getElementById('transaction-link')!.textContent).toBe(wrapper.receipt.proofs[1].txid);
+    expect(document.getElementById('transaction-link')!.getAttribute('href')).toBe(`https://blockstream.info/tx/${wrapper.receipt.proofs[1].txid}`);
     expect(within(panel()).getByText(wrapper.receipt.proofs[1].txid)).toBeTruthy();
     expect(within(panel()).queryByText(wrapper.receipt.proofs[0].txid)).toBeNull();
     expect(document.getElementById('download-link')!.getAttribute('href')).toBe(download);

@@ -29,8 +29,8 @@ describe('Record inspector workflow', () => {
     expect(screen.getByRole('button', { name: 'Inspect Bitcoin publication' }).getAttribute('aria-pressed')).toBe('true');
     expect(panel.getByText(receipt.proofs[0].txid)).toBeTruthy();
     expect(panel.getByText(receipt.proofs[0].bitcoin_block_hash)).toBeTruthy();
-    expect(panel.getByRole('link', { name: /View transaction/ }).getAttribute('href')).toBe(`https://blockstream.info/tx/${receipt.proofs[0].txid}`);
-    expect(panel.getByRole('link', { name: /View Bitcoin block/ }).getAttribute('href')).toBe(`https://blockstream.info/block/${receipt.proofs[0].bitcoin_block_hash}`);
+    expect(panel.getByRole('link', { name: /Open transaction/ }).getAttribute('href')).toBe(`https://blockstream.info/tx/${receipt.proofs[0].txid}`);
+    expect(panel.getByRole('link', { name: /Open Bitcoin block/ }).getAttribute('href')).toBe(`https://blockstream.info/block/${receipt.proofs[0].bitcoin_block_hash}`);
     expect(panel.getByText(formatDate(receipt.context?.checked_at))).toBeTruthy();
   });
 
@@ -54,7 +54,7 @@ describe('Record inspector workflow', () => {
     select('Later keystone');
     const panel = inspector('Later keystone');
     expect(panel.getByText(receipt.proofs[0].checkpoint.keystone_id)).toBeTruthy();
-    expect(panel.getByText('25')).toBeTruthy();
+    expect(panel.queryByText('Checked Hemi ancestry links')).toBeNull();
     expect(panel.queryByText(receipt.query.covering_checkpoint!.keystone_id)).toBeNull();
   });
 
@@ -66,8 +66,8 @@ describe('Record inspector workflow', () => {
     const panel = inspector('Bitcoin publication');
     expect(panel.getByText('Unresolved')).toBeTruthy();
     expect(panel.getByText(/Publications may exist outside this range/)).toBeTruthy();
-    expect(panel.queryByRole('link', { name: /View transaction/ })).toBeNull();
-    expect(panel.queryByRole('link', { name: /View Bitcoin block/ })).toBeNull();
+    expect(panel.queryByRole('link', { name: /Open transaction/ })).toBeNull();
+    expect(panel.queryByRole('link', { name: /Open Bitcoin block/ })).toBeNull();
     expect(document.getElementById('association')!.querySelectorAll('[data-evidence="observed"]')).toHaveLength(0);
   });
 

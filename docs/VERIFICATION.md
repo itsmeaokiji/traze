@@ -29,7 +29,9 @@ The default selects the earliest observed applicable Bitcoin height within avail
 
 Viewing another proof changes the displayed record, not the receipt's original selection, source time or search coverage. JSON export preserves the packet; the readable summary is explanatory context.
 
-The route is visible by default. Select a chain node or open **Inspect record details** for exact identifiers and source links. **Verification details** and **Scanned Bitcoin blocks** expose the longer checks and per-block table. The range, stopping reason and unresolved coverage issues remain visible without opening them. Missing scan coverage is different from an unresolved Hemi association or an unsupported payload.
+The route is visible by default. Select a chain node or open **Selected record details** for exact identifiers and source links. **Copy transaction ID** in the publication node copies the full identifier. **Result details** contains the displayed proof record's ancestry count, source-check depth and publication-order context. **Verification details** and **Scanned Bitcoin blocks** expose the longer checks and per-block table. The range, stopping reason and unresolved coverage issues remain visible without opening them. Missing scan coverage is different from an unresolved Hemi association or an unsupported payload.
+
+The resolved Bitcoin node labels its large height **Containing Bitcoin block**. The transaction reference below identifies the publication transaction. **Transaction output** gives the index of the output containing Hemi publication data. Output indices start at 0, so output 1 is the second output. The inspector retains the full identifiers and explains this numbering.
 
 ## Boundaries
 

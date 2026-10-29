@@ -35,14 +35,14 @@ describe('indexed-only serving', () => {
     expect(screen.getByText(/availability depends on collected coverage/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: '5243119' } });
     fireEvent.submit(document.querySelector('#lookup-form')!);
-    await screen.findByRole('heading', { name: 'Recorded publication evidence' });
+    await screen.findByRole('heading', { name: 'Publication found' });
     expect(posts).toEqual([]);
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/blocks/5243119', expect.objectContaining({ cache: 'no-store' }));
     expect(screen.getByRole('list', { name: 'Hemi to Bitcoin association' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Recheck sources/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Run new lookup' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Copy summary' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Download JSON/ }).getAttribute('href')).toBe('/api/receipts/indexed/download');
+    expect(screen.getByRole('link', { name: /Download evidence JSON/ }).getAttribute('href')).toBe('/api/receipts/indexed/download');
   });
 
   it('does not tell indexed-only visitors to use a hidden source action', () => {
@@ -72,20 +72,20 @@ describe('indexed-only serving', () => {
     const view = render(<App />);
     await waitFor(() => expect((screen.getByRole('button', { name: 'Find publication' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.submit(document.querySelector('#lookup-form')!);
-    await screen.findByRole('heading', { name: 'Recorded publication evidence' });
+    await screen.findByRole('heading', { name: 'Publication found' });
     expect(window.location.pathname).toBe(packet.record_url);
     await waitFor(() => expect((screen.getByRole('button', { name: 'Find publication' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: '1' } });
     fireEvent.submit(document.querySelector('#lookup-form')!);
     await screen.findByText(/No usable indexed evidence/);
     expect(window.location.pathname).toBe('/');
-    expect(screen.queryByRole('heading', { name: 'Recorded publication evidence' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Publication found' })).toBeNull();
     view.unmount();
     fetch.mockClear();
     render(<App />);
     await waitFor(() => expect((screen.getByRole('button', { name: 'Find publication' }) as HTMLButtonElement).disabled).toBe(false));
     expect(fetch.mock.calls.every(([path]) => path === '/api/state')).toBe(true);
-    expect(screen.queryByRole('heading', { name: 'Recorded publication evidence' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Publication found' })).toBeNull();
   });
 
   it('also clears an indexed record URL when a new discovery job fails', async () => {
@@ -99,13 +99,13 @@ describe('indexed-only serving', () => {
           state: 'error', error: { code: 'source_unavailable' } } : packet
     )))));
     render(<App />);
-    await screen.findByRole('heading', { name: 'Recorded publication evidence' });
+    await screen.findByRole('heading', { name: 'Publication found' });
     await waitFor(() => expect((screen.getByRole('button', { name: 'Find publication' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: '1' } });
     fireEvent.submit(document.querySelector('#lookup-form')!);
     await screen.findByRole('alert');
     expect(window.location.pathname).toBe('/');
-    expect(screen.queryByRole('heading', { name: 'Recorded publication evidence' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Publication found' })).toBeNull();
   });
 });
 

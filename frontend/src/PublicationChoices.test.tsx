@@ -28,7 +28,7 @@ describe('Retained publication view selection', () => {
     choose(2);
     expect(document.querySelectorAll('#association [data-route-role]')).toHaveLength(4);
     expect(panel().getByText(wrapper.receipt.proofs[1].txid)).toBeTruthy();
-    expect(document.getElementById('transaction-link')!.textContent).toBe(wrapper.receipt.proofs[1].txid);
+    expect(document.getElementById('transaction-link')!.getAttribute('href')).toBe(`https://blockstream.info/tx/${wrapper.receipt.proofs[1].txid}`);
     expect(document.getElementById('publication-view-label')!.textContent).toContain('Viewing another publication');
     expect(screen.getByRole('button', { name: 'Inspect Bitcoin publication' }).getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(screen.getByRole('button', { name: 'Inspect Bitcoin publication' }));

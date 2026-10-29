@@ -53,7 +53,7 @@ export function IndexUpdateStatus({ initial, receiptId, token, enabled, busy }: 
       : value.state === 'rejected' ? 'Index update unavailable.' : 'Index update pending.';
   return <div id="index-update" className="index-update">
     <p className="field-help" role="status" aria-live="polite" aria-atomic="true"><strong>{label}</strong>
-      {complete && value.record_url && <> <a href={value.record_url}>View indexed publication →</a></>}
+      {complete && value.record_url && <> <a href={value.record_url}>Open indexed publication →</a></>}
       {complete && !value.publication_count && <> No applicable publication record was added.</>}
       {!complete && value.reason && reasons[value.reason] && <> {reasons[value.reason]}</>}
       {!complete && value.attempts !== undefined && value.attempts >= 8 && <> Automatic retries have stopped.</>}

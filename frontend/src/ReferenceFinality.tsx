@@ -30,11 +30,12 @@ export function ReferenceFinality({ wrapper, proof }: { wrapper: ReceiptWrapper;
       <dl className="finality-metrics" aria-label="Recorded reference model values">
         <div><dt>BFG reference effective confirmations</dt><dd id="finality-effective">{formatNumber(view.values.effective_confirmations)}</dd></div>
         <div><dt>BFG reference threshold</dt><dd id="finality-threshold">{view.values.super_finality ? 'Reached' : 'Not reached'}</dd><small>T − H ≥ 10</small></div>
-        <div><dt>Inclusive Bitcoin depth</dt><dd id="finality-depth">{formatNumber(view.values.raw_bitcoin_confirmations)}</dd><small>T − H + 1</small></div>
+        <div><dt>Bitcoin depth from recorded tip</dt><dd id="finality-depth">{formatNumber(view.values.raw_bitcoin_confirmations)}</dd><small>T − H + 1</small></div>
       </dl>
+      <p id="finality-depth-context" className="field-help">Calculated from the recorded Bitcoin tip. This is not a new source check or a Hemi finality value.</p>
+      <p id="finality-observation" className="field-help">Recorded Bitcoin tip: {formatNumber(model.bitcoin_tip.height)} · Source observation: {formatDate(observation)}. Opening this result does not refresh either value.</p>
       <p id="finality-reference" className="field-help">{view.kind === 'block' ? 'Block reference' : 'Inspected publication'}: Bitcoin {formatNumber(reference.bitcoin_height)} · Keystone {formatNumber(reference.keystone_number)} · <ExternalLink href={bitcoinReference('tx', reference.txid)!}>{shortHash(reference.txid)}</ExternalLink> · Output {reference.vout}.</p>
       {view.kind === 'block' && <p id="finality-selection-note" className="field-help">Inspecting another publication does not change this Hemi-block reference.</p>}
-      <p id="finality-observation" className="field-help">Recorded Bitcoin tip: {formatNumber(model.bitcoin_tip.height)} · Source observation: {formatDate(observation)}. Opening this result does not refresh either value.</p>
       <details id="finality-ama" className="limits-details"><summary>Compare the signed-counter model</summary><p>The signed-counter comparison uses T − H − 9. Its signed counter is <strong>{formatNumber(view.ama?.signed_counter)}</strong>. Its zero boundary differs from the pinned BFG reference threshold. Deployed compatibility remains unverified.</p></details>
     </>}
     {model && <details id="finality-details" className="limits-details"><summary>Calculation rules and assumptions</summary>

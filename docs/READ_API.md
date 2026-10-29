@@ -168,7 +168,7 @@ curl 'http://127.0.0.1:8765/api/v1/blocks/5243119'
 ```
 
 Saving just the response's `receipt` yields a portable packet for the existing
-[offline verifier](VERIFICATION.md). The browser's Download JSON action exports
+[offline verifier](VERIFICATION.md). The browser's Download evidence JSON action exports
 the exact displayed packet from memory. Later index changes do not rewrite that
 download, and ordinary searches create no server-side receipt file. Reopening a
 record URL can produce more evidence or report changed/unavailable observations;

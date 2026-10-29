@@ -19,24 +19,24 @@ describe('main recorded-evidence integration', () => {
   it('labels retrieval as recorded, preserving old observation times and unconfirmed identity', () => {
     const evidence = wrapper();
     render(<EvidenceView wrapper={evidence} fresh busy={false} onRecheck={vi.fn()} onNewLookup={vi.fn()} onError={vi.fn()} />);
-    expect(screen.getByRole('heading',{name:'Recorded publication evidence'})).toBeTruthy();
-    expect(document.querySelector('#result-origin')?.textContent).toBe('RECORDED EVIDENCE');
+    expect(screen.getByRole('heading',{name:'Publication found'})).toBeTruthy();
+    expect(document.querySelector('#result-origin')?.textContent).toBe('Stored evidence');
     expect(document.querySelector('#observation-line')?.textContent).toContain('Historical source observations:');
     expect(document.querySelector('#observation-line')?.textContent).toContain('Oct 3, 2026');
     expect(document.querySelector('#input-identity-line')?.textContent).toContain('recorded Hemi view');
-    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current source views not rechecked');
+    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Not rechecked for this result');
     expect(screen.queryByText('Source checks remain incomplete.')).toBeNull();
     fireEvent.click(screen.getByText('Verification details', { exact: true }));
     expect(screen.getByRole('heading',{name:'Current source checks'})).toBeTruthy();
-    expect(document.querySelector('#source-check-list')?.textContent).toContain('Current source views not rechecked');
+    expect(document.querySelector('#source-check-list')?.textContent).toContain('Not rechecked for this result');
     expect(document.querySelector('#source-check-list')?.textContent).not.toContain('Incomplete at the recorded check');
     expect((screen.getByRole('button',{name:/Recheck sources/}) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('saved catalogue receipts keep the recorded source qualification', () => {
     render(<EvidenceView wrapper={wrapper()} fresh={false} busy={false} onRecheck={vi.fn()} onError={vi.fn()} />);
-    expect(document.querySelector('#result-origin')?.textContent).toBe('RECORDED EVIDENCE');
-    expect(screen.getByRole('heading',{name:'Recorded publication evidence'})).toBeTruthy();
+    expect(document.querySelector('#result-origin')?.textContent).toBe('Stored evidence');
+    expect(screen.getByRole('heading',{name:'Publication found'})).toBeTruthy();
   });
 
   it('alternate inspection preserves the original target, summary and export', () => {
@@ -44,12 +44,12 @@ describe('main recorded-evidence integration', () => {
     const before = JSON.stringify(evidence.receipt);
     render(<EvidenceView wrapper={evidence} fresh busy={false} onRecheck={vi.fn()} onNewLookup={vi.fn()} onError={vi.fn()} />);
     const summary = evidenceSummary(evidence,1,true);
-    expect(summary).toContain('Origin: Recorded evidence');
-    expect(summary).toContain('Current source views not rechecked');
+    expect(summary).toContain('Origin: Stored evidence');
+    expect(summary).toContain('Not rechecked for this result');
     expect(summary).toContain('Historical source observations:');
     expect(summary).toContain('5,243,119');
     expect(summary).toContain('Block number resolved from retained metadata');
-    expect(screen.getByRole('link',{name:/Download JSON/}).getAttribute('href')).toBe('/api/receipts/recorded-target/download');
+    expect(screen.getByRole('link',{name:/Download evidence JSON/}).getAttribute('href')).toBe('/api/receipts/recorded-target/download');
     expect(JSON.stringify(evidence.receipt)).toBe(before);
   });
 
@@ -57,8 +57,8 @@ describe('main recorded-evidence integration', () => {
     const evidence=wrapper();
     evidence.receipt.coverage!.gaps=[{message:'Controlled processing gap'}];
     render(<EvidenceView wrapper={evidence} fresh busy={false} onRecheck={vi.fn()} onError={vi.fn()} />);
-    expect(screen.getByRole('heading',{name:'Recorded evidence · scan gaps'})).toBeTruthy();
-    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Current source views not rechecked');
+    expect(screen.getByRole('heading',{name:'Publication found · coverage incomplete'})).toBeTruthy();
+    expect(document.querySelector('#evidence-assessment')?.textContent).toContain('Not rechecked for this result');
   });
 
   it('explains unavailable recorded-metadata rechecks and leaves new lookup available', () => {
@@ -87,12 +87,12 @@ describe('main recorded-evidence integration', () => {
     await waitFor(()=>expect((screen.getByRole('button',{name:'Find publication'}) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'),{target:{value:'5243119'}});
     fireEvent.submit(document.querySelector('#lookup-form')!);
-    await screen.findByRole('heading',{name:'Recorded publication evidence'});
+    await screen.findByRole('heading',{name:'Publication found'});
     expect(posts[0].body).toEqual({block:5243119,bitcoin_range:null});
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'),{target:{value:'999'}});
     fireEvent.click(screen.getByRole('button',{name:'Run new lookup'}));
     await waitFor(()=>expect(posts).toHaveLength(2));
     expect(posts[1]).toEqual({path:'/api/lookup',body:{block:5243119,bitcoin_range:null,new_lookup:true}});
-    await screen.findByRole('heading',{name:'Recorded publication evidence'});
+    await screen.findByRole('heading',{name:'Publication found'});
   });
 });

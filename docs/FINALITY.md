@@ -217,15 +217,22 @@ not a public latency guarantee or immediate browser-disconnect cancellation.
 
 ## Copying and exporting a calculation
 
+The website labels inclusive depth **Bitcoin depth from recorded tip** and keeps
+the recorded tip height and observation time beside the calculation. It is not a
+new source check or a Hemi finality value. The separate **Bitcoin depth from
+source checks** field remains **Not established for this result** unless the
+ordinary source checks are confirmed and a depth value is present. A historical
+model value does not override that requirement.
+
 **Copy summary** includes the displayed calculation's scope, model, publication,
 tip identity/time and qualifications. **Download calculation JSON** exports the
 exact returned `finality` object from browser memory; it contains all checked
 publication calculations and the separate block reference. It does not trigger
-another request, recalculate on selection, or change **Download JSON**, which
+another request, recalculate on selection, or change **Download evidence JSON**, which
 continues to export the original receipt.
 
 A calculation JSON is an assessment, not a standalone proof package. Retain its
-matching original receipt and any separately downloaded first-height package.
+matching original receipt and any separately downloaded first-publication verification package.
 To reconstruct the precise calculator receipt, apply the documented overrides
 and check the canonical checksum before running the standalone calculator:
 

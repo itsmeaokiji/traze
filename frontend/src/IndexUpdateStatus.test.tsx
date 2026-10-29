@@ -24,7 +24,7 @@ describe('Local evidence index handoff', () => {
     view(state({ state: 'indexed', publication_count: 1, record_url: '/records/publications/' + 'b'.repeat(64),
       body_scope: { complete: 0, proof_only: 1, unavailable: 0 } }));
     expect(screen.getByText('Index updated.')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /View indexed publication/ }).getAttribute('href')).toContain('/records/publications/');
+    expect(screen.getByRole('link', { name: /Open indexed publication/ }).getAttribute('href')).toContain('/records/publications/');
     expect(screen.getByText(/At this index update/).textContent).toContain('original saved search coverage is unchanged');
     expect(screen.queryByRole('button')).toBeNull();
   });
