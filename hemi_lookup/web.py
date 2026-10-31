@@ -34,6 +34,7 @@ from .finality import SOURCE_POLICY as FINALITY_SOURCE_POLICY
 from .saved_history import history_page, retained_receipts, summary as saved_summary
 from .discovery_allowance import megabytes, validate_ceiling
 from .index_handoff import IndexHandoff
+from .ui_routes import is_app_page, wants_html_not_found
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "web"
@@ -562,7 +563,7 @@ class Handler(BaseHTTPRequestHandler):
                     value = self.server.explorer.read(route, dict(pairs))
                     self.send(200, encode_response(value))
                 return
-            if path in ("/", "/browse", "/api-docs") or re.fullmatch(r"/records/(?:hemi/0x[0-9a-f]{64}|publications/[0-9a-f]{64})", path):
+            if is_app_page(path):
                 self.send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
                 return
             asset = re.fullmatch(r"/assets/([A-Za-z0-9][A-Za-z0-9_-]*\.(js|css|woff2))", path)
@@ -621,6 +622,9 @@ class Handler(BaseHTTPRequestHandler):
             match = re.fullmatch(r"/api/jobs/([0-9a-f]{32})", path)
             if match:
                 self.json(200, self.server.jobs.job(match[1]))
+                return
+            if wants_html_not_found(path, self.headers.get("Accept", "")):
+                self.send(404, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
                 return
             raise WebError("not_found", "This local page was not found.", 404)
         except (DataError, OSError, ValueError, KeyError, TypeError) as exc:

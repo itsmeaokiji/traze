@@ -36,6 +36,7 @@ function staged(value = packet()) {
 }
 function status() { return document.getElementById('completion-status')!; }
 function search() {
+  fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: '5243117' } });
   const button = screen.getByRole('button', { name: 'Find publication' });
   button.focus(); fireEvent.click(button);
   return button;

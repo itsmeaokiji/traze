@@ -104,6 +104,60 @@ describe('public explorer workflows', () => {
     expect(fetch).toHaveBeenCalledWith('/api/v1/keystones?limit=20', expect.anything());
   });
 
+  it('clears an empty direct-cursor timeline without leaving its view or starting source acquisition', async () => {
+    window.history.replaceState(null, '', '/browse?view=timeline&keystone_height=999999&bitcoin_height=965000&state=pending&cursor=deep-page');
+    const fetch = vi.fn((path: string, options?: RequestInit) => {
+      expect(options?.method).not.toBe('POST');
+      expect(path === '/api/v1/index' || path.startsWith('/api/v1/publications?')).toBe(true);
+      return respond(path === '/api/v1/index' ? summary : {
+        items: path.includes('keystone_height=') ? [] : [item()], page: { next_cursor: null },
+      });
+    });
+    vi.stubGlobal('fetch', fetch); render(<BrowseIndex />);
+    await screen.findByText(/No indexed records match/);
+    expect(screen.queryByText(/Select a keystone to highlight/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'First page' }).getAttribute('aria-disabled')).toBe('false');
+    const status = screen.getByRole('status');
+    await waitFor(() => expect(status.textContent).toBe('0 publication records shown on this page.'));
+    const clear = screen.getByRole('button', { name: 'Clear filters' }); clear.focus();
+    fireEvent.click(clear);
+    await screen.findByRole('list', { name: 'Indexed publication timeline' });
+    expect(screen.getByRole('status')).toBe(status);
+    await waitFor(() => expect(status.textContent).toBe('1 publication record shown on this page.'));
+    expect((screen.getByLabelText('Keystone height') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('Bitcoin height') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('Evidence availability') as HTMLSelectElement).value).toBe('all');
+    expect(window.location.search).toBe('?view=timeline');
+    expect(fetch).toHaveBeenCalledWith('/api/v1/publications?limit=20', expect.anything());
+    expect(clear.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(clear);
+    expect(screen.getByRole('button', { name: 'First page' }).getAttribute('aria-disabled')).toBe('true');
+    const calls = fetch.mock.calls.length;
+    fireEvent.click(clear);
+    expect(fetch.mock.calls).toHaveLength(calls);
+  });
+
+  it('returns to the first page while preserving applied filters', async () => {
+    window.history.replaceState(null, '', '/browse?keystone_height=5243125');
+    vi.stubGlobal('fetch', vi.fn((path: string) => respond(path === '/api/v1/index' ? summary : {
+      items: path.includes('cursor=') ? [] : [item()],
+      page: { next_cursor: path.includes('cursor=') ? null : 'next-page' },
+    })));
+    render(<BrowseIndex />);
+    await screen.findByRole('link', { name: 'Inspect publication ' + item().txid });
+    expect(screen.getByRole('button', { name: 'First page' }).getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await screen.findByText(/No indexed records match/);
+    expect(new URLSearchParams(window.location.search).get('cursor')).toBe('next-page');
+    const firstPage = screen.getByRole('button', { name: 'First page' }); firstPage.focus();
+    fireEvent.click(firstPage);
+    await screen.findByRole('link', { name: 'Inspect publication ' + item().txid });
+    expect((screen.getByLabelText('Keystone height') as HTMLInputElement).value).toBe('5243125');
+    expect(window.location.search).toBe('?keystone_height=5243125');
+    expect(document.activeElement).toBe(firstPage);
+    expect(screen.getByRole('button', { name: 'First page' }).getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('shows an unassociated publication honestly without inventing a Hemi route', async () => {
     const p = item(); p.state = 'pending'; p.association_available = false;
     vi.stubGlobal('fetch', vi.fn(() => respond({ publication: p, hemi_records: [], reported_bitcoin_heights: [965931], data: {}, retrieved_at: '2026-10-17T11:00:00Z' })));

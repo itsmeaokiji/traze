@@ -104,6 +104,8 @@ describe('indexed timeline identity and meaning', () => {
   it('has an explicit scoped empty state', () => {
     mount([]);
     expect(screen.getByText(/No indexed records match/)).toBeTruthy();
+    expect(screen.getByText(/Try changing or clearing the filters/)).toBeTruthy();
+    expect(screen.queryByText(/Select a keystone to highlight/)).toBeNull();
     expect(screen.queryByRole('list', { name: 'Indexed publication timeline' })).toBeNull();
   });
 });

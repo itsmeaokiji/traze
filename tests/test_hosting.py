@@ -49,6 +49,35 @@ class HostingTests(unittest.TestCase):
         value = json.loads(raw) if raw and found["headers"]["Content-Type"] == "application/json" else raw
         return found["status"], found["headers"], value
 
+    def test_missing_browser_page_is_html_404_with_recovery_shell(self):
+        for path in ('/missing-page', '/records/hemi/invalid', '/records/publications/invalid'):
+            with self.subTest(path=path):
+                status, headers, raw = self.request(path, HTTP_ACCEPT='text/html,application/xhtml+xml')
+                self.assertEqual(status, 404)
+                self.assertTrue(headers['Content-Type'].startswith('text/html'))
+                self.assertIn(b'id="root"', raw)
+                self.assertEqual(headers['Cache-Control'], 'no-store')
+                self.assertIn("frame-ancestors 'none'", headers['Content-Security-Policy'])
+        status, headers, raw = self.request('/missing-page', method='HEAD', HTTP_ACCEPT='text/html')
+        self.assertEqual(status, 404)
+        self.assertEqual(raw, b'')
+        self.assertGreater(int(headers['Content-Length']), 0)
+
+    def test_missing_api_assets_and_non_html_requests_keep_json_errors(self):
+        for path in ('/api/lookup', '/api/v1/missing', '/api/v1/blocks/123456789',
+                     '/health/missing', '/assets/missing.js', '/assets/nested/missing.js', '/.env'):
+            with self.subTest(path=path):
+                status, headers, value = self.request(path, HTTP_ACCEPT='text/html')
+                self.assertEqual(status, 404)
+                self.assertEqual(headers['Content-Type'], 'application/json')
+                self.assertIn('error', value)
+        for accept in ('', 'application/json', 'text/html;q=0,application/json'):
+            status, headers, value = self.request('/missing-page', HTTP_ACCEPT=accept)
+            self.assertEqual(status, 404)
+            self.assertEqual(headers['Content-Type'], 'application/json')
+            self.assertEqual(value['error']['code'], 'not_found')
+        self.assertEqual(self.request('/records/hemi/0x' + 'a' * 64, HTTP_ACCEPT='text/html')[0], 200)
+
     def test_empty_query_works_with_legacy_strict_parser(self):
         def legacy(query, **options):
             if query == '':

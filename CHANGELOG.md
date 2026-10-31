@@ -1,5 +1,34 @@
 # Changelog
 
+## Explorer navigation and record inspection
+
+- Explain proof checks, source observations and coverage separately on the
+  homepage, with a short FAQ and block-investigation workflow.
+- Inspect nodes in the recorded homepage example and switch to an authentic
+  later-keystone publication using included historical evidence.
+- Use distinct browser titles for the homepage, results, Browse views and API guide.
+- Provide missing-page recovery for browser documents while retaining HTTP 404
+  and separate API, asset and missing-indexed-evidence error behavior.
+- Hide keystone-selection instructions when a filtered Timeline is empty.
+- Separate **Clear filters** from **First page**, announce page-scoped result
+  counts and retain keyboard focus on the corresponding filter/page actions.
+- Left-align API descriptions, keep short footer links with their icons and
+  distinguish internal navigation arrows from external references.
+
+## Homepage and search entry
+
+- Start with an empty search field; keep the separate recorded example and
+  retain inputs belonging to loaded results and resumed operations.
+- Apply the Hemi/Bitcoin palette to headline words, example connections, actions
+  and workflow numbering, with a warm developer section and readable light variants.
+- Introduce Traze with an immediate block search, an explicitly recorded
+  connection example, capabilities, workflow and developer documentation.
+- Keep accepted searches, saved-result links, exact records and resumed jobs in
+  the focused explorer workspace. Invalid input remains on the homepage.
+- Group optional discovery settings and limits on the homepage while keeping
+  unavailable-capacity warnings visible. Describe the active serving mode.
+- Preserve search, evidence, verification, source and resource-accounting rules.
+
 ## Publication-result layout
 
 - Keep discovery capacity visible and place full accounting/limits behind an

@@ -19,12 +19,13 @@ function Reference({ type, hash, children }: { type: 'block' | 'tx'; hash: strin
   return url ? <ExternalLink href={url}>{children}</ExternalLink> : null;
 }
 
-export function RecordInspector({ receipt, proof, role }: { receipt: Receipt; proof?: Proof; role: RouteRole }) {
+export function RecordInspector({ receipt, proof, role, historical = false }: { receipt: Receipt; proof?: Proof; role: RouteRole; historical?: boolean }) {
   const cover = receipt.query.covering_keystone;
   const identity = receipt.context?.requested_block_identity;
   const recordedHash = receipt.query.block_hash;
   const inputHash = receipt.query.requested_block_hash;
-  const recorded = isRecorded(receipt);
+  const recorded = historical || isRecorded(receipt);
+  const observationTime = historical && !isRecorded(receipt) ? formatDate(receipt.context?.checked_at) : historicalSourceTimes(receipt);
   const sourceConfirmed = !recorded && sourceState(receipt) === 'confirmed';
   const safeHemiSource = recordedHemiSource(receipt);
   const bitcoinSources = recordedBitcoinSources(receipt);
@@ -78,7 +79,7 @@ export function RecordInspector({ receipt, proof, role }: { receipt: Receipt; pr
         {bitcoinSources.map(source => <ExternalLink key={source} href={source}>{source.includes('blockstream') ? 'Blockstream API' : 'mempool.space API'}</ExternalLink>)}
       </>}
     </div>
-    <div className="inspector-observation"><span className="detail-label">{recorded ? 'Historical source observation time' : 'Recorded source-check time'}</span><p>{recorded ? historicalSourceTimes(receipt) : formatDate(receipt.context?.checked_at)}</p>{(!recorded || sourceState(receipt) === 'conflict') && <p className={sourceConfirmed ? 'inspector-confirmed' : 'inspector-unconfirmed'}>{sourceAgreementText(receipt)}</p>}</div>
+    <div className="inspector-observation"><span className="detail-label">{recorded ? 'Historical source observation time' : 'Recorded source-check time'}</span><p>{recorded ? observationTime : formatDate(receipt.context?.checked_at)}</p>{(!recorded || sourceState(receipt) === 'conflict') && <p className={sourceConfirmed ? 'inspector-confirmed' : 'inspector-unconfirmed'}>{sourceAgreementText(receipt)}</p>}</div>
     </div>
   </aside>;
 }

@@ -15,7 +15,7 @@ export function useWorkspace() {
   const [error, setError] = useState<Error>();
   const [completion, setCompletion] = useState<OperationCompletion>();
   const completionId = useRef(0);
-  const [input, setInput] = useState('5243117');
+  const [input, setInput] = useState('');
   const controller = useRef<AbortController | null>(null);
   const occupied = useRef(true);
   const token = useRef('');
@@ -53,7 +53,8 @@ export function useWorkspace() {
   }
   async function watchJob(initial: Job, signal: AbortSignal) {
     let current = initial;
-    if (!signal.aborted && initial.block_input !== undefined) setInput(String(initial.block_input));
+    const resumedInput = initial.block_input ?? initial.block_number;
+    if (!signal.aborted && resumedInput !== undefined && resumedInput !== null) setInput(String(resumedInput));
     while (current.state === 'running') {
       if (signal.aborted) return;
       setJob(current);

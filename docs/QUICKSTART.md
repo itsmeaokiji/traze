@@ -51,6 +51,19 @@ summary or download JSON evidence. Downloads are optional; the local server
 stores completed discovery results for reuse. After active work finishes, stop
 the server with **Ctrl+C**. Restart with the same command to reuse local state.
 
+## Navigate the explorer
+
+- The homepage includes a recorded connection example. Select its nodes to inspect
+  historical records, or use **Show later-keystone support** to inspect the retained
+  later publication. These interactions do not refresh chain sources.
+- Open **Browse** to explore collected publications. **Clear filters** removes
+  the filters and returns to the first page while keeping the selected view.
+  **First page** resets pagination while keeping applied filters. Counts describe
+  the displayed page. See [the timeline guide](TIMELINE.md).
+- If a browser page is unavailable, use **Go to search** or **Browse publications**
+  on the recovery page. An unavailable page is distinct from missing publication
+  evidence for a searched block.
+
 ## Understand the result
 
 - **Found:** Applicable publication evidence is available. Inspect its proof

@@ -71,6 +71,7 @@ describe('indexed-only serving', () => {
     vi.stubGlobal('fetch', fetch);
     const view = render(<App />);
     await waitFor(() => expect((screen.getByRole('button', { name: 'Find publication' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: String(packet.receipt.query.block_number) } });
     fireEvent.submit(document.querySelector('#lookup-form')!);
     await screen.findByRole('heading', { name: 'Publication found' });
     expect(window.location.pathname).toBe(packet.record_url);

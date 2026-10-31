@@ -6,6 +6,21 @@ states. [Terminology](GLOSSARY.md) defines the names used in the app and docs.
 
 ## Search actions and stored evidence
 
+The homepage introduces the explorer and provides an initially empty block search.
+Enter your own block number or hash; the recorded example has a separate link.
+Submitting valid input opens the focused search workspace; invalid input stays
+on the homepage with the affected field identified. Saved-result and exact-record
+links open directly, and an existing running search resumes in the workspace.
+These working views retain the block input belonging to their record or operation.
+Select a node in the homepage's recorded connection to open its historical record
+details. **Show later-keystone support** switches to a retained publication of a
+later keystone; **Show covering-keystone publication** returns to the initial
+connection. Use **Close details** or Escape to return to the selected node.
+These interactions use included evidence without refreshing its source observations.
+**Inspect this example** opens the full recorded result when it is available in
+the installation. Otherwise, a link to the public example JSON is provided.
+Opening the homepage or inspecting its recorded connection does not start discovery.
+
 Discovery mode first reuses compatible local evidence after recomputing ordinary
 proof checks. A missing optional first-publication packet does not trigger new
 source requests on a retained-evidence hit. **Run new lookup**, **Continue search**
@@ -28,11 +43,14 @@ invalid-evidence warnings and conditional qualifications are not hidden by these
 disclosures. Repeated source-unavailable messages can share a warning summary;
 **Warning details** and the original evidence retain the separate qualifications.
 
-The search form shows a short discovery-capacity status. Expand **Search limits**
-for counted usage, the installation ceiling, per-operation bounds and cumulative
-accounting rules. Unverified accounting or unavailable source operations remain
-visible before opening that disclosure. Expanding it does not start a request or
-renew an allowance.
+On the discovery homepage, expand **Search options and limits** for the optional
+Bitcoin range and discovery allowance. Within it, **Search limits** gives counted
+usage, the installation ceiling, per-operation bounds and cumulative accounting
+rules. The focused search workspace keeps its short discovery-capacity status.
+Unverified accounting or unavailable source operations remain visible before
+opening these disclosures. Expanding them does not start a request or renew an
+allowance. Indexed-only pages explain their collected-coverage requirement and
+do not offer discovery settings.
 
 The selected proof and matching-publication chooser share a compact context row
 before the route. The default-selection explanation is available in the chooser;
@@ -66,7 +84,13 @@ finds compatible retained evidence reuses it without acquiring a missing optiona
 package. Use [indexed-only mode](SERVING.md#indexed-only-mode) to prevent source
 searches for all inputs.
 
-Browse offers table and timeline views of indexed records. **Hemi evidence
+Browse offers table and timeline views of indexed records. **Clear filters** removes
+the height and evidence-availability filters and resets pagination while retaining
+the selected view. **First page** resets pagination while keeping applied filters.
+Result-count announcements concern the displayed page, not all matching records or
+complete indexed history. See [the timeline guide](TIMELINE.md).
+
+**Hemi evidence
 unavailable** means that a usable Hemi link cannot currently be provided. The
 association has not been completely linked to the publication. This status does
 not imply a running background job. Compatible collection or indexing can supply

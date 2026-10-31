@@ -50,6 +50,7 @@ describe('content clarity without changing evidence or acquisition rules', () =>
     expect((screen.getByLabelText('Through Bitcoin block') as HTMLInputElement).value).toBe('');
     expect(screen.getByPlaceholderText('Start height')).toBeTruthy();
     expect(screen.getByPlaceholderText('End height')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Hemi block number or hash'),{target:{value:'5243117'}});
     fireEvent.click(button);
     await waitFor(() => expect(posts).toEqual([{block:5243117,bitcoin_range:null}]));
   });
@@ -59,6 +60,7 @@ describe('content clarity without changing evidence or acquisition rules', () =>
       const posts = mockForm(); render(<App />);
       const button = screen.getByRole('button',{name:'Find publication'});
       await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+      fireEvent.change(screen.getByLabelText('Hemi block number or hash'),{target:{value:'5243117'}});
       fireEvent.change(screen.getByLabelText('From Bitcoin block'),{target:{value:start}});
       fireEvent.change(screen.getByLabelText('Through Bitcoin block'),{target:{value:end}});
       fireEvent.click(button);

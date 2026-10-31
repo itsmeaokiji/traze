@@ -19,7 +19,13 @@ source refresh. The timeline introduces no additional endpoint or dependency.
 - Switch between **Publications** and **Timeline** without losing the shared
   publication cursor. Changing filters or entering/leaving **Published keystones**
   starts a new list. Direct links preserve a current page, not its previous-page
-  browsing history; **Start over** returns to the first page.
+  browsing history; **First page** returns to the first page while retaining the
+  applied filters. It is unavailable when already on the first page.
+- Use **Clear filters** to remove height and evidence-availability filters and
+  return to the first page while keeping the selected view. An empty Timeline
+  suggests changing or clearing filters; there is no keystone-selection prompt
+  until records are available. Missing indexed matches do not establish that no
+  publication exists.
 - Use **Refresh index** to read newly stored records without reloading the whole
   website. It keeps applied filters/view and resets pagination. The collection
   summary distinguishes recorded tip age and service-scoped checked coverage;
@@ -40,6 +46,8 @@ Groups, highlights and counts concern **only the displayed page**. A keystone or
 Bitcoin block may continue on another page. Filtering and uncollected data can
 also omit records. An intervening height that is not shown is not proof that no
 publication exists there. Spacing is not elapsed time or verified chain ancestry.
+Completion feedback reports the number of records on that page. Filter and
+first-page actions retain keyboard focus after the read completes.
 
 Summaries do not recompute every proof or establish current canonical membership,
 live finality, first publication or complete history. Index storage/retrieval

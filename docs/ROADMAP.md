@@ -1,12 +1,13 @@
 # Roadmap
 
-Updated October 27, 2026. Traze is a local developer explorer. A supported hosted
+Updated November 1, 2026. Traze is a local developer explorer. A supported hosted
 public beta has not been released.
 
 ## Available capabilities
 
 | Area | Current behavior |
 | --- | --- |
+| Explorer entry and recovery | Immediate homepage search, interactive historical example, distinct browser titles and missing-page recovery |
 | Publication investigation | Number/hash input, retained evidence reuse and bounded public-data discovery |
 | Evidence inspection | Connected keystone/publication route, source observations, proof checks and explicit coverage |
 | Developer access | Versioned read API, stable record routes, portable receipts and offline verification |

@@ -16,6 +16,7 @@ from .explorer import Explorer, ReadError, encode_response
 from .operations import public_snapshot
 from .assurance import POLICY_ID, SNAPSHOT_POLICY
 from .finality import SOURCE_POLICY as FINALITY_SOURCE_POLICY
+from .ui_routes import is_app_page, wants_html_not_found
 
 ROOT = Path(__file__).resolve().parent.parent
 CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
@@ -65,7 +66,7 @@ class PublicApplication:
         except (OSError, ValueError, TypeError, AttributeError):
             return public_snapshot({})
 
-    def dispatch(self, path, params):
+    def dispatch(self, path, params, accept=""):
         packet = re.fullmatch(r'/api/v1/blocks/(0x[0-9a-f]{64})/first-publication/([0-9a-f]{64})/download', path)
         if packet:
             if params:
@@ -96,7 +97,8 @@ class PublicApplication:
                 value = self.explorer.read(path[len("/api/v1"):].lstrip("/"), params)
                 raw = encode_response(value)
             return 200, raw, "application/json"
-        if path in ("/", "/browse", "/api-docs") or re.fullmatch(r"/records/(?:hemi/0x[0-9a-f]{64}|publications/[0-9a-f]{64})", path):
+        status = 200
+        if is_app_page(path):
             target, mime = self.static / "index.html", "text/html; charset=utf-8"
         elif path == "/THIRD_PARTY_LICENSES.txt":
             target, mime = self.static / "THIRD_PARTY_LICENSES.txt", "text/plain; charset=utf-8"
@@ -105,12 +107,14 @@ class PublicApplication:
             mime = {"js": "text/javascript; charset=utf-8", "css": "text/css; charset=utf-8", "woff2": "font/woff2"}[asset[2]]
         elif path == "/favicon.ico":
             return 204, b"", "image/x-icon"
+        elif wants_html_not_found(path, accept):
+            status, target, mime = 404, self.static / "index.html", "text/html; charset=utf-8"
         else:
             raise ReadError("not_found", "This public route is unavailable.", 404)
         target = target.resolve()
         if not target.is_relative_to(self.static) or not target.is_file() or target.stat().st_size > 2_000_000:
             raise ReadError("not_found", "This website asset is unavailable.", 404)
-        return 200, target.read_bytes(), mime
+        return status, target.read_bytes(), mime
 
     def __call__(self, environ, start_response):
         started, status, category = time.monotonic(), 500, "rejected"
@@ -137,7 +141,7 @@ class PublicApplication:
                 category = "api" if path.startswith("/api/v1") else "health" if path.startswith("/health/") else "state"
             else:
                 category = "page_or_asset"
-            status, raw, mime = self.dispatch(path, dict(pairs))
+            status, raw, mime = self.dispatch(path, dict(pairs), environ.get("HTTP_ACCEPT", ""))
         except ReadError as exc:
             status, mime = exc.status, "application/json"
             raw = encode_response({"error": {"code": exc.code, "message": str(exc)}})

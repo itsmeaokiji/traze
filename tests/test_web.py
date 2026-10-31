@@ -131,12 +131,37 @@ class WebTests(unittest.TestCase):
         self.assertEqual(self.server.server_address[0], "127.0.0.1")
         status, headers, raw = self.request("/")
         self.assertEqual(status, 200)
-        self.assertIn("Publication evidence", raw.decode())
+        self.assertIn('id="root"', raw.decode())
         self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
         self.assertEqual(headers["Cache-Control"], "no-store")
         for path in ("/api/receipts/../../session.json", "/.hemi_lookup_data/session.json", "/README.md"):
             self.assertEqual(self.request(path)[0], 404)
         self.assertEqual(self.request("/api/state", extra={"Host": "evil.example"})[0], 403)
+
+    def test_missing_browser_document_is_html_404_without_starting_work(self):
+        for path in ('/missing-page', '/records/hemi/invalid', '/records/publications/invalid'):
+            with self.subTest(path=path):
+                status, headers, raw = self.request(path, extra={'Accept': 'text/html'})
+                self.assertEqual(status, 404)
+                self.assertTrue(headers['Content-Type'].startswith('text/html'))
+                self.assertIn(b'id="root"', raw)
+                self.assertIn("frame-ancestors 'none'", headers['Content-Security-Policy'])
+                self.assertEqual(headers['Cache-Control'], 'no-store')
+        self.assertEqual(self.jobs.jobs, {})
+        self.assertFalse((self.root / '.hemi_lookup_data/session.json').exists())
+
+    def test_missing_api_assets_and_non_html_requests_keep_json(self):
+        for path in ('/api/not-present', '/assets/missing.js', '/assets/nested/missing.js', '/.env'):
+            with self.subTest(path=path):
+                status, headers, raw = self.request(path, extra={'Accept': 'text/html'})
+                self.assertEqual(status, 404)
+                self.assertTrue(headers['Content-Type'].startswith('application/json'))
+                self.assertIn('error', json.loads(raw))
+        status, headers, raw = self.request('/missing-page', extra={'Accept': 'text/html;q=0,application/json'})
+        self.assertEqual(status, 404)
+        self.assertTrue(headers['Content-Type'].startswith('application/json'))
+        self.assertEqual(json.loads(raw)['error']['code'], 'not_found')
+        self.assertEqual(self.request('/records/hemi/0x' + 'a' * 64, extra={'Accept': 'text/html'})[0], 200)
 
     def test_cross_origin_or_missing_token_cannot_start_public_reads(self):
         for path, payload in [('/api/lookup', {'block_number': 5243125}),

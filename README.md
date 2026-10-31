@@ -39,7 +39,10 @@ python -B hemi_lookup_web.py --mode discovery
 ```
 
 Open [127.0.0.1:8765](http://127.0.0.1:8765/) and select **Find publication** after
-entering a Hemi mainnet block number or full block hash. Keep the terminal running.
+entering a Hemi mainnet block number or full block hash. The homepage introduces
+the explorer with an interactive recorded example. Select its nodes to inspect
+historical records. Valid search submissions and direct record links use the
+focused evidence workspace. Keep the terminal running.
 The [quickstart](docs/QUICKSTART.md) covers setup, included examples and troubleshooting.
 
 ## How search works

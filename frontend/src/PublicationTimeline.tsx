@@ -23,10 +23,10 @@ export function PublicationTimeline({ records, returnTo }: { records: Publicatio
       <p>{formatNumber(records.length)} publication{records.length === 1 ? '' : 's'} <span>·</span> {formatNumber(groups.length)} Bitcoin block{groups.length === 1 ? '' : 's'} <small>on this page</small></p>
     </div>
     <p className="field-help timeline-scope">Only this page is grouped. Other pages may contain more publications for the same keystone or Bitcoin block.</p>
-    <div className="timeline-selection" aria-live="polite">
+    {records.length > 0 && <div className="timeline-selection" aria-live="polite">
       {selectedRecord ? <><div><strong>Keystone {formatNumber(selectedRecord.keystone_height)}</strong><span className="hash-value">{selectedRecord.keystone_id}</span><span>{matching.length} publication{matching.length === 1 ? '' : 's'} highlighted on this page</span></div><button type="button" className="text-button" onClick={() => setSelected(undefined)}>Clear highlight</button></> : <p>Select a keystone to highlight its publications on this page.</p>}
-    </div>
-    {records.length === 0 ? <p className="browse-empty">No indexed records match these filters. This is not a claim that no publication exists.</p> : <>
+    </div>}
+    {records.length === 0 ? <p className="browse-empty">No indexed records match these filters. Try changing or clearing the filters. This is not a claim that no publication exists.</p> : <>
       <div className="timeline-lanes" aria-hidden="true"><span>Encoded Hemi keystone</span><span>Publication transaction</span><span>Containing Bitcoin block</span></div>
       <ol className={`timeline-groups${selected ? ' has-selection' : ''}`} aria-label="Indexed publication timeline">
         {groups.map((group, groupIndex) => <li className={`timeline-group${group.height === null ? ' is-unpositioned' : ''}`} key={group.hash} data-bitcoin-hash={group.hash}>
@@ -46,7 +46,7 @@ export function PublicationTimeline({ records, returnTo }: { records: Publicatio
                   <span className="timeline-edge" aria-hidden="true"><svg viewBox="0 0 48 16"><path d="M0 8H48" /><circle cx="24" cy="8" r="3" /></svg></span>
                   <a className="timeline-node timeline-transaction" href={withBrowseReturn(record.record_url, returnTo)} aria-label={`Inspect publication ${record.txid}, output ${record.vout_index}`}>
                     <span className="timeline-publication-dot" aria-hidden="true" />
-                    <span className="timeline-node-copy"><span className="timeline-node-label">Transaction · output {record.vout_index}</span><strong className="hash-value" title={record.txid}>{shortHash(record.txid)}</strong><span className={`record-state state-${associated ? 'associated' : record.state === 'unsupported' ? 'unsupported' : 'pending'}`}>{associated ? 'Hemi evidence available' : record.state === 'unsupported' ? 'Unsupported payload' : 'Hemi evidence unavailable'}</span>{record.evidence_scope === 'publication_proof' && <small>Publication proof only</small>}<span className="timeline-inspect">Inspect <span aria-hidden="true">↗</span></span></span>
+                    <span className="timeline-node-copy"><span className="timeline-node-label">Transaction · output {record.vout_index}</span><strong className="hash-value" title={record.txid}>{shortHash(record.txid)}</strong><span className={`record-state state-${associated ? 'associated' : record.state === 'unsupported' ? 'unsupported' : 'pending'}`}>{associated ? 'Hemi evidence available' : record.state === 'unsupported' ? 'Unsupported payload' : 'Hemi evidence unavailable'}</span>{record.evidence_scope === 'publication_proof' && <small>Publication proof only</small>}<span className="timeline-inspect">Inspect <span aria-hidden="true">→</span></span></span>
                   </a>
                 </li>;
               })}
