@@ -140,6 +140,10 @@ The response contains:
   flag is trusted; a failed proof produces an error rather than a success packet.
 - `id`: this generated view's identity, not a permanent job or receipt-file ID.
 - `filename`: suggested name for an optional client-side receipt export.
+- `transaction_costs`: optional derived whole-transaction costs bound to exact
+  proof indices/raw bytes. Missing previous-output records remain unavailable.
+  This field does not modify the receipt or perform source requests; see
+  [transaction costs](TRANSACTION_COSTS.md).
 - `finality`: an additive `traze-web-finality-assessment-v1` object. Supported
   named reference arithmetic uses a recorded Bitcoin tip, never the request time.
   `calculation` is the checked BFG reference result or `null`; `comparison` keeps
@@ -182,6 +186,10 @@ qualifications. `hemi_records` links exact published Hemi blocks with the
 publication ID preserved in the URL. At most 20 metadata links and 50 height
 observations are returned; explicit `*_truncated` fields report omitted entries.
 This detail response is not a full Hemi receipt or a new proof-verification claim.
+
+Its additive `transaction_cost` field describes the whole transaction using
+retained raw bytes and checked previous-output references. Missing fee data is
+null, not zero. See [transaction costs](TRANSACTION_COSTS.md) for exact scope.
 
 ## Errors and admission
 

@@ -344,6 +344,7 @@ class Explorer:
         heights = [item[0] for item in catalogue.db.execute("SELECT DISTINCT height FROM nominations WHERE hash=? ORDER BY height LIMIT 51", (row["block_hash"],))]
         return {"api_version": API_VERSION, "index_kind": kind, "retrieved_at": timestamp(),
                 "publication": self.publication_summary(row), "data": data,
+                "transaction_cost": self.evidence.costs.assess({'proofs': [dict(data, txid=row['txid'])]}, check=budget)['transactions'][0],
                 "reported_bitcoin_heights": heights[:50], "reported_heights_truncated": len(heights) > 50,
                 "hemi_records": list(hemi.values())[:20], "hemi_records_truncated": len(hemi) > 20,
                 "source_observations_current": False,

@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { PublicationRoute } from './PublicationRoute';
 import type { RouteRole } from './PublicationRoute';
 import { RecordInspector } from './RecordInspector';
-import type { Proof, Receipt } from './types';
+import type { Proof, Receipt, TransactionCost } from './types';
 
-export function RecordWorkspace({ receipt, proof, copyScope, copyDisabled, onCopyError }: {
+export function RecordWorkspace({ receipt, proof, copyScope, copyDisabled, onCopyError, cost }: {
   receipt: Receipt; proof?: Proof; copyScope?: string; copyDisabled?: boolean; onCopyError?: (error: Error) => void;
+  cost?: TransactionCost;
 }) {
   const defaultRole: RouteRole = proof ? 'publication' : 'requested';
   const [selectedRole, setSelectedRole] = useState<RouteRole>(defaultRole);
@@ -21,7 +22,7 @@ export function RecordWorkspace({ receipt, proof, copyScope, copyDisabled, onCop
     <div className="route-column"><PublicationRoute receipt={receipt} proof={proof} selectedRole={inspectorOpen ? role : undefined} onSelect={inspect} copyScope={copyScope} copyDisabled={copyDisabled} onCopyError={onCopyError} /></div>
     <details className="record-inspection limits-details" open={inspectorOpen} onToggle={event => setInspectorOpen(event.currentTarget.open)}>
       <summary>Selected record details</summary>
-      <div hidden={!inspectorOpen}><RecordInspector receipt={receipt} proof={proof} role={role} /></div>
+      <div hidden={!inspectorOpen}><RecordInspector receipt={receipt} proof={proof} role={role} cost={cost} /></div>
     </details>
   </div></div>;
 }

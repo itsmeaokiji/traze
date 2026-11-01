@@ -26,6 +26,7 @@ from traze_evidence.verify import MAX_MANIFEST_BYTES, MAX_TOTAL_BODY_BYTES, MAX_
 from .errors import DataError, DeadlineError
 from .packet_cache import PacketResultCache
 from .finality_service import FinalityService
+from .costs import CostService
 from .storage import atomic_json, now
 
 HEX = re.compile(r'[0-9a-f]{64}\Z')
@@ -146,6 +147,7 @@ class EvidenceStore:
         self.accepted_context_sha256 = accepted_context_sha256
         self.finality = FinalityService(source_policy=finality_source_policy,
             accepted_source_context_sha256=accepted_finality_source_context_sha256)
+        self.costs = CostService(state_dir)
 
     def route(self, receipt, proof=None):
         proof = proof or selected_proof(receipt)
@@ -259,6 +261,7 @@ class EvidenceStore:
         return result
 
     def attach(self, wrapper, *, check=None, include_finality=True):
+        wrapper['transaction_costs'] = self.costs.assess(wrapper['receipt'], check=check)
         wrapper['first_publication'] = self.assess(wrapper['receipt'], check=check)
         assessment = wrapper['first_publication']
         if assessment['packet_available']:

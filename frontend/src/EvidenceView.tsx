@@ -103,7 +103,8 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
       <PublicationChoices receipt={r} defaultIndex={defaultIndex} displayedIndex={displayedIndex} onSelect={chooseProof} summaryRef={choicesSummary} defaultLabel={linkedSelection ? 'Linked publication' : 'Default selection'} selectionHelp={!viewingAnother && !firstHeight.qualified && !linkedSelection ? selectionHelp : undefined} />
       {(viewingAnother || firstHeight.qualified || linkedSelection) && <p className="field-help publication-selection-help">{selectionHelp}</p>}
     </div>}
-    <RecordWorkspace key={`${wrapper.id}:${displayedIndex ?? 'unresolved'}`} receipt={r} proof={proof} copyScope={copyScope} copyDisabled={busy} onCopyError={onError} />
+    <RecordWorkspace key={`${wrapper.id}:${displayedIndex ?? 'unresolved'}`} receipt={r} proof={proof} copyScope={copyScope} copyDisabled={busy} onCopyError={onError}
+      cost={wrapper.transaction_costs?.transactions.find(value => value.proof_index === displayedIndex && value.txid === proof?.txid)} />
     {relatedHeight !== undefined && <p className="related-publications"><a id="related-publications-link" className="text-link" href={`/browse?keystone_height=${relatedHeight}`}>Browse publications for keystone {formatNumber(relatedHeight)} <span aria-hidden="true">→</span></a></p>}
   </>;
   return <section id="result" data-receipt-id={wrapper.id} className={`result result-${state.tone}`} aria-labelledby="result-heading">

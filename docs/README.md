@@ -10,6 +10,7 @@ for your task. Public hosting and sustained operation remain validation work.
   discovery, continuation, resource controls and historical examples.
 - [Serving modes](SERVING.md): indexed-only reads and developer discovery.
 - [Publication timeline](TIMELINE.md): browse indexed keystones and publications.
+- [Transaction costs](TRANSACTION_COSTS.md): fees, virtual sizes and retained-data limitations.
 - [Terminology](GLOSSARY.md): records, status labels, coverage and verification.
 
 ## Understand and verify evidence

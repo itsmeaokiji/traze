@@ -94,8 +94,10 @@ def parse_transaction(reader):
     if inputs == 0 or inputs > len(reader.data) // 41:
         raise DataError("invalid transaction input count")
     coinbase = False
+    outpoints = []
     for i in range(inputs):
         outpoint = reader.take(36)
+        outpoints.append({"txid": display_hash(outpoint[:32]), "vout": int.from_bytes(outpoint[32:], "little")})
         script_length = reader.compact()
         reader.take(script_length)
         reader.take(4)
@@ -107,8 +109,9 @@ def parse_transaction(reader):
     if outputs > len(reader.data) // 9:
         raise DataError("invalid transaction output count")
     candidates = []
+    output_values = []
     for output_index in range(outputs):
-        reader.take(8)
+        output_values.append(int.from_bytes(reader.take(8), "little"))
         script = reader.take(reader.compact())
         candidate = hemi_payload(script)
         if candidate is not None and not coinbase:
@@ -132,6 +135,9 @@ def parse_transaction(reader):
     return {
         "hash": tx_hash, "txid": display_hash(tx_hash), "wtxid": display_hash(sha256d(raw)),
         "raw": raw, "segwit": witness, "coinbase": coinbase, "candidates": candidates,
+        "inputs": outpoints, "output_values": output_values,
+        "size_bytes": len(raw), "weight_wu": len(stripped) * 3 + len(raw),
+        "vsize_vbytes": (len(stripped) * 3 + len(raw) + 3) // 4,
     }
 
 

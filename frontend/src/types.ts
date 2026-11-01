@@ -109,6 +109,23 @@ export interface ReceiptWrapper {
   finality?: FinalityAssessment;
   continuation?: SearchContinuation;
   index_update?: IndexUpdate;
+  transaction_costs?: { schema: string; scope: 'whole_transaction'; source_requests: 0;
+    source_views_rechecked: false; transactions: TransactionCost[] };
+}
+export interface TransactionCost {
+  proof_index: number;
+  txid: string;
+  status: 'calculated' | 'unavailable' | 'invalid';
+  reason: string | null;
+  size_bytes?: number | null;
+  weight_wu?: number | null;
+  vsize_vbytes?: number | null;
+  fee_sats: number | null;
+  segwit?: boolean;
+  witness_commitment_checked?: false;
+  raw_transaction_sha256?: string;
+  previous_transactions_required?: number;
+  previous_transactions_checked?: number;
 }
 export interface IndexUpdate {
   state: 'not_queued' | 'pending' | 'indexed' | 'already_indexed' | 'rejected';
@@ -225,6 +242,7 @@ export interface IndexPage<T> {
   items: T[]; page: { limit: number; next_cursor: string | null }; retrieved_at: string;
 }
 export interface PublicationDetail {
+  transaction_cost?: TransactionCost;
   publication: PublicationSummary; retrieved_at: string;
   reported_bitcoin_heights: number[]; reported_heights_truncated: boolean;
   hemi_records: { height: number; hash: string; record_url: string }[]; hemi_records_truncated: boolean;

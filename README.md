@@ -18,6 +18,7 @@ discovery. A supported hosted public service is not yet available.
 - Inspect the requested block, covering keystone, later keystone when applicable,
   and publication transaction through a connected route.
 - Review proof checks, recorded source observations and actual search coverage.
+- Inspect transaction fees and fee rates when the required previous-output records are retained.
 - Browse indexed publications and keystones in table or timeline views.
 - Copy identifiers and evidence summaries, or download a JSON evidence export.
 - Read indexed evidence through a versioned API and verify exported evidence offline.

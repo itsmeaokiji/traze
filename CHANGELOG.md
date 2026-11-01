@@ -1,5 +1,11 @@
 # Changelog
 
+## Publication transaction costs
+
+- Inspect fees, virtual sizes and fee rates computed from retained transactions
+  and hash-checked previous-output references.
+- Keep unavailable costs separate from zero fees, source checks and PoP rewards.
+
 ## Viewer-local timestamps
 
 - Show website and copied-summary timestamps in the viewer's timezone with an

@@ -105,6 +105,7 @@ class Catalogue:
                     id INTEGER PRIMARY KEY, block_hash TEXT REFERENCES blocks(hash),
                     processed_at TEXT NOT NULL, status TEXT NOT NULL, issue TEXT);
                 CREATE INDEX IF NOT EXISTS publication_payload ON publications(payload);
+                CREATE INDEX IF NOT EXISTS publication_txid ON publications(txid);
                 CREATE INDEX IF NOT EXISTS header_height ON headers(height);
             """)
             with self.db:

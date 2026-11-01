@@ -77,6 +77,12 @@ verification package required for that additional conclusion is unavailable.
 The connector identifies the publication transaction and output, then its containing
 Bitcoin block. Proof-record counts do not imply distinct transaction counts.
 
+The transaction inspector and indexed publication detail show transaction costs
+when a cost assessment is available. Fees use retained previous-output records;
+missing records remain unavailable without contacting providers. The fee applies
+to the whole Bitcoin transaction, not each publication output. See
+[transaction costs](TRANSACTION_COSTS.md) for calculation scope and limitations.
+
 **Bitcoin depth from source checks** requires confirmed source checks for the
 result and a recorded depth value. **Bitcoin depth from recorded tip** is separate
 arithmetic using the reference calculation's recorded tip and observation time.

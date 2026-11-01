@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { formatDate, formatNumber } from './format';
-import type { Proof, Receipt } from './types';
+import type { Proof, Receipt, TransactionCost } from './types';
+import { TransactionCosts } from './TransactionCosts';
 import { sourceState, sourceAgreementText } from './evidenceState';
 import type { RouteRole } from './PublicationRoute';
 import { CopyAction } from './CopyAction';
@@ -19,7 +20,7 @@ function Reference({ type, hash, children }: { type: 'block' | 'tx'; hash: strin
   return url ? <ExternalLink href={url}>{children}</ExternalLink> : null;
 }
 
-export function RecordInspector({ receipt, proof, role, historical = false }: { receipt: Receipt; proof?: Proof; role: RouteRole; historical?: boolean }) {
+export function RecordInspector({ receipt, proof, role, historical = false, cost }: { receipt: Receipt; proof?: Proof; role: RouteRole; historical?: boolean; cost?: TransactionCost }) {
   const cover = receipt.query.covering_keystone;
   const identity = receipt.context?.requested_block_identity;
   const recordedHash = receipt.query.block_hash;
@@ -72,6 +73,7 @@ export function RecordInspector({ receipt, proof, role, historical = false }: { 
         <Fact label="Result scope" value={receipt.status === 'not_found_within_coverage' ? 'No applicable publication was found in the scanned range. Publications may exist outside this range.' : 'Publication evidence could not be resolved. This result does not establish publication absence.'} />
       </>)}
     </dl>
+    {role === 'publication' && proof && cost?.txid === proof.txid && <TransactionCosts value={cost} />}
     <div className="inspector-source-links" aria-label="Record source links">
       {role !== 'publication' && (safeHemiSource ? <ExternalLink href={safeHemiSource}>Hemi RPC source</ExternalLink> : <span className="muted">Hemi source not recorded</span>)}
       {role === 'publication' && <>
