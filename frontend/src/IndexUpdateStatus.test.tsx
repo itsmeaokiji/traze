@@ -32,8 +32,28 @@ describe('Local evidence index handoff', () => {
   it('keeps duplicate and no-positive-publication outcomes distinct', () => {
     const result = view(state({ state: 'already_indexed', publication_count: 4 }));
     expect(screen.getByText('Already indexed.')).toBeTruthy();
-    result.rerender(<IndexUpdateStatus initial={state({ state: 'indexed', publication_count: 0 })} receiptId={id} token="token" enabled busy={false} />);
+    result.rerender(<IndexUpdateStatus initial={state({ state: 'indexed', publication_count: 0,
+      body_scope: { complete: 6, proof_only: 0, unavailable: 0 } })} receiptId={id} token="token" enabled busy={false} />);
     expect(screen.getByText('Search data indexed.')).toBeTruthy();
+    expect(screen.getByText(/No applicable publication record was added/)).toBeTruthy();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it.each(['indexed', 'already_indexed'] as const)('describes a zero-work %s result as a saved search, not an indexed publication', status => {
+    const initial = state({ state: status, publication_count: 0,
+      body_scope: { complete: 0, proof_only: 0, unavailable: 0 } });
+    const original = structuredClone(initial); const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
+    view(initial);
+    expect(screen.getByRole('status').textContent).toBe('Search saved. No applicable publication record was added.');
+    expect(screen.queryByText('Already indexed.')).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull(); expect(screen.queryByRole('button')).toBeNull();
+    expect(initial).toEqual(original); expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('retains indexed coverage without implying a publication when the same negative scan is reused', () => {
+    view(state({ state: 'already_indexed', publication_count: 0,
+      body_scope: { complete: 6, proof_only: 0, unavailable: 0 } }));
+    expect(screen.getByText('Search data already indexed.')).toBeTruthy();
     expect(screen.getByText(/No applicable publication record was added/)).toBeTruthy();
     expect(screen.queryByRole('link')).toBeNull();
   });

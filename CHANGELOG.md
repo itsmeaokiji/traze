@@ -1,5 +1,12 @@
 # Changelog
 
+## Search-result status and recovery
+
+- Distinguish saved searches with no indexable data from indexed publications
+  and indexed search data.
+- Recommend source rechecks only when the action is available, and direct
+  unresolved saved searches to an available new lookup.
+
 ## Explorer navigation and record inspection
 
 - Explain proof checks, source observations and coverage separately on the

@@ -62,6 +62,11 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
   const recoveryStopShown = sourceOperationsEnabled && !r.proofs.length && Boolean(wrapper.continuation || r.discovery);
   const { warnings, details: warningDetails } = receiptIssues(r, sourceOperationsEnabled, { primaryStopShown: recoveryStopShown, compact: true });
   const needsNewLookup = recorded || recoveryState(wrapper, workspace).needsNewLookup;
+  const canRecheck = sourceOperationsEnabled && !busy && Boolean(r.query.header && r.query.covering_checkpoint);
+  const canRunNewLookup = sourceOperationsEnabled && !busy && needsNewLookup && Boolean(onNewLookup)
+    && workspace?.resources.source_operations_available !== false;
+  const sourceGuidance = fresh || controlled ? '' : canRecheck ? ' · Use Recheck sources for a new check.'
+    : canRunNewLookup ? ' · Use Run new lookup to retry the search.' : '';
   const sourceAgreement = sourceAgreementText(r);
   const state = resultState(r, Boolean(proof));
   const firstHeight = firstPublicationState(wrapper, proof);
@@ -116,7 +121,7 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
       <div><dt>Coverage for this result</dt><dd><StatusIcon tone={coverageIssues ? 'warning' : 'neutral'} /><span>{formatNumber(blocks.length)} Bitcoin block{blocks.length === 1 ? '' : 's'}{recorded ? ' from retained data' : r.mode === 'live_metadata_refresh' ? ' from the original search' : ' scanned'}{coverageIssues ? ` · ${coverageIssues}` : ''}</span></dd></div>
     </dl>
     <IndexUpdateStatus initial={wrapper.index_update} receiptId={wrapper.id} token={workspace?.csrf_token || ''} enabled={sourceOperationsEnabled && workspace?.serving_mode === 'discovery'} busy={busy} />
-    <div className="result-context" aria-label="Source observations"><p id="observation-line" className="observation-line"><span className="context-label">Source observations</span>{recorded ? `Result generated: ${formatDate(r.completed_at)} · Historical source observations: ${historicalSourceTimes(r)}.` : <>Receipt completed: {formatDate(r.completed_at)} · Ordinary source check: {formatDate(r.context?.checked_at)}{controlled ? ' · Controlled test data.' : fresh || !sourceOperationsEnabled ? '' : ' · Use Recheck sources for a new check.'}{r.mode === 'live_metadata_refresh' ? ' Original scan coverage is preserved.' : ''}</>}</p>
+    <div className="result-context" aria-label="Source observations"><p id="observation-line" className="observation-line"><span className="context-label">Source observations</span>{recorded ? `Result generated: ${formatDate(r.completed_at)} · Historical source observations: ${historicalSourceTimes(r)}.` : <>Receipt completed: {formatDate(r.completed_at)} · Ordinary source check: {formatDate(r.context?.checked_at)}{controlled ? ' · Controlled test data.' : sourceGuidance}{r.mode === 'live_metadata_refresh' ? ' Original scan coverage is preserved.' : ''}</>}</p>
     {requestedHash && identity && <p id="input-identity-line" className={`input-identity-line${identity.status !== 'matches_current_rpc_view' ? ' is-warning' : ''}`}>{identitySummary}</p>}</div>
     <div className="result-detail-grid">
       <section className="checks-section" aria-labelledby="checks-heading">
@@ -152,7 +157,7 @@ export function EvidenceView({ wrapper, fresh, busy, onRecheck, onError, onNewLo
     </div>
     {sourceOperationsEnabled && <section id="result-search-actions" className="result-search-actions" aria-labelledby="search-actions-heading">
       <h3 id="search-actions-heading">Search actions</h3>
-      <div className="source-action-buttons">{needsNewLookup && onNewLookup && <button id="new-lookup-button" className="secondary" disabled={busy || workspace?.resources.source_operations_available === false} onClick={onNewLookup} title="Run the normal source search for this input, using any specified Bitcoin range.">Run new lookup</button>}<button id="refresh-button" className="secondary" disabled={busy || !r.query.header || !r.query.covering_checkpoint} onClick={onRecheck} title="Checks source views again. Original scan coverage is preserved.">Recheck sources <span aria-hidden="true">↻</span></button></div>
+      <div className="source-action-buttons">{needsNewLookup && onNewLookup && <button id="new-lookup-button" className="secondary" disabled={!canRunNewLookup} onClick={onNewLookup} title="Run the normal source search for this input, using any specified Bitcoin range.">Run new lookup</button>}<button id="refresh-button" className="secondary" disabled={!canRecheck} onClick={onRecheck} title="Checks source views again. Original scan coverage is preserved.">Recheck sources <span aria-hidden="true">↻</span></button></div>
       <p className="field-help">{needsNewLookup && onNewLookup && 'Run new lookup starts a new source search. '}Recheck sources checks source views again; it does not expand search coverage. Source operations use the existing discovery allowance.</p>
       <SearchRecovery wrapper={wrapper} workspace={workspace} busy={busy} onContinue={onContinue} onOpenSaved={onOpenSaved} showNewLookup={false} />
     </section>}

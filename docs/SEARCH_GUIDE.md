@@ -84,6 +84,11 @@ finds compatible retained evidence reuses it without acquiring a missing optiona
 package. Use [indexed-only mode](SERVING.md#indexed-only-mode) to prevent source
 searches for all inputs.
 
+Saved-result guidance follows the available actions. **Recheck sources** requires
+the requested Hemi header and covering-keystone metadata in that result. If an
+incomplete result lacks them, use an available **Run new lookup** to retry the
+search. Source-operation limits still apply.
+
 Browse offers table and timeline views of indexed records. **Clear filters** removes
 the height and evidence-availability filters and resets pagination while retaining
 the selected view. **First page** resets pagination while keeping applied filters.
@@ -102,7 +107,11 @@ discovery results and reusable evidence are stored by the local server.
 
 Completed local discovery-mode searches also queue a checked update to the active
 publication index without external source requests. **Index updated** or **Already indexed** links
-to the publication record. Use **Refresh index** on an already-open Browse page
+to an available publication record. **Search saved** distinguishes a retained
+search with no publication or block data to index. **Search data indexed** or
+**Search data already indexed** describes search data without an applicable
+publication record; these labels do not establish publication absence.
+Use **Refresh index** on an already-open Browse page
 to see new records. A busy index writer can leave the update pending while the
 saved search remains readable; bounded retries survive a server restart.
 **Retry index update** uses retained data only and does not continue a search.

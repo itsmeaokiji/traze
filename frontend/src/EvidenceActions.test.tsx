@@ -7,7 +7,7 @@ import { CopyAction } from './CopyAction';
 import { EvidenceView } from './EvidenceView';
 import { evidenceSummary } from './evidenceSummary';
 import { formatDate } from './format';
-import type { Receipt, ReceiptWrapper } from './types';
+import type { Receipt, ReceiptWrapper, WorkspaceState } from './types';
 
 function wrap(data: unknown = ordinaryData, id = 'ordinary'): ReceiptWrapper {
   const receipt = structuredClone(data) as Receipt;
@@ -15,6 +15,20 @@ function wrap(data: unknown = ordinaryData, id = 'ordinary'): ReceiptWrapper {
     verification: { proofs_checked: receipt.proofs.length, current_chain_membership_checked: false } };
 }
 const props = { fresh: false, busy: false, onRecheck: vi.fn(), onError: vi.fn() };
+function unresolved(): ReceiptWrapper {
+  const wrapper = wrap(negativeData, 'unresolved');
+  wrapper.receipt.status = 'incomplete'; wrapper.receipt.validation = undefined;
+  delete wrapper.receipt.query.header; delete wrapper.receipt.query.covering_checkpoint;
+  wrapper.receipt.context = { current_view_confirmed: false };
+  wrapper.receipt.coverage = { blocks: [], fully_scanned_intervals: [], stop_reason: 'lookup_incomplete' };
+  wrapper.continuation = { available: false, reason: 'continuation_unavailable' };
+  return wrapper;
+}
+function operationWorkspace(available = true): WorkspaceState {
+  return { serving_mode: 'discovery', csrf_token: 'controlled-token', receipts: [], active_job: null,
+    resources: { available: true, source_operations_available: available, session_limit_bytes: 100000000 },
+    limits: { response_mb_per_lookup: 40, bitcoin_body_attempts: 20, ancestry_links: 256, session_response_mb: 100 } };
+}
 function clipboard(writeText = vi.fn().mockResolvedValue(undefined)) {
   vi.stubGlobal('navigator', Object.create(navigator, { clipboard: { value: { writeText }, configurable: true } }));
   return writeText;
@@ -26,6 +40,38 @@ function choose(index: number) {
 }
 
 describe('Portable evidence actions', () => {
+  it('directs a restored unresolved search to its available new lookup while preserving the saved evidence', () => {
+    const wrapper = unresolved(); const original = structuredClone(wrapper);
+    const onNewLookup = vi.fn(); const onRecheck = vi.fn(); const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
+    render(<EvidenceView wrapper={wrapper} {...props} workspace={operationWorkspace()} onNewLookup={onNewLookup} onRecheck={onRecheck} />);
+    expect(document.getElementById('observation-line')!.textContent).toContain('Use Run new lookup to retry the search.');
+    expect(document.getElementById('observation-line')!.textContent).not.toContain('Use Recheck sources');
+    expect((screen.getByRole('button', { name: /Recheck sources/ }) as HTMLButtonElement).disabled).toBe(true);
+    const lookup = screen.getByRole('button', { name: 'Run new lookup' }) as HTMLButtonElement;
+    expect(lookup.disabled).toBe(false); fireEvent.click(lookup);
+    expect(onNewLookup).toHaveBeenCalledOnce(); expect(onRecheck).not.toHaveBeenCalled();
+    expect(wrapper).toEqual(original); expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps the recheck instruction and callback for restored evidence with complete metadata', () => {
+    const wrapper = wrap(); wrapper.receipt.validation = undefined;
+    const onRecheck = vi.fn();
+    render(<EvidenceView wrapper={wrapper} {...props} onRecheck={onRecheck} />);
+    expect(document.getElementById('observation-line')!.textContent).toContain('Use Recheck sources for a new check.');
+    const recheck = screen.getByRole('button', { name: /Recheck sources/ }) as HTMLButtonElement;
+    expect(recheck.disabled).toBe(false); fireEvent.click(recheck); expect(onRecheck).toHaveBeenCalledOnce();
+  });
+
+  it.each(['busy', 'read-only', 'fresh', 'allowance-blocked'] as const)('does not recommend an unavailable recovery for %s evidence', condition => {
+    const wrapper = unresolved();
+    render(<EvidenceView wrapper={wrapper} {...props} busy={condition === 'busy'} fresh={condition === 'fresh'}
+      sourceOperationsEnabled={condition !== 'read-only'} workspace={operationWorkspace(condition !== 'allowance-blocked')} onNewLookup={vi.fn()} />);
+    const observation = document.getElementById('observation-line')!.textContent;
+    expect(observation).not.toContain('Use Recheck sources'); expect(observation).not.toContain('Use Run new lookup');
+    if (condition === 'read-only') expect(screen.queryByRole('button', { name: 'Run new lookup' })).toBeNull();
+    else if (condition !== 'fresh') expect((screen.getByRole('button', { name: 'Run new lookup' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('copies the actual full English summary without public requests or receipt mutation', async () => {
     const wrapper = wrap(); const before = structuredClone(wrapper);
     const write = clipboard(); const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);

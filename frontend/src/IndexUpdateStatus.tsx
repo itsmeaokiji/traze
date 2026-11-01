@@ -48,8 +48,10 @@ export function IndexUpdateStatus({ initial, receiptId, token, enabled, busy }: 
     index_unavailable: 'The active index needs operator review.', receipt_changed: 'The saved receipt changed; this handoff cannot be used.',
     active_index_changed: 'The active index changed; this receipt needs an update in that index.',
   };
-  const label = value.state === 'indexed' ? (value.publication_count ? 'Index updated.' : 'Search data indexed.')
-    : value.state === 'already_indexed' ? 'Already indexed.' : value.state === 'not_queued' ? 'Saved evidence is not queued for indexing.'
+  const hasIndexedSearchData = Boolean(value.body_scope?.complete || value.body_scope?.proof_only || value.body_scope?.unavailable);
+  const completeLabel = value.publication_count ? (value.state === 'indexed' ? 'Index updated.' : 'Already indexed.')
+    : hasIndexedSearchData ? (value.state === 'indexed' ? 'Search data indexed.' : 'Search data already indexed.') : 'Search saved.';
+  const label = complete ? completeLabel : value.state === 'not_queued' ? 'Saved evidence is not queued for indexing.'
       : value.state === 'rejected' ? 'Index update unavailable.' : 'Index update pending.';
   return <div id="index-update" className="index-update">
     <p className="field-help" role="status" aria-live="polite" aria-atomic="true"><strong>{label}</strong>
