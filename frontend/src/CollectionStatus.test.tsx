@@ -1,8 +1,20 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { CollectionStatus } from './CollectionStatus';
+import { formatDate } from './format';
 
 describe('Indexed evidence status', () => {
+  it('labels collection and runner times while retaining their original UTC values', () => {
+    const updated = '2026-10-31T23:30:00Z';
+    const observed = '2026-11-01T07:30:00Z';
+    const { container } = render(<CollectionStatus value={{ state: 'waiting', updated_at: updated,
+      runner: { state: 'active', last_seen_at: observed } }} />);
+    const times = [...container.querySelectorAll('time')];
+    expect(times.map(time => time.dateTime)).toEqual([updated, observed]);
+    expect(times.map(time => time.textContent)).toEqual([formatDate(updated), formatDate(observed)]);
+    expect(times.every(time => time.textContent?.includes('GMT'))).toBe(true);
+  });
+
   it('keeps block processing separate from unresolved associations and ancestry', () => {
     render(<CollectionStatus value={{ state: 'running', range: [965934, 965941], processed_blocks: 4, processed_job_blocks: 4, requested_job_blocks: 8, supported_publications: 7, associated_publications: 3, unresolved_publications: 4, pending_ancestry: 2, source_conflicts: 0 }} />);
     expect(screen.getByText('Collection in progress')).toBeTruthy();

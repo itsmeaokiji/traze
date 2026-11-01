@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest';
 import recordedData from '../../demo_results/main_catalogue_5243119.json';
 import App from './App';
+import { formatDate } from './format';
 import type { ReceiptWrapper, WorkspaceState } from './types';
 
 const state: WorkspaceState = { deployment: 'hosted-candidate', serving_mode: 'indexed-only', csrf_token: '',
@@ -29,6 +30,10 @@ describe('hosted read surface', () => {
     expect(screen.queryByText('Saved results')).toBeNull();
     expect(screen.queryByText('Developer diagnostics')).toBeNull();
     expect(screen.getByText(/Bitcoin stale · Hemi unavailable/)).toBeTruthy();
+    const observation = screen.getByRole('region', { name: 'Recorded source observations' }).querySelector('time');
+    expect(observation?.dateTime).toBe(state.service_status!.generated_at);
+    expect(observation?.textContent).toBe(formatDate(state.service_status!.generated_at!));
+    expect(observation?.textContent).toContain('GMT');
     fireEvent.change(screen.getByLabelText('Hemi block number or hash'), { target: { value: '5243119' } });
     fireEvent.submit(document.getElementById('lookup-form')!);
     await screen.findByRole('heading', { name: 'Publication found' });

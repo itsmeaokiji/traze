@@ -1,5 +1,11 @@
 # Changelog
 
+## Viewer-local timestamps
+
+- Show website and copied-summary timestamps in the viewer's timezone with an
+  explicit UTC offset, including collection and service-status observations.
+- Preserve original UTC evidence and machine-readable timestamps.
+
 ## Search-result status and recovery
 
 - Distinguish saved searches with no indexable data from indexed publications

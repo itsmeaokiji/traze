@@ -1,12 +1,15 @@
 import type { Receipt } from './types';
 
 const numberFormat = new Intl.NumberFormat('en-US');
-const dateFormat = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'medium', timeZone: 'Asia/Manila' });
+const dateFormat = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric', month: 'short', day: 'numeric',
+  hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'shortOffset',
+});
 export const formatNumber = (value?: number | null) => typeof value === 'number' && Number.isFinite(value) ? numberFormat.format(value) : '—';
 export const formatBytes = (value?: number) => Number.isFinite(value) ? `${((value as number) / 1e6).toFixed(2)} MB` : '—';
 export const shortHash = (hash: string) => `${hash.slice(0, 12)}…${hash.slice(-8)}`;
 export function formatDate(value?: string): string {
-  return !value || Number.isNaN(Date.parse(value)) ? 'not recorded' : `${dateFormat.format(new Date(value))} PHT`;
+  return !value || Number.isNaN(Date.parse(value)) ? 'not recorded' : dateFormat.format(new Date(value));
 }
 export const receiptInput = (receipt: Receipt): string => String(receipt.query.requested_block_hash ?? receipt.query.block_number ?? '');
 export function selectedProof(receipt: Receipt) {

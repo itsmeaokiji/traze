@@ -65,6 +65,11 @@ separately. The result-generation time and historical source times describe
 different events. A block number resolved from a recorded Hemi view does not
 establish the current block hash at that height.
 
+Dates and times in the website and copied summaries use your browser's timezone,
+with the applicable UTC offset shown (for example, GMT+8). The interface remains
+in English. Original UTC timestamps in downloaded JSON evidence are unchanged;
+display formatting does not refresh the recorded observations.
+
 **Publication order** describes the selected publication's ordering assurance.
 **Earliest observed in this result** can coexist with **First-publication assessment
 not available**: the ordinary publication evidence is available, but the separate
