@@ -34,7 +34,7 @@ function enterBlock(value = '5243117') {
 }
 
 describe('rich home entry and focused explorer transitions', () => {
-  it('shows the approved copy and a recorded connector without acquiring or opening evidence', async () => {
+  it('shows the product introduction and recorded connector without loading evidence', async () => {
     const fetch = mock(); render(<App />); await ready();
     expect(screen.getByText('Hemi–Bitcoin publication explorer')).toBeTruthy();
     expect(screen.getByText('Start with a Hemi block number or hash. Follow the keystone connection, inspect Bitcoin transactions, and review the supporting evidence.')).toBeTruthy();

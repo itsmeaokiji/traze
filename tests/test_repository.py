@@ -75,6 +75,26 @@ class RepositoryContentTests(unittest.TestCase):
                  'validation': {'qualification': 'Retained body; not cold discovery'}}
         self.assertEqual(inspect_text('demo_results/example.json', json.dumps(valid).encode())[1], [])
 
+    def test_nested_fixture_stage_metadata_is_rejected(self):
+        values = ({'type': 'milestone' + '4_source_metadata'},
+                  {'metadata': {'scope': 'Captured for phase' + ' 2 validation'}},
+                  {'cases': [{'schema': 'MILESTONE' + '-12-capture'}]})
+        for name in ('demo_results/example.json', 'tests/fixtures/metadata.json'):
+            for value in values:
+                _, problems = inspect_text(name, json.dumps(value).encode())
+                self.assertIn({'file': name, 'kind': 'development_example_bookkeeping'}, problems)
+
+    def test_evidence_identifiers_and_runtime_states_are_not_stage_metadata(self):
+        value = {'schema': 'hemi-publication-receipt-v1',
+                 'type': 'bitcoin_source_metadata_fixture',
+                 'profile': {'id': 'ama-signed-nine-block-model', 'kind': 'transcript_described_model'},
+                 'context': {'checkpoint': {'height': 25}, 'phase': 'waiting'},
+                 'scope': 'Recorded Bitcoin metadata for offline recovery tests.',
+                 'proofs': [{'transaction_type': '0x7c', 'validation': {'state': 'complete'}}]}
+        for name in ('demo_results/example.json', 'tests/fixtures/metadata.json'):
+            with self.subTest(file=name):
+                self.assertEqual(inspect_text(name, json.dumps(value).encode())[1], [])
+
     def test_complete_check_includes_deployment_text_and_returns_structured_failure(self):
         base = (ROOT / 'output/qa-repository-content').resolve()
         base.mkdir(parents=True, exist_ok=True)

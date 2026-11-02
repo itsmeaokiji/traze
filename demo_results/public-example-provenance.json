@@ -30,7 +30,7 @@
     },
     "tests/fixtures/source-feasibility/bitcoin-metadata.json": {
       "original_sha256": "53c4b54fbb1e2a585bda5c048cf80febb2270e98caaff3175e6c281110e3a655",
-      "public_sha256": "7b6fd363cee4d2982aaf28e5969815384ed6cf7c5d1c7d44f353853251ff11ea",
+      "public_sha256": "ee06238901b869f64a941141130dc3259854ce4e013ac0c1762839a37d7f85ff",
       "source_blob": "9522299805d0f6a97319344fbb71702b0bbd3468"
     },
     "demo_results/mainnet_5243118_catalogue.json": {

@@ -2,28 +2,31 @@
 
 **Trace Hemi blocks to Bitcoin publications.**
 
-Traze is a Hemi–Bitcoin publication explorer for developers investigating the
-Bitcoin publication evidence supporting a Hemi block.
+Traze is a Hemi–Bitcoin publication explorer for developers.
 
-Search by Hemi block number or hash, inspect the keystone connection, review
-transaction inclusion and ancestry checks, and export evidence for offline
-verification.
+Start with a Hemi block number or hash from your application or logs.
+Find a supporting Bitcoin publication, inspect the keystone connection,
+and share the evidence behind the result.
 
 **Status:** Developer-run application with indexed search and bounded public-data
 discovery. A supported hosted public service is not yet available.
 
 ## Capabilities
 
-- Find applicable Bitcoin publications from a Hemi block number or hash.
-- Inspect the requested block, covering keystone, later keystone when applicable,
-  and publication transaction through a connected route.
+- Search by Hemi block number or hash using stored evidence or bounded public-data discovery.
+- Follow the requested block, covering keystone, later keystone when applicable,
+  and Bitcoin publication transaction through a connected route.
 - Review proof checks, recorded source observations and actual search coverage.
 - Inspect transaction fees and fee rates when the required previous-output records are retained.
 - Browse indexed publications and keystones in table or timeline views.
-- Copy identifiers and evidence summaries, or download a JSON evidence export.
-- Read indexed evidence through a versioned API and verify exported evidence offline.
-- Inspect conditional first-publication assessments and named reference finality
-  calculations when their required evidence and accepted assumptions are available.
+- Copy identifiers and summaries, export evidence JSON, and verify exports offline.
+
+Developers can retrieve indexed evidence through the [versioned read API](docs/READ_API.md).
+
+For deeper investigation, Traze provides
+[conditional first-publication assessments](docs/FIRST_PUBLICATION.md) and
+[named reference finality calculations](docs/FINALITY.md).
+Their guides explain the required evidence, assumptions and limitations.
 
 ## Run locally
 
@@ -39,11 +42,15 @@ python -B hemi_catalogue.py build --body-dir tests/fixtures/bitcoin_blocks
 python -B hemi_lookup_web.py --mode discovery
 ```
 
-Open [127.0.0.1:8765](http://127.0.0.1:8765/) and select **Find publication** after
-entering a Hemi mainnet block number or full block hash. The homepage introduces
-the explorer with an interactive recorded example. Select its nodes to inspect
-historical records. Valid search submissions and direct record links use the
-focused evidence workspace. Keep the terminal running.
+Open [127.0.0.1:8765](http://127.0.0.1:8765/) and keep the terminal running.
+
+To try a recorded example, enter `5243117` and select **Find publication**,
+or select **Inspect this example** on the homepage.
+
+You can also enter your own Hemi mainnet block number or full `0x`-prefixed
+block hash. Searches requiring new public data depend on provider availability
+and configured limits; a match is not guaranteed for every input.
+
 The [quickstart](docs/QUICKSTART.md) covers setup, included examples and troubleshooting.
 
 ## How search works

@@ -1,7 +1,7 @@
 {
-  "type": "milestone4_source_feasibility",
+  "type": "bitcoin_source_metadata_fixture",
   "started_at": "2026-10-04T18:40:45.257921+00:00",
-  "scope": "temporary metadata validator, no product fallback implementation",
+  "scope": "Recorded Bitcoin metadata and header responses for offline recovery tests.",
   "results": [
     {
       "source": "https://blockstream.info/api",

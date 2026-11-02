@@ -22,6 +22,7 @@ USER_PATH = re.compile(r"(?:[A-Za-z]:[\\/]+Users[\\/]+[A-Za-z0-9_][A-Za-z0-9_ .-
 SESSION_TEXT = re.compile(r"\b(?:owner (?:approved|selected)|agent records (?:its|the) review|already-approved aggregate|authorize a new (?:live|validation) scope|current resume point|closed allowances|visual thesis|closed experiment|supplied AMA answer|Hemi PoP Q&A transcript, section)\b", re.IGNORECASE)
 STAGE_COMMENT = re.compile(r'''(?im)^\s*(?://|\#|"{3}|'{3}).*\b(?:F\d+|H\d+)\s+(?:integration|worker result)\b''')
 STAGE_FILE = re.compile(r"^(?:milestone\d+_|phase\d+_|test_h\d+_)", re.IGNORECASE)
+STAGE_METADATA = re.compile(r"\b(?:milestone|phase)[ _-]*\d+(?=[ _-]|$)", re.IGNORECASE)
 
 
 def inspect_text(relative, raw):
@@ -53,6 +54,9 @@ def inspect_text(relative, raw):
             def bookkeeping(item):
                 if isinstance(item, dict):
                     if 'milestone_usage' in item:
+                        return True
+                    if any(isinstance(item.get(key), str) and STAGE_METADATA.search(item[key])
+                           for key in ('type', 'schema', 'kind', 'scope', 'description', 'qualification', 'label')):
                         return True
                     resources = item.get('resources')
                     if isinstance(resources, dict) and resources.keys() & {'run_id', 'response_bytes_session_with_prior_validation'}:

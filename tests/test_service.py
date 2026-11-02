@@ -39,7 +39,7 @@ class Clock:
 
 
 def fixture_policy(**changes):
-    # Synthetic test limits; this is not an approved live operating allocation.
+    # Synthetic policy limits for offline tests with controlled sources.
     return {"period_seconds": 300, "response_bytes": 30_000_000, "requests": 500,
             "body_attempts": 10, "cache_bytes": 4_000_000, "state_bytes": 100_000_000,
             "job_heights": 1, "poll_seconds": 30, "backoff_max_seconds": 120, **changes}

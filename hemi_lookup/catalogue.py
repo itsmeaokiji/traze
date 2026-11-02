@@ -41,7 +41,7 @@ def height(header):
 
 
 def intervals(rows):
-    """Do not join different branches or the two disjoint nominated periods."""
+    """Group contiguous blocks only when their parent hashes connect."""
     result, previous = [], None
     for row in sorted(rows, key=lambda item: (item["height"], item["hash"])):
         if (previous and row["height"] == previous["height"] + 1
