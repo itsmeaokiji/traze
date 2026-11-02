@@ -104,15 +104,20 @@ class Jobs:
             raise WebError("unknown_receipt", "The saved receipt was not found.", 404)
         return item
 
-    def receipt(self, identity, *, include_finality=True):
+    def checked_receipt(self, identity):
+        """Recheck original evidence without optional derived assessments."""
         item = self.receipt_path(identity)
         try:
             receipt = load_receipt(item["path"])
         except (DataError, OSError, ValueError):
             raise WebError('saved_receipt_unavailable', 'This saved file is unavailable or unreadable. Choose another saved result.', 422) from None
         verified = verify_receipt(receipt)  # Recompute; never trust stored success flags.
-        wrapper = self.evidence.attach({"id": identity, "label": item["label"], "origin": item["origin"],
-                "filename": item["path"].name, "receipt": receipt, "verification": verified}, check=ReadBudget(), include_finality=include_finality)
+        return {"id": identity, "label": item["label"], "origin": item["origin"],
+                "filename": item["path"].name, "receipt": receipt, "verification": verified}
+
+    def receipt(self, identity, *, include_finality=True):
+        wrapper = self.evidence.attach(self.checked_receipt(identity), check=ReadBudget(), include_finality=include_finality)
+        receipt = wrapper['receipt']
         if self.index_handoff_enabled and re.fullmatch(r'[0-9a-f]{32}', identity):
             wrapper['index_update'] = self.index_status(identity)
         if self.mode == 'discovery':
@@ -610,14 +615,14 @@ class Handler(BaseHTTPRequestHandler):
             match = re.fullmatch(r"/api/receipts/([a-z0-9-]+)(/download)?", path)
             if match:
                 identity, download = match.groups()
-                wrapper = self.server.jobs.receipt(identity, include_finality=not download)
                 if download:
+                    wrapper = self.server.jobs.checked_receipt(identity)
                     query = wrapper["receipt"]["query"]
                     target = f"hash-{query['requested_block_hash'][2:]}" if query.get("input_type") == "hash" else f"block-{query['block_number']}"
                     self.send(200, json.dumps(wrapper["receipt"], indent=2).encode("utf-8"),
                               filename=f"hemi-{target}-{identity}.json")
                 else:
-                    self.json(200, wrapper)
+                    self.json(200, self.server.jobs.receipt(identity))
                 return
             match = re.fullmatch(r"/api/jobs/([0-9a-f]{32})", path)
             if match:

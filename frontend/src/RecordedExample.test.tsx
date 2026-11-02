@@ -24,7 +24,7 @@ describe('recorded homepage walkthrough', () => {
     expect(within(panel).getByText('Historical source observation time')).toBeTruthy();
     expect(within(panel).getByText(formatDate(recorded.context.checked_at))).toBeTruthy();
     expect(within(panel).queryByText('Recorded source-check time')).toBeNull();
-    expect(document.activeElement).toBe(panel);
+    await waitFor(() => expect(document.activeElement).toBe(panel));
     fireEvent.keyDown(panel, { key: 'Escape' });
     expect(screen.queryByRole('complementary')).toBeNull();
     expect(document.activeElement).toBe(trigger);

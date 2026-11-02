@@ -189,6 +189,10 @@ class CostService:
                 row = catalogue.execute('SELECT data FROM publications WHERE txid=? AND length(data)<=? ORDER BY id LIMIT 1',
                                            (txid, MAX_RECORD_BYTES)).fetchone()
                 if row:
+                    # TEXT affinity does not exclude BLOB values. Invalid
+                    # optional metadata must not block the receipt.
+                    if not isinstance(row[0], str):
+                        raise CostUnavailable()
                     budget(len(row[0].encode('utf-8')))
                     data = json.loads(row[0])
                     if not isinstance(data, dict):
@@ -202,7 +206,7 @@ class CostService:
         def parent_reader(txid):
             try:
                 return read_parent(txid)
-            except (OSError, sqlite3.Error, ValueError, KeyError, TypeError):
+            except (OSError, sqlite3.Error, ValueError, KeyError, TypeError, RecursionError):
                 if budget.external_error:
                     raise budget.external_error
                 raise CostUnavailable() from None

@@ -5,6 +5,8 @@
 - Inspect fees, virtual sizes and fee rates computed from retained transactions
   and hash-checked previous-output references.
 - Keep unavailable costs separate from zero fees, source checks and PoP rewards.
+- Keep saved evidence usable when optional parent metadata is malformed, and
+  download original JSON independently of derived assessments.
 
 ## Viewer-local timestamps
 

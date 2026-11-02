@@ -154,6 +154,40 @@ class RetainedCostIntegrationTests(unittest.TestCase):
         with self.assertRaises(DataError):
             CostService(self.state).assess(receipt, check=budget)
 
+    def test_blob_parent_metadata_keeps_saved_evidence_usable(self):
+        receipt = json.loads((ROOT / 'demo_results/mainnet_5243117.json').read_text())
+        parent = parsed(bytes.fromhex(receipt['proofs'][0]['raw_transaction_hex']))['inputs'][0]['txid']
+        with tempfile.TemporaryDirectory() as temp:
+            state = Path(temp)
+            shutil.copyfile(self.database, state / 'catalogue.sqlite3')
+            with closing(sqlite3.connect(state / 'catalogue.sqlite3')) as database:
+                database.execute('UPDATE publications SET data=? WHERE txid=?', (sqlite3.Binary(b'{}'), parent))
+                database.commit()
+            before = (state / 'catalogue.sqlite3').read_bytes()
+            with patch.object(socket.socket, 'connect', side_effect=AssertionError('No source request')):
+                wrapper = Jobs(ROOT, state_dir=state).receipt('example-ordinary', include_finality=False)
+            self.assertEqual(wrapper['receipt'], receipt)
+            self.assertEqual(wrapper['verification']['proofs_checked'], len(receipt['proofs']))
+            cost = wrapper['transaction_costs']['transactions'][0]
+            self.assertEqual(cost['status'], 'unavailable')
+            self.assertEqual(cost['reason'], 'previous_output_records_unavailable')
+            self.assertIsNone(cost['fee_sats'])
+            self.assertEqual(cost['vsize_vbytes'], 283)
+            self.assertEqual((state / 'catalogue.sqlite3').read_bytes(), before)
+            self.assertFalse((state / 'session.json').exists())
+
+    def test_parent_json_decoder_recursion_remains_optional(self):
+        receipt = json.loads((ROOT / 'demo_results/mainnet_5243117.json').read_text())
+        receipt['proofs'] = receipt['proofs'][:1]
+        # Model the JSON decoder's bounded-recursion failure, without allocating
+        # an excessively nested fixture or changing the process recursion limit.
+        with patch('hemi_lookup.costs.json.loads', side_effect=RecursionError('Controlled parent JSON nesting')):
+            cost = CostService(self.state).assess(receipt)['transactions'][0]
+        self.assertEqual(cost['status'], 'unavailable')
+        self.assertEqual(cost['reason'], 'previous_output_records_unavailable')
+        self.assertIsNone(cost['fee_sats'])
+        self.assertEqual(cost['vsize_vbytes'], 283)
+
     def test_actual_indexed_and_saved_costs_and_receipt_preservation(self):
         with patch.object(socket.socket, 'connect', side_effect=AssertionError('No source request')):
             result = Explorer(self.state).read('blocks/5243119', {})

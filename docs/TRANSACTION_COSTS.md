@@ -35,6 +35,8 @@ record; their fee data remains unavailable in this version. The maintained index
 is preferred when present; an unusable maintained index does not fall back to an
 older catalogue. A transaction-ID SQL index accelerates newly prepared indexes;
 compatible older indexes remain readable within the same bounded work policy.
+Malformed parent-record storage or a JSON decoding failure leaves optional costs
+unavailable without replacing an otherwise checkable saved result.
 
 Missing previous outputs or a local capacity limit leaves the fee and fee rate
 unavailable; a genuine zero fee is displayed as zero. Supplied-byte size can
@@ -63,6 +65,9 @@ transaction fees across publication outputs. `source_requests` is zero and
 `source_views_rechecked` is false.
 
 Original receipt JSON and its offline verifier retain their previous meanings.
+The original JSON download rechecks the stored receipt and its proof data without
+running optional cost, first-publication or finality assessments. Separate
+verification-package exports retain their own assessment checks.
 That export does not include the extra parent transactions required to reproduce
 a cost calculation; the cost fields are separate response metadata. The Python
 `hemi_lookup.costs.calculate` function can recompute costs with supplied raw

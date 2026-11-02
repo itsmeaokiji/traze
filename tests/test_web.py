@@ -1,8 +1,10 @@
 """Browser bridge tests: actual HTTP routes and engine with controlled public views."""
 
 import copy
+from contextlib import closing
 import json
 import re
+import sqlite3
 import tempfile
 import threading
 import time
@@ -13,6 +15,8 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from hemi_lookup.engine import Engine
+from hemi_lookup.bitcoin import Reader, parse_transaction
+from hemi_lookup.catalogue import CATALOGUE_SCHEMA
 from hemi_lookup.proof import verify_receipt
 from hemi_lookup.web import Jobs, LocalServer, WebError
 from test_demo import FakeSources, REFERENCE
@@ -75,6 +79,43 @@ class WebTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), before)
         self.assertFalse((self.root / ".hemi_lookup_data/session.json").exists())
 
+    def test_original_download_skips_optional_derived_assessments(self):
+        before = self.path.read_bytes()
+        with patch.object(self.jobs.evidence, 'attach', side_effect=AssertionError('Original JSON needs no derived assessments')), \
+             patch('hemi_lookup.web.PublicSources', side_effect=AssertionError('No source construction')), \
+             patch('hemi_lookup.web.Session', side_effect=AssertionError('No source session')):
+            status, headers, raw = self.request('/api/receipts/example-ordinary/download')
+        self.assertEqual(status, 200)
+        self.assertIn('attachment', headers['Content-Disposition'])
+        self.assertEqual(json.loads(raw), REFERENCE)
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_blob_parent_data_preserves_saved_result_and_download_routes(self):
+        parent = parse_transaction(Reader(bytes.fromhex(REFERENCE['proofs'][0]['raw_transaction_hex'])))['inputs'][0]['txid']
+        state = self.jobs.state_dir
+        state.mkdir(parents=True, exist_ok=True)
+        # Controlled invalid SQLite storage type; not a new chain observation.
+        with closing(sqlite3.connect(state / 'service.sqlite3')) as database:
+            database.executescript('CREATE TABLE meta(key TEXT, value TEXT); CREATE TABLE publications(id TEXT, txid TEXT, data TEXT);')
+            database.execute('INSERT INTO meta VALUES (?, ?)', ('schema', CATALOGUE_SCHEMA))
+            database.execute('INSERT INTO publications VALUES (?, ?, ?)', ('invalid-parent', parent, sqlite3.Binary(b'{}')))
+            database.commit()
+        before = self.path.read_bytes()
+        with patch('hemi_lookup.web.PublicSources', side_effect=AssertionError('No source construction')), \
+             patch('hemi_lookup.web.Session', side_effect=AssertionError('No source session')):
+            status, _, raw = self.request('/api/receipts/example-ordinary')
+            self.assertEqual(status, 200)
+            wrapper = json.loads(raw)
+            self.assertEqual(wrapper['receipt'], REFERENCE)
+            self.assertEqual(wrapper['verification']['proofs_checked'], 1)
+            self.assertIsNone(wrapper['transaction_costs']['transactions'][0]['fee_sats'])
+            self.assertEqual(wrapper['transaction_costs']['transactions'][0]['status'], 'unavailable')
+            status, _, raw = self.request('/api/receipts/example-ordinary/download')
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(raw), REFERENCE)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertFalse((state / 'session.json').exists())
+
     def test_default_indexed_mode_missing_index_never_starts_source_work(self):
         self.jobs = self.server.jobs = Jobs(self.root)
         self.assertEqual(self.jobs.state()['serving_mode'], 'indexed-only')
@@ -126,6 +167,9 @@ class WebTests(unittest.TestCase):
         status, _, raw = self.request("/api/receipts/example-ordinary")
         self.assertEqual(status, 422)
         self.assertEqual(json.loads(raw)["error"]["code"], "invalid_proof")
+        status, _, raw = self.request('/api/receipts/example-ordinary/download')
+        self.assertEqual(status, 422)
+        self.assertEqual(json.loads(raw)['error']['code'], 'invalid_proof')
 
     def test_local_only_routes_and_security_headers(self):
         self.assertEqual(self.server.server_address[0], "127.0.0.1")
