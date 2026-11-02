@@ -26,7 +26,9 @@ def age(stamp, current):
         value = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
         if value.tzinfo is None:
             return None
-        seconds = current - value.timestamp()
+        # Epoch floats can round the same instant differently; use microseconds.
+        current_time = datetime.fromtimestamp(current, timezone.utc)
+        seconds = (current_time - value).total_seconds()
         return round(seconds, 3) if seconds >= 0 else None
     except (TypeError, ValueError, AttributeError, OverflowError):
         return None

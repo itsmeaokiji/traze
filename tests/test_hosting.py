@@ -6,12 +6,13 @@ import shutil
 import tempfile
 import time
 import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qsl
 
 from hemi_lookup.catalogue import build_catalogue, timestamp
-from hemi_lookup.operations import inspect_state, public_snapshot, MONITOR_SCHEMA
+from hemi_lookup.operations import age, inspect_state, public_snapshot, MONITOR_SCHEMA
 from hemi_lookup.public import PublicApplication, origin_setting, server_options
 from hemi_lookup.collection_store import CollectionStore
 
@@ -189,6 +190,59 @@ class HostingTests(unittest.TestCase):
         for record in ({}, {"schema": MONITOR_SCHEMA, "generated_at": "2000-01-01T00:00:00Z"},
                        {"schema": MONITOR_SCHEMA, "generated_at": "2099-01-01T00:00:00Z"}):
             self.assertEqual(public_snapshot(record)["monitoring"], "unavailable")
+
+    def test_monitoring_same_instant_float_rounding_keeps_public_status_available(self):
+        generated = "2026-11-02T07:34:00.000008+00:00"
+        current = float(1_793_604_840_000_008_000) / 1_000_000_000
+        self.assertLess(current, datetime.fromisoformat(generated).timestamp())
+        value = {"schema": MONITOR_SCHEMA, "generated_at": generated,
+                 "observation_max_age_seconds": 60,
+                 "observations": {"bitcoin": {"observed_at": "2020-01-01T00:00:00Z"}},
+                 "collection": {"state": "stopped", "processed_blocks": 17,
+                                "id": "secret", "issue": {"message": "private"}}}
+        self.app.monitor_file = self.state / "monitor.json"
+        self.app.monitor_file.write_text(json.dumps(value), encoding="utf-8")
+        with patch("hemi_lookup.operations.time.time", return_value=current):
+            status, _, result = self.request("/api/v1/status")
+        self.assertEqual(status, 200)
+        self.assertEqual(result["monitoring"], "available")
+        self.assertEqual(result["generated_at"], generated)
+        self.assertEqual(result["observations"]["bitcoin"]["recency"], "stale")
+        self.assertEqual(result["collection"], {"state": "stopped", "processed_blocks": 17})
+        self.assertNotIn("secret", json.dumps(result))
+        self.assertNotIn("private", json.dumps(result))
+
+    def test_monitoring_age_uses_timestamp_precision_and_accepts_offsets(self):
+        for micros in (8, 19, 29):
+            current = float(1_793_604_840_000_000_000 + micros * 1000) / 1_000_000_000
+            for offset, clock in (("+00:00", "07:34:00"), ("+08:00", "15:34:00")):
+                generated = f"2026-11-02T{clock}.{micros:06d}{offset}"
+                with self.subTest(generated=generated):
+                    self.assertEqual(age(generated, current), 0)
+                    self.assertEqual(public_snapshot({"schema": MONITOR_SCHEMA,
+                        "generated_at": generated}, current=current)["monitoring"], "available")
+
+    def test_monitoring_precision_fix_keeps_future_stale_and_invalid_data_unavailable(self):
+        current = float(1_793_604_840_000_008_000) / 1_000_000_000
+        for generated in ("2026-11-02T07:34:00.000009+00:00",
+                          "2026-11-02T07:34:01.000008+00:00",
+                          "2026-11-02T07:31:59.999008+00:00",
+                          "2026-11-02T07:34:00.000008", "invalid", None):
+            with self.subTest(generated=generated):
+                result = public_snapshot({"schema": MONITOR_SCHEMA, "generated_at": generated,
+                    "collection": {"state": "stopped", "id": "secret"}}, current=current)
+                self.assertEqual(result["monitoring"], "unavailable")
+                self.assertEqual(result["observations"], {})
+                self.assertIsNone(result["collection"])
+        self.assertIsNone(age("2026-11-02T07:34:00.000009+00:00", current))
+        self.assertEqual(age("2026-11-02T07:32:00.000008+00:00", current), 120)
+        self.assertEqual(public_snapshot({"schema": MONITOR_SCHEMA,
+            "generated_at": "2026-11-02T07:32:00.000008+00:00"}, current=current)["monitoring"], "available")
+        for generated, now in (({}, current), ("2026-11-02T07:34:00+00:00", float("nan")),
+                               ("2026-11-02T07:34:00+00:00", float("inf")),
+                               ("2026-11-02T07:34:00+00:00", "invalid")):
+            with self.subTest(generated=generated, current=now):
+                self.assertIsNone(age(generated, now))
 
     def test_monitoring_recent_snapshot_can_have_old_source_data_and_no_private_fields(self):
         value = {"schema": MONITOR_SCHEMA, "generated_at": timestamp(), "observation_max_age_seconds": 60,

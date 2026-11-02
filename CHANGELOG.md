@@ -1,5 +1,10 @@
 # Changelog
 
+## Monitoring timestamp precision
+
+- Compare monitoring times at timestamp precision so floating-point conversion
+  does not mark an equivalent current snapshot as unavailable.
+
 ## Publication transaction costs
 
 - Inspect fees, virtual sizes and fee rates computed from retained transactions
